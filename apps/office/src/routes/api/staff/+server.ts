@@ -64,7 +64,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const name = text(b.name, LIMITS.name);
   const role = text(b.role, LIMITS.role);
   const remit = text(b.remit, LIMITS.remit);
-  const desk = text(b.desk, 20_000);
+  const desk = text(b.desk, LIMITS.desk);
   const drawn = drawnFrom(b);
   const office = await currentOffice();
   const rooms = new Set(office.world.rooms.map((r) => r.id.split('#')[0]));

@@ -1171,8 +1171,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     EOF
     ```
 
-12. **Hire** on the office plate opens a five-step drawer
-    (`src/lib/ui/HireDrawer.svelte`). Step one makes the person's look
+12. **Hire** on the office plate opens the hire drawer
+    (`src/lib/ui/HireDrawer.svelte`). An owner can start it from a Claude Code
+    agent Markdown file. Its name, description, instructions and supported model
+    fill the same form. The form lists settings left in the file. Access still
+    comes from the office. Step one makes the person's look
     (`src/lib/ui/LookStudio.svelte`), drawn or built. Drawn: the owner
     describes them, LookStudio asks `/api/looks`, and
     the owner sees the portrait and the walk, then redraws with a note or keeps it.
