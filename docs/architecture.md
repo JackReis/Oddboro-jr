@@ -30,7 +30,8 @@ an app; `ledger` imports `world` and `sprites`, and `world` imports `sprites`.
 - `apps/site`. The public site, static. It reads `sprites` and `world` only.
 - `scripts`. The lint guards: plain Node, no dependencies.
 - `.github/workflows`. `ci.yml` runs the checks on every pull request, on a
-  Mac, Linux and Windows; `release.yml` builds the app; `codeql.yml` scans.
+  Mac, Linux and Windows, unless it changes only the site or the docs;
+  `site.yml` checks those; `release.yml` builds the app; `codeql.yml` scans.
 
 ## One function per job
 
@@ -82,7 +83,12 @@ change.
   `packages/ledger/src/desk-answers.ts`, which says what each answer does. A
   kind the owner answers on its own card (a reply, a filter, a folder, a call)
   gives `approve` a `by`, the line a bare yes gets, and its route approves it;
-  a plain yes (a `switch` ask) names its effects directly.
+  a plain yes (a `switch`, `level` or `office_tool` ask) names its effects
+  directly. Check-types then fails at `TWINS`, the repeat guard's switch in
+  `raiseAsk` and `grantSetting` in `office.ts`, `carriedLinesOf` and
+  `carryOutBrief` in `apps/office/src/lib/server/follow-up-brief.ts`,
+  `YES_SAID` in `apps/office/src/lib/ui/yes-said.ts`, and `ASK_ROWS` in the
+  office's `named-tools.test.ts`.
 - **A follow-up kind.** Start at `FOLLOW_UP_KINDS` in `schema.ts`. Check-types
   fails at every `Record<FollowUpKind, ...>`, `AT_DRAFT` and
   `SERVES_NO_THREAD` in `hand-offs.ts` among them, and at the switch in
