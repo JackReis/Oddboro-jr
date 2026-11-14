@@ -27,6 +27,8 @@ import {
   atDraft,
   capabilities,
   capped,
+  handedOver,
+  handOffsLine,
   CHAT_STORIES_MAX,
   chatSession,
   type ChatCard,
@@ -301,7 +303,9 @@ export async function runHomeOf(who: StaffRow): Promise<string> {
  * (`atDraft`), and any run that serves a colleague's hand-off, works at Draft
  * at most (`ceiling`), so a colleague's words never stand in for the owner's
  * yes. Only the carry-out of an approval ask, the owner's yes to that exact
- * action, keeps the Odd's level. Its
+ * action, keeps the Odd's level, and so does every run that serves a
+ * hand-off when the owner lets the Odd act on its own on work from
+ * colleagues (`actsOnHandOffs`). Its
  * caps come down to the ceiling too (`capped`), so its prompt lists what it loads.
  * Every outside tool reaches the run through the office's gateway
  * (gateway.ts), which keeps the keys and passes on only the tools the grant
@@ -310,10 +314,18 @@ export async function runHomeOf(who: StaffRow): Promise<string> {
  * at Draft lists every tool, and the gateway holds each change for the
  * owner's yes (`writesWait`), on the desk where `place` says, but for the
  * tools the owner lets the Odd use without asking (`standing`), in any run
- * with a place; a run with no place (a lesson run) changes nothing. At Act
- * it holds only calls to the tools the owner set to ask first (`askFirst`).
+ * with a place but one that serves a colleague's hand-off (`handed`) while the
+ * owner keeps such work to ask first (`handedOver`); a run with no place (a
+ * lesson run) changes nothing. At Act it holds only calls to the tools the
+ * owner set to ask first (`askFirst`).
  */
-async function access(who: StaffRow, ceiling: Level, ms: number, place?: CallPlace) {
+async function access(
+  who: StaffRow,
+  ceiling: Level,
+  ms: number,
+  place: CallPlace | undefined,
+  handed: boolean
+) {
   const office: McpServer = {
     type: 'stdio',
     command: process.execPath,
@@ -324,7 +336,8 @@ async function access(who: StaffRow, ceiling: Level, ms: number, place?: CallPla
   };
   const servers: Record<string, McpServer> = { office };
   const allowed = ['mcp__office'];
-  const caps = capped(await capabilities(who), ceiling);
+  const held = capped(await capabilities(who), ceiling);
+  const caps = handed ? handedOver(held) : held;
   const reach: {
     connector: ConnectorRow;
     level: Level;
@@ -456,6 +469,8 @@ function canDo(
     '## What you can do',
     '',
     `- ${levelLine(caps.level, owner)}`,
+    // At Act, what the owner chose for work another Odd hands it, as my_access says.
+    ...(caps.level === 'act' ? [`- ${handOffsLine(caps.actsOnHandOffs, owner)}`] : []),
     `- ${runsOnLine(agent)}`,
     `- ${[writes, ...ownToolsSaid(agent, caps.own, officeHeld), beyond].join(' ')}`,
     '- If a brief names tools you do not have, do the work with your own tools.',
@@ -750,7 +765,7 @@ export type RunOpts = {
   ownerNote?: string;
   /** The file the owner edited, and their version of it, which a lesson read from it quotes. The run may not write that file. */
   ownerEdit?: { path: string; text: string };
-  /** Draft at most: a follow-up `atDraft` names, or one that serves a colleague's hand-off, except an approval ask's carry-out. */
+  /** Draft at most: a follow-up `atDraft` names, or one that serves a colleague's hand-off, except an approval ask's carry-out and an Odd the owner lets act on its own there (`actsOnHandOffs`). */
   draftOnly?: boolean;
   /** A run that only reads the owner's reason or edit for a lesson (`servesNoThread`): it hands nothing on. */
   lessonRun?: boolean;
@@ -889,7 +904,8 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
           handOffId: opts.handOffId,
           threadId: opts.threadId,
           via: opts.via
-        }
+        },
+    opts.handOffId !== undefined
   );
   // A source can sign out between the check of both jobs and this run.
   const unavailable = caps.outside.filter(
@@ -1581,10 +1597,14 @@ export async function followThrough(
   // so a colleague's words never stand in for the owner's yes, even after a
   // yes that raised this Odd's own level or tools. The carry-out of an
   // approval ask is the owner's yes to that exact action, so it keeps the
-  // Odd's level and one yes stays one yes.
+  // Odd's level and one yes stays one yes. The owner can let an Odd act on
+  // its own on work from colleagues (`actsOnHandOffs`): then every run that
+  // serves a hand-off keeps its level. It never lifts a kind `atDraft` names.
   const draftOnly =
     atDraft(f.kind) ||
-    (serves !== undefined && !(f.kind === 'carry_out' && a?.kind === 'approval'));
+    (serves !== undefined &&
+      !(f.kind === 'carry_out' && a?.kind === 'approval') &&
+      !who.actsOnHandOffs);
   const res = await slot(who.id, work, (onEvent, runId) =>
     run(who, label, {
       kind: 'follow-up',
@@ -1631,12 +1651,18 @@ export async function followThrough(
               result: f.note,
               thread: thread.id,
               goal: goalServed,
-              joined
+              joined,
+              acts: !draftOnly && who.permission === 'act'
             })
           : edit
             ? editBrief(edit.path, edit.shown)
             : [
-                ...followUpBrief(f, a, r, task, g, { also, draftOnly, level: who.permission }),
+                ...followUpBrief(f, a, r, task, g, {
+                  also,
+                  draftOnly,
+                  level: who.permission,
+                  actsOnHandOffs: who.actsOnHandOffs
+                }),
                 ...(serves?.handOff && giver && thread
                   ? handOffContext({
                       h: serves.handOff,
