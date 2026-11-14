@@ -601,6 +601,18 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `changeLevel` and `hire` throw `ActCheckNeeded`, so a level ask's yes
    leaves the ask open. Read and Draft never need it, and an Odd already at
    Act stays there. No Odd's prompt or tool sees the check.
+   Right after the check passes, or at once when it was passed before, the
+   same three actions ask what happens when another Odd hands that Odd work
+   (`HandOffChoice.svelte`, in the check's look), every time an Odd goes to
+   Act from a lower level and never for one already there. Ask me first is
+   picked to start with; Cancel changes nothing. The raise sends the pick as
+   `actsOnHandOffs` (Settings PATCH, the ask POST, the hire POST), and the
+   office keeps the stored value when none comes. The words live in the
+   ledger's `HAND_OFF_CHOICE`. While the Odd is at Act, the Settings tab shows
+   the same two options under Permission level (PATCH with `actsOnHandOffs`
+   alone, `setActsOnHandOffs`, refused below Act); below Act they are hidden
+   and the stored value stays. Each change writes its own access line, such as
+   "Let Ada act on its own on work from colleagues".
    The Settings tab has four tabs, Model first, then Office, Folders and
    Services, each an icon and a word, the icon alone when the bar is under
    22rem (a container query). Office, Folders and Services each have a search
@@ -1016,6 +1028,9 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    call without both is refused and holds nothing. The run hears that
    nothing changed yet. A tool the Odd uses without asking (`grants.standing`,
    the ledger's `standing.ts`) goes straight through in any run with a place,
+   but one that serves a colleague's hand-off while the owner asks first on
+   that Odd's work from colleagues (`actsOnHandOffs` off, `handedOver` in the
+   ledger's `capabilities.ts`): there each call waits for the owner's yes,
    is listed without the two fields, and each such call rides on the run's
    next held call to that service (`before`), which the desk lists as "Made
    without asking before this call", so a commit shows what it applies.
@@ -1042,7 +1057,14 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    carry-out of an approval ask, the owner's yes to that exact action, runs
    at the Odd's level) passes its ceiling as `CEILING` the same way, so `my_access`
    says Draft and why, with a write grant read only, as the prompt does
-   (`capped`, `accessInRun`).
+   (`capped`, `accessInRun`). When the owner lets the Odd act on its own on
+   work from colleagues (`staff.acts_on_hand_offs`), the hand-off's own run
+   and every run that serves it keep the Odd's level; the hub's pick-up, a
+   thread picked back up and a lesson run stay at Draft. A run that serves a
+   hand-off passes `HAND_OFF_ID`, so `my_access` leaves out the standing yeses
+   it does not have there. An Odd at Act is told what the owner chose, in its
+   prompt and in `my_access` (`handOffsLine`). `run-ceiling.test.ts` checks
+   every state with the choice off and on.
    Physical mail signs in to LegalZoom's read-only endpoint. The owner chooses
    one PMB for the office on the Desk. A run receives only list, details, and
    scanned text. The gateway supplies the chosen PMB and checks the Odd still
