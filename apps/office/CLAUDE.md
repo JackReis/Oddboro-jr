@@ -243,9 +243,15 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    Folders tab's line. Plain Approve refuses a folder ask. A `switch` ask (an
    Odd's `ask_for_switch`) takes Turn on, which approves it and turns Run
    commands, Browse the web or both on for that Odd in one step, as the
-   Settings tab does. A `standing` ask (an Odd's `ask_for_standing_yes`)
-   takes Allow or Deny and no Iterate, and Allow puts the tools on the grant.
-   A `remove` ask (an Odd's `leave_office`, or the
+   Settings tab does. A `level` ask (an Odd's `ask_for_level`) takes Raise to
+   and the level it names ("Raise to Act"), and an `office_tool` ask (an
+   Odd's `ask_for_office_tool`) takes Turn on; each approves it and makes the
+   Settings tab's own change for that Odd in one step. Raise to Act shows the
+   Act check first, until the owner passed it (below). A `standing` ask (an
+   Odd's `ask_for_standing_yes`) takes Allow or Deny and no Iterate, and Allow
+   puts the tools on the grant. Each kind's yes button words live in
+   `src/lib/ui/yes-said.ts` (`YES_SAID`), which the Desk imports and
+   `yes-said.test.ts` holds. A `remove` ask (an Odd's `leave_office`, or the
    manager's `remove_odd`) takes Remove, and a `bring_back` ask (the
    manager's `bring_back_odd`) takes Bring back; both take Deny and no
    Iterate. An item a lead raised from a colleague's
@@ -579,6 +585,22 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `setEffort`). Every run passes it: Claude Code's `--effort`, Codex's
    `model_reasoning_effort`, Grok's `--reasoning-effort`, so no Odd takes the
    owner's own Claude Code setting or a tool's default.
+   The Act check: before the owner puts any Odd at Act for the first time,
+   the page shows three true or false statements in a modal over the whole
+   page (`ActCheck.svelte`, a `<dialog>` opened with `showModal`). Escape or
+   Cancel changes nothing. The office checks the answers (POST
+   `/api/act-check`, `passActCheck` in the ledger; the words and right
+   answers live only in the ledger's `act-check.ts`), keeps the pass once in
+   `owner.act_check_at` with one ledger line, "Passed the Act check", and
+   then the raise goes ahead. A wrong answer shows why under it and keeps
+   the answers. Each owner action that puts an Odd at Act goes through
+   `withActCheck` (`act-check.svelte.ts`): the level button "Acts on its
+   own", a level ask's Raise to Act and a hire at Act. The page knows from
+   `actChecked` in its load, and a 409 from the office (`ACT_CHECK_NEEDED`)
+   opens it too. The office refuses Act until the pass whatever sends it:
+   `changeLevel` and `hire` throw `ActCheckNeeded`, so a level ask's yes
+   leaves the ask open. Read and Draft never need it, and an Odd already at
+   Act stays there. No Odd's prompt or tool sees the check.
    The Settings tab has four tabs, Model first, then Office, Folders and
    Services, each an icon and a word, the icon alone when the bar is under
    22rem (a container query). Office, Folders and Services each have a search
@@ -647,8 +669,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    access. `setFolder` refuses one inside or holding
    a folder the Odd already has ("That folder is inside one this Odd already
    has, or holds one."); the line shows under the field. An Odd asks for a
-   folder with `ask_for_folder` (item 7), and for Run commands or Browse the
-   web with `ask_for_switch`, never with steps for this tab: a rule in
+   folder with `ask_for_folder` (item 7), for Run commands or Browse the web
+   with `ask_for_switch`, for a higher level with `ask_for_level`, and for
+   office tools with `ask_for_office_tool`, never with steps for this tab: a
+   rule in
    `house.ts` says so. The
    list reads the profile's folders, each with the home folder written `~`
    (`shown`), so it loads nothing of its own and the staff route has no GET;
@@ -665,7 +689,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `ask_for_switch` (`ownToolsSaid` in the ledger's `capabilities.ts`, held
    network included), the same line `my_access` gives. `office_report` gives
    it too, naming the Odd, since another Odd reads it ("Rowan's own tools",
-   "Rowan's Settings tab").
+   "Rowan's Settings tab"). The same way, an outside tool held back by the
+   level tells the Odd to ask with `ask_for_level`, and office tools not all
+   given tell it to ask with `ask_for_office_tool` (`OWNER_GRANTS` in the
+   ledger's `grantable.ts`); another Odd reading the level line in
+   `office_report` still reads that the owner sets it on Rowan's Settings tab.
    `src/lib/server/grok.ts` starts a Grok run from the office's own Grok home,
    `~/.oddboro/grok` (`GROK_HOME`), never the owner's `~/.grok`. The owner signs
    in to it from the office's page (`agent-sign-in.ts`, item 18); a run from a
@@ -1008,8 +1036,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `my_access` in one line (`runsOnLine`). A hosted sign-in that ran out
    shows only to the run, which passes it to its own `my_access` as
    `SIGNED_OUT`; `office_report` and the Settings tab still show that tool as
-   working. A run below the Odd's own level (a hand-off's, either side, or a
-   hub's pick-up) passes its ceiling as `CEILING` the same way, so `my_access`
+   working. A run below the Odd's own level (a hand-off's, either side, a
+   hub's pick-up, or any run that serves a colleague's hand-off, such as the
+   carry-out of a level, office tool or outside tool ask raised in one; the
+   carry-out of an approval ask, the owner's yes to that exact action, runs
+   at the Odd's level) passes its ceiling as `CEILING` the same way, so `my_access`
    says Draft and why, with a write grant read only, as the prompt does
    (`capped`, `accessInRun`).
    Physical mail signs in to LegalZoom's read-only endpoint. The owner chooses
@@ -1151,13 +1182,14 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     whose tool draws looks (`drawsLooks`, `/api/agents`) also offer drawing. The onboarding manager card offers the same, as "Build your own".
     Nobody is hired without a kept look; in the hire window a look built from parts is kept as it lands (`autoKeep` on `LookStudio`), so Next is the one click, and name and role share a line. While it draws,
     `src/lib/ui/PixelDrawing.svelte` paints a bust pixel by pixel beside the
-    stage and the time. Step three picks the level. Step four, Model, picks
+    stage and the time. Step three picks the level; a hire at Act shows the Act check first, until it is passed. Step four, Model, picks
     what its runs go through the way an Odd's Model tab does: the tool, the
     account it signs in with, the model and how hard it thinks, each the
     office's unless the owner picks another (item 9).
     Hiring grants no tools. The Odd asks for Run commands or Browse the web
-    with `ask_for_switch` when a job needs one, and for outside tools with
-    `ask_for_access`. A first job reports to the owner's desk unless they
+    with `ask_for_switch` when a job needs one, for a higher level with
+    `ask_for_level`, for office tools it lacks with `ask_for_office_tool`, and
+    for outside tools with `ask_for_access`. A first job reports to the owner's desk unless they
     untick it; a proposal can say either way. "Draft it" drafts the job
     description. Both run as the office (`src/lib/server/office-run.ts`),
     never as an Odd, so a new office can hire its first. An office run goes
