@@ -823,14 +823,16 @@
                   <details class="mt-2 text-xs text-muted">
                     <summary class="cursor-pointer">The service won't let me sign in</summary>
                     <p class="mt-2">
-                      If your organization blocks the app, ask your account administrator to review
-                      access. Once they approve it, return here and click Sign in.
+                      If your organization blocks the app, check with the person who manages the
+                      account. Once they approve it, return here and click Sign in.
                     </p>
-                    <p class="mt-2">
-                      If Google says Oddboro is limited to test users or has reached its user limit,
-                      open an Odd's chat and choose More, then Report a bug. Include the error
-                      message only. The report is public. Leave working accounts connected.
-                    </p>
+                    {#if s.action.google}
+                      <p class="mt-2">
+                        If Google says Oddboro is limited to test users or has reached its user
+                        limit, open an Odd's chat and choose More, then Report a bug. Include the
+                        error message only. The report is public.
+                      </p>
+                    {/if}
                   </details>
                 {:else if s.action?.kind === 'postal'}
                   {#if s.done}
