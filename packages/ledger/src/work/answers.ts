@@ -29,7 +29,7 @@ import type { Decided } from '../transition.ts';
 import { changeOf, draft, putAll, type Change, type Draft, type WorkRows } from './snapshot.ts';
 import { askRow, type Ask, type Task, type Thread } from './state.ts';
 import { addRun, handBack, hasLeft, isHandOff, newRun, oweRun } from './threads.ts';
-import { carriedOutBy } from './twins.ts';
+import { carriedOutBy, sameWanted, TWINNED } from './twins.ts';
 
 /**
  * The owner's answer, or a task's end, reaches the lead of a thread: it joins the lead's oldest `resume` there still
@@ -174,13 +174,40 @@ export function taskEffects(
 }
 
 /**
+ * The other asks the owner's one answer settled with `a`, as `answeredWith`
+ * in office-asks.ts finds them: the same Odd, kind and tool or folder,
+ * decided in the same moment the same way.
+ */
+export function answeredWith(rows: WorkRows, a: Ask): Ask[] {
+  if (!TWINNED.includes(a.kind) || a.status === 'open') return [];
+  return [...rows.asks.values()]
+    .filter(
+      (r) =>
+        r.id !== a.id &&
+        r.staffId === a.staffId &&
+        r.kind === a.kind &&
+        r.status !== 'open' &&
+        r.status === a.status &&
+        r.decidedAt.getTime() === a.decidedAt.getTime() &&
+        sameWanted(askRow(a), askRow(r))
+    )
+    .sort((x, y) => x.id - y.id);
+}
+
+/**
  * The run of an ended task's own, on its work or for its Odd, that
  * `wakeParked` tells parked work of, if one picks up: whether the task's end
  * starts one (`OWN_RUN`), and never on stopped work or work whose lead left
  * the office, which runs nothing.
  */
 export function ownRunOf(rows: WorkRows, t: Task): OwnRun | undefined {
-  const { effects, on, offWorkOdd } = taskEffects(rows, t);
+  const { from, effects, on, offWorkOdd } = taskEffects(rows, t);
+  if (t.status === 'done' && from?.access?.connectOnly) {
+    // Other work parked on this task must only be told of a run that will actually start.
+    const doing = carriedOutBy(answeredWith(rows, from).map(askRow));
+    if (!doing.some((a) => a.threadId === on.threadId && a.handOffId === on.handOffId))
+      return undefined;
+  }
   const ownRuns = effects.some(
     (e) =>
       OWN_RUN[e] === 'always' ||

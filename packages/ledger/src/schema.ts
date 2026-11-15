@@ -156,7 +156,12 @@ export type AskStatus = 'open' | 'approved' | 'denied' | 'revise';
  * more Google account of that product: approving it makes a new connector
  * (`addGoogleAccount`) and `connector` then names it.
  */
-export type AccessRequest = { connector: string; level: Level; another?: GoogleProduct };
+export type AccessRequest = {
+  connector: string;
+  level: Level;
+  another?: GoogleProduct;
+  connectOnly?: true;
+};
 /**
  * What a folder ask wants: a folder by its real path (`checkFolder`), to read
  * or to read and change. `given` is set once the owner gave a folder for it:

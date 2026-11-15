@@ -47,7 +47,10 @@ export function parked(
     return { refused: `There is no task ${taskId}.` };
   if (task.status !== 'open')
     return { refused: `Already ${SAID_AS[task.status]}: do it now, in this run.` };
-  if (on === e.threadId)
+  // A connect-only ask's yes starts no run on its work (`resumesWork`), so the
+  // task's end would bring nothing back: the work waits on it instead.
+  const connectOnly = task.askId !== null && !!rows.asks.get(task.askId)?.access?.connectOnly;
+  if (on === e.threadId && !connectOnly)
     return {
       refused:
         'That task is on this work, so the answer to it already brings you back. Finish this run with "Outcome: waiting".'

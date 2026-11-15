@@ -98,6 +98,9 @@ export function asksNoMore(first: AskRow, later: AskRow): boolean {
 export const sameWanted = (a: AskRow, b: AskRow): boolean =>
   a.kind === b.kind && (TWINS[a.kind]?.same(a, b) ?? false);
 
+/** A connection requested for later grants access without starting a second copy of the work. */
+export const resumesWork = (ask: Pick<AskRow, 'access'>) => !ask.access?.connectOnly;
+
 /**
  * Which of the asks one answer settled start a `carry_out`: one for each place
  * a result must go back to, never one per ask. A hand-off's twin comes first,
@@ -109,7 +112,7 @@ export function carriedOutBy(together: AskRow[]): AskRow[] {
   const rank = (a: AskRow) => (a.handOffId ? 0 : a.threadId ? 1 : 2);
   const places = new Set<string>();
   const runs: AskRow[] = [];
-  for (const a of [...together].sort((x, y) => rank(x) - rank(y) || x.id - y.id)) {
+  for (const a of together.filter(resumesWork).sort((x, y) => rank(x) - rank(y) || x.id - y.id)) {
     const place = a.handOffId
       ? `hand-off ${a.handOffId}`
       : a.threadId

@@ -12,6 +12,7 @@ import {
   ANSWERED_ALREADY,
   answerBack,
   offWorkAnswer,
+  answeredWith,
   ownRunOf,
   startCarryOuts,
   taskAnswer,
@@ -28,9 +29,8 @@ import {
   type LedgerLine,
   type WorkRows
 } from './snapshot.ts';
-import { askRow, type Ask, type Task, type Thread } from './state.ts';
+import { type Task, type Thread } from './state.ts';
 import { hasLeft, LEFT_RAISES_NOTHING, oweRun, raisedOn } from './threads.ts';
-import { sameWanted, TWINNED } from './twins.ts';
 
 /** Whether a step of the task connects this tool; with `aws`, only an AWS step counts. */
 export const connects = (t: Pick<Task, 'steps'>, connector: string, aws = false): boolean =>
@@ -100,27 +100,6 @@ export function taskGiven(
   ]);
   if (k.threadId) raisedOn(d, k.threadId, { run: e.run, by: k.staffId, plan: false }, now);
   return { change: changeOf(d, null), after: [] };
-}
-
-/**
- * The other asks the owner's one answer settled with `a`, as `answeredWith`
- * in office-asks.ts finds them: the same Odd, kind and tool or folder,
- * decided in the same moment the same way.
- */
-function answeredWith(rows: WorkRows, a: Ask): Ask[] {
-  if (!TWINNED.includes(a.kind) || a.status === 'open') return [];
-  return [...rows.asks.values()]
-    .filter(
-      (r) =>
-        r.id !== a.id &&
-        r.staffId === a.staffId &&
-        r.kind === a.kind &&
-        r.status !== 'open' &&
-        r.status === a.status &&
-        r.decidedAt.getTime() === a.decidedAt.getTime() &&
-        sameWanted(askRow(a), askRow(r))
-    )
-    .sort((x, y) => x.id - y.id);
 }
 
 /** The open threads parked on a task, by id: the work its end wakes. */

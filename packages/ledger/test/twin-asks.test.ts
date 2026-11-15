@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { and, eq } from 'drizzle-orm';
-import { asks, followUps, staff, tasks, threads } from '../src/schema.ts';
+import { asks, connectors, followUps, staff, tasks, threads } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
 // The ledger rows a decision writes embed nothing: no Ollama answers here.
@@ -218,4 +218,21 @@ test('for switches and office tools, a yes answers each open ask for no more, an
     assert.deepEqual(await withIds(answered.id), [], kind);
     assert.deepEqual(await withIds(elsewhere.id), [], kind);
   }
+});
+
+test('finishing setup starts only a twin that has work to resume', async () => {
+  await db.update(connectors).set({ readyAt: null }).where(eq(connectors.id, 'gmail'));
+  const { ask: setup } = await raiseAsk('paige', {
+    title: 'Prepare mail',
+    why: 'For later',
+    ifApproved: 'Make mail available.',
+    access: { connector: 'gmail', level: 'read', connectOnly: true }
+  });
+  const work = await askFor('gmail');
+  const before = await carryOuts();
+  await decideAsk(setup.id, 'approve', null);
+  const [connection] = await db.select().from(tasks).where(eq(tasks.askId, setup.id));
+  await finishTask(connection.id, true, null);
+  assert.deepEqual((await carryOuts()).slice(before.length), [work.id]);
+  assert.deepEqual(await standsFor((await row(work.id))!), []);
 });

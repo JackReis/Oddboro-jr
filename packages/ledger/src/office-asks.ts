@@ -26,7 +26,7 @@ import { sameCriteria, type GmailFilter } from './filter-words.ts';
 import type { AskRow, LedgerRow } from './office.ts';
 import { precedent } from './office-ledger.ts';
 import { followUp } from './office-follow-ups.ts';
-import { TWINS, asksNoMore, carriedOutBy } from './work/twins.ts';
+import { TWINS, asksNoMore, carriedOutBy, resumesWork } from './work/twins.ts';
 
 // Asks
 
@@ -465,7 +465,7 @@ export async function standsFor(a: AskRow): Promise<AskRow[]> {
   const together = [a, ...(await answeredWith(a))];
   const runs = carriedOutBy(together);
   if (runs[0]?.id !== a.id) return [];
-  return together.filter((x) => !runs.some((r) => r.id === x.id));
+  return together.filter((x) => resumesWork(x) && !runs.some((r) => r.id === x.id));
 }
 
 export { lockDesk, refuseRepeat, TWINS, asksNoMore, carryOutTogether };
