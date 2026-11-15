@@ -863,9 +863,23 @@
                   {:else}
                     {@const list = toolList[index]}
                     <p class="mt-2 text-xs text-muted">
-                      Read only reaches the tools marked reads only: the ones the service says only
-                      read, less any whose name says it changes something. Read and write reaches
-                      every tool.
+                      {#if list.some((tool) => tool.readOnly)}
+                        Read only reaches the tools marked reads only: the ones the service says
+                        only read, less any whose name says it changes something. Read and write
+                        reaches every tool.
+                      {:else if list.length}
+                        None of these tools only read, so a Read only grant reaches none of them.
+                        Read and write reaches every tool. To share a saved result instead,
+                        <a
+                          class="text-sea underline"
+                          href={siteLink('/info/folder-sharing/')}
+                          target="_blank"
+                          rel="noreferrer">give the Odd a folder it can read</a
+                        >.
+                      {:else}
+                        The service returned no tools. Check the account and its access, then
+                        reconnect.
+                      {/if}
                     </p>
                     <ul class="mt-1.5 flex max-h-48 flex-col gap-1 overflow-y-auto">
                       {#each list as tool (tool.name)}
