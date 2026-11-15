@@ -361,6 +361,15 @@ test('an older sign-in page is refused before any exchange, and the newest still
   assert.deepEqual(accountStatus(), SIGNED_IN);
 });
 
+test('a refused sign-in gives the reason and leaves the current account signed in', async () => {
+  const exchanges = grants('authorization_code').length;
+  const denied = await callbackPage('error=access_denied');
+  assert.match(denied.message, /did not grant access/);
+  assert.match((await callbackPage('error=temporarily_unavailable')).message, /Wait a little/);
+  assert.deepEqual(accountStatus(), SIGNED_IN);
+  assert.equal(grants('authorization_code').length, exchanges);
+});
+
 test('a sign-in page that lands while a sign-in holds tokens is refused, and the tokens stay', async () => {
   // Signed in from the test before. While a new page is open, another office
   // on this computer signs in to the same secret.
