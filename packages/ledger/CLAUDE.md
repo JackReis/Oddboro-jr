@@ -454,7 +454,10 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   (`Unreturned`). Results that land while the hub
   runs on the thread wait, and the next pick-up takes them all
   (`resultsToJoin`, named in its brief); they end with it. Both runs work at
-  Draft at most.
+  Draft at most, but the colleague's own run keeps its level when the owner
+  lets it act on its own on work from colleagues (`staff.acts_on_hand_offs`,
+  chosen with each raise to Act, `0032_colleague_hand_offs`). Its brief then
+  says so (`handOffBrief`'s `acts`). The hub's pick-up stays at Draft.
 - Every hand-off is a step in a thread (`src/threads.ts`, the `threads`
   table). An Odd's `hand_off` with no goal opens one with that Odd as the hub; with a goal it goes on the goal's thread. One goal is
   one thread (`goalThread`): led by the manager, or by the Odd opening it when
@@ -715,7 +718,13 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   most, and so does every run that serves a colleague's hand-off, such as the
   carry-out of a level, office tool or outside tool ask raised in one. The one
   exception is the carry-out of an approval ask, the owner's yes to that exact
-  action, which runs at the Odd's level so one yes stays one yes.
+  action, which runs at the Odd's level so one yes stays one yes. A raise to
+  Act also takes the owner's choice for work from colleagues
+  (`actsOnHandOffs`, passed to `decideAsk`, `setPermission` and `hire`, and
+  changed alone by `setActsOnHandOffs`): on, the hand-off and every run that
+  serves it keep the Odd's level, and a change writes its own access line
+  (`HAND_OFF_CHOICE` in `access-words.ts`). Left out, the stored choice
+  stays; a move down never changes it.
   `test/setting-asks.test.ts` holds it, the tools included.
 - A `call` ask carries one held call in `asks.call` (`HeldCall`: the
   connector, the tool and its exact arguments), raised by the office's gateway
@@ -730,8 +739,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   `apps/office/src/lib/server/gateway.test.ts` holds it.
 - A standing yes is a list of a write grant's tools the Odd uses without
   asking (`grants.standing`, `src/standing.ts`): at Draft the gateway passes a
-  call to one of them on instead of holding it, in any run with a place, so a
-  hand-off's too, never a lesson run. A `standing` ask carries the tools in
+  call to one of them on instead of holding it, in any run with a place,
+  never a lesson run, and in a run that serves a colleague's hand-off, or a
+  lead's pick-up of a colleague's result (`FROM_COLLEAGUE`), only
+  when the owner lets that Odd act on its own on work from colleagues
+  (`staff.acts_on_hand_offs`; `handedOver` in `capabilities.ts` empties the
+  list otherwise, so each call waits for the owner's yes). A `standing` ask carries the tools in
   `asks.standing` (`StandingRequest`), raised by `ask_for_standing_yes`, which
   every Odd has (`always`) and is offered only while it holds a grant at
   write (`withWrite` in `tools.ts`). The tool refuses an Odd at Act, whose calls go through already, a service not held at write, a tool the
