@@ -28,7 +28,7 @@
     },
     {
       q: 'Will my Odds keep working when my laptop sleeps?',
-      a: 'Work pauses when the computer running Oddboro sleeps. To run jobs overnight, install Oddboro on a computer you can leave awake, keep the app running there, and give its Odds the accounts and files their jobs need. The office keeps its job schedule and work history on that computer. A New Altitude persona gets its replies from New Altitude.'
+      a: 'No. Odds work only while the computer running Oddboro is awake. When it wakes, missed jobs catch up or show on your Desk as skipped. To run jobs overnight, install Oddboro on a computer you can leave awake and keep the app running there. Its Odds need their own accounts and files there, and you check on them on that computer. The job schedule and work history stay on that computer.'
     },
     {
       q: 'What leaves my computer?',
