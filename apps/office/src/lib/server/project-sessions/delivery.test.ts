@@ -154,3 +154,45 @@ test('a live session that never takes its offered work becomes uncertain, and a 
   assert.equal((await L.projectWork(s.id)).length, 1);
   await c.disconnect(s.id);
 });
+
+test('a readiness check that ends with nothing claimed puts the earlier note back', async (t) => {
+  const project = join(folder, 'nothing-claimed');
+  mkdirSync(project);
+  const s = await c.connect('claude', project);
+  const { box, plugin } = claude.prepareClaude(s);
+  const before = c.view(s.id).note;
+  const r = await L.requestProject({ id: randomUUID(), sessionId: s.id, prompt: 'Not now.' });
+  const sending = c.work(s.id);
+  await until(() => existsSync(join(box, 'probe.json')));
+  assert.equal(c.view(s.id).note, 'Checking Claude’s office connection');
+  // Advanced mode goes off during the check, so the claim sends nothing.
+  await L.setAdvancedMode(false);
+  const config = JSON.parse(readFileSync(join(plugin, '.mcp.json'), 'utf8'));
+  const client = new Client({ name: 'nothing-claimed-test', version: '1.0.0' });
+  await client.connect(
+    new StdioClientTransport({
+      ...config.mcpServers.oddboro_project,
+      cwd: project,
+      env: { CLAUDE_CODE_SESSION_ID: s.nativeId },
+      stderr: 'pipe'
+    })
+  );
+  const monitor = spawn(process.execPath, [join(plugin, 'start-watch.mjs')], {
+    cwd: project,
+    env: { CLAUDE_CODE_SESSION_ID: s.nativeId },
+    stdio: 'pipe'
+  });
+  t.after(async () => {
+    await client.close();
+    const ended = once(monitor, 'exit');
+    monitor.kill();
+    await ended;
+    await c.disconnect(s.id);
+    await L.setAdvancedMode(true);
+  });
+  await sending;
+  assert.equal(c.view(s.id).note, before);
+  assert.equal((await state(s.id)).id, r.id);
+  assert.equal((await state(s.id)).state, 'stopped');
+  assert.equal(existsSync(join(box, 'offer.json')), false);
+});

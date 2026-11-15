@@ -117,3 +117,35 @@ test('old replies and a tool server alone cannot pass the receiver check or send
   assert.equal(existsSync(join(f.box, 'probe.json')), false);
   assert.equal(existsSync(join(f.box, key + '.tools')), false);
 });
+
+test('a tool server in an unpaired conversation starts, refuses its tools and never answers a probe', async (t) => {
+  const f = await fixture();
+  const config = JSON.parse(readFileSync(join(f.plugin, '.mcp.json'), 'utf8'));
+  const client = new Client({ name: 'unpaired-test', version: '1.0.0' });
+  let errors = '';
+  const transport = new StdioClientTransport({
+    ...config.mcpServers.oddboro_project,
+    cwd: f.s.folder,
+    env: { CLAUDE_CODE_SESSION_ID: randomUUID() },
+    stderr: 'pipe'
+  });
+  transport.stderr?.on('data', (bytes) => (errors += bytes));
+  await client.connect(transport);
+  t.after(() => {
+    t.mock.timers.reset();
+    return client.close();
+  });
+  const taken = await client.callTool({ name: 'take_work', arguments: {} });
+  assert.equal(taken.isError, true);
+  assert.match(JSON.stringify(taken.content), /not paired/);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const pending = checkClaudeReceiver(f.s);
+  const refused = assert.rejects(pending, /plugin is not ready.*Nothing was sent/);
+  const key = JSON.parse(readFileSync(join(f.box, 'probe.json'), 'utf8')).key;
+  t.mock.timers.tick(30_000);
+  await refused;
+  assert.equal(existsSync(join(f.box, key + '.tools')), false);
+  // Still running after the check: the server did not throw at start.
+  assert.equal((await client.callTool({ name: 'take_work', arguments: {} })).isError, true);
+  assert.equal(errors, '');
+});

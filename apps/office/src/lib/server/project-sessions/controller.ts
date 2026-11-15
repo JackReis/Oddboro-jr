@@ -456,6 +456,7 @@ export class ProjectController {
     return c.busy;
   }
   private async dispatch(c: Runtime) {
+    const before = c.note;
     if (c.session.agent === 'claude') {
       const next = await nextProjectRequest(c.session.id);
       if (!next) return;
@@ -480,7 +481,14 @@ export class ProjectController {
       if (!c.connected) return;
     }
     const r = await claimProject(c.session.id);
-    if (!r) return;
+    if (!r) {
+      // The claim sent nothing, so the readiness note no longer applies.
+      if (c.note !== before) {
+        c.note = before;
+        this.changed(c);
+      }
+      return;
+    }
     c.request = r;
     c.reply = '';
     c.note = 'Sending assignment';
