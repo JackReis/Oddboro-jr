@@ -1205,8 +1205,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     EOF
     ```
 
-12. **Hire** on the office plate opens a five-step drawer
-    (`src/lib/ui/HireDrawer.svelte`). Step one makes the person's look
+12. **Hire** on the office plate opens the hire drawer
+    (`src/lib/ui/HireDrawer.svelte`). An owner can start it from a Claude Code
+    agent Markdown file. Its name, description, instructions and supported model
+    fill the same form. The form lists settings left in the file. Access still
+    comes from the office. Step one makes the person's look
     (`src/lib/ui/LookStudio.svelte`), drawn or built. Drawn: the owner
     describes them, LookStudio asks `/api/looks`, and
     the owner sees the portrait and the walk, then redraws with a note or keeps it.
@@ -1867,8 +1870,9 @@ the persona's voice.
    sends the owner's words and the hands' report, cut to fit 4,000
    characters, to `<issuer>/<slug>/stream`. A chat sends its earlier answered
    exchanges and keeps the door's session in the Odd's folder. Any answer but
-   `answered` fails the run with a one-line note and the report, so no work
-   is lost and nothing counts as done without the persona: a follow-up drops
+   `answered` fails the run with a note and the report. An interrupted answer
+   shows the words the persona returned above the report. Nothing counts as done
+   without the complete answer: a follow-up drops
    the hands' Outcome line, and a chat shows no sign-in card (the persona's
    access is its own, item 5). Stop cancels the call to the door. An answered
    follow-up keeps the hands' Outcome line after the voice. Every other
