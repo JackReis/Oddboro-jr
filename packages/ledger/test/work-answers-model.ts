@@ -317,7 +317,11 @@ function carryOuts(r: Model, together: AskRec[], chat?: Chat): void {
   }
 }
 
-/** The answer to items raised on no work reaches their Odd once, unless this change already starts it a run for one. */
+/**
+ * The answer to items raised on no work reaches their Odd once, unless this
+ * change already starts it a run for one: a line in its queued `answered`
+ * run on no work, or a new one.
+ */
 function offWorkAnswer(
   r: Model,
   o: { staffId: string; item: 'ask' | 'task'; ids: number[]; asked: number; chat?: Chat }
@@ -331,12 +335,26 @@ function offWorkAnswer(
   );
   if (started) return;
   const id = o.ids.includes(o.asked) ? o.asked : Math.min(...o.ids);
+  const chat = id === o.asked ? o.chat : undefined;
+  const waiting = [...r.runs.values()]
+    .filter(
+      (f) =>
+        f.staffId === o.staffId && f.kind === 'answered' && f.threadId === null && f.is === 'queued'
+    )
+    .sort((a, b) => a.id - b.id)[0];
+  if (waiting) {
+    waiting.lines++;
+    meet("an answer on no work joining its Odd's queued answered run");
+    const card = chat?.staffId === o.staffId ? chat.card : null;
+    if (card) waiting.card = card;
+    return;
+  }
   oweRun(r, {
     staffId: o.staffId,
     kind: 'answered',
     ...(o.item === 'ask' ? { askId: id } : { taskId: id }),
     lines: 1,
-    chat: id === o.asked ? o.chat : undefined
+    chat
   });
 }
 

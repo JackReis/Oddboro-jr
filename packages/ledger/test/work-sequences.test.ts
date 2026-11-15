@@ -515,6 +515,16 @@ function broken(s: State, r: Model, events: WorkEvent[]): Broken[] {
         HEARS[h.place].includes(g.kind as LiveKind) &&
         (h.askIds.includes(g.askId ?? -1) || h.taskIds.includes(g.taskId ?? -1))
     ).length;
+    // On no work an answer may join the Odd's queued answered run, as a line.
+    if (h.place === 'none')
+      n += [...s.rows.followUps.values()].filter(
+        (g) =>
+          s.prev.followUps.has(g.id) &&
+          g.staffId === h.staffId &&
+          g.kind === 'answered' &&
+          g.threadId === null &&
+          newLines(g).some((l) => l.includes(h.marker))
+      ).length;
     if (h.place === 'own')
       n += [...s.rows.followUps.values()].filter(
         (g) =>
@@ -962,6 +972,7 @@ const CASES: Record<keyof typeof RULE, string[]> = {
     'twins on no work carried out at another place',
     "a goal's yes heard by its planning run",
     "a task's end heard on none work",
+    "an answer on no work joining its Odd's queued answered run",
     "a task's end heard on own work",
     "a task's end heard on other work"
   ],

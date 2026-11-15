@@ -250,13 +250,15 @@ export function answerBack(
 
 /**
  * The answer to something raised on no work reaches the Odd that raised it,
- * once, as an `answered` run whose note is the answer line (NEW-1715,
- * NEW-1703). `ids` are the items the answer settled on no work, the asked one
- * and its twins: one row carries them all, with the asked item's id when it
- * is among them, else the lowest, and the chat card only when it carries the
- * asked item. None when that Odd left, or when this change already starts a
- * run of that Odd for one of them, such as the `denied` run that tells it the
- * no and why.
+ * once, as a line in an `answered` run (NEW-1715, NEW-1703). Like a lead's
+ * pick-up (`answerLead`), it joins that Odd's oldest `answered` run on no
+ * work still queued, so many answers wake it once, or it starts one. `ids`
+ * are the items the answer settled on no work, the asked one and its twins:
+ * a new row carries them all, with the asked item's id when it is among
+ * them, else the lowest, and the chat card only when it carries the asked
+ * item. A joined row takes the newest card answered. None when that Odd
+ * left, or when this change already starts a run of that Odd for one of
+ * them, such as the `denied` run that tells it the no and why.
  */
 export function offWorkAnswer(
   d: Draft,
@@ -282,6 +284,22 @@ export function offWorkAnswer(
   });
   if (started) return;
   const id = a.ids.includes(a.asked) ? a.asked : Math.min(...a.ids);
+  const chat = id === a.asked ? a.chat : undefined;
+  const waiting = [...d.rows.followUps.values()]
+    .filter(
+      (f) =>
+        f.staffId === a.staffId &&
+        f.kind === 'answered' &&
+        f.threadId === null &&
+        f.run.is === 'queued'
+    )
+    .sort((p, q) => p.id - q.id)[0];
+  if (waiting) {
+    const chatCard = chatCardOf(a.staffId, chat);
+    const note = waiting.note ? `${waiting.note}\n${a.line}` : a.line;
+    putAll(d, [{ table: 'followUps', row: { ...waiting, note, ...(chatCard && { chatCard }) } }]);
+    return;
+  }
   oweRun(
     d,
     {
@@ -290,7 +308,7 @@ export function offWorkAnswer(
       note: a.line,
       ...(a.item === 'ask' ? { askId: id } : { taskId: id })
     },
-    { chat: id === a.asked ? a.chat : undefined },
+    { chat },
     now
   );
 }

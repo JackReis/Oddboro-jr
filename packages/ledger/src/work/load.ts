@@ -55,7 +55,7 @@ type Seeds = {
   asks?: number[];
   tasks?: number[];
   staff?: string[];
-  only?: { asks?: number[]; tasks?: number[] };
+  only?: { asks?: number[]; tasks?: number[]; followUps?: number[] };
   update?: ('staff' | 'asks' | 'tasks')[];
   ends?: number[];
   window?: { share: number; resetsAt: Date | null; ask: number | undefined };
@@ -138,8 +138,14 @@ const SEEDS: {
       ],
       // A switch or folder yes changes the Odd's own row with the claim.
       update: yes && (a.kind === 'switch' || a.kind === 'folder') ? ['staff', 'asks'] : ['asks'],
-      // The window and its ask, and every Odd, which a new window ask names, as for a hand-off.
-      ...(startsHeld && { only: { asks: one(window?.ask) }, window, everyOdd: true as const })
+      only: {
+        // The window's ask, when the answer asks the window.
+        asks: startsHeld ? one(window?.ask) : [],
+        // The answer on no work joins this run, if one waits.
+        followUps: await waitingAnswer(tx, a.staffId)
+      },
+      // The window, and every Odd, which a new window ask names, as for a hand-off.
+      ...(startsHeld && { window, everyOdd: true as const })
     };
   },
   taskGiven: async (tx, { task, oneOpen }) => {
@@ -165,6 +171,8 @@ const SEEDS: {
       tasks: [t.id],
       asks: from ? await settledTogether(tx, from) : [],
       staff: one(t.staffId),
+      // A drop's answer on no work joins this run of the Odd that gave it, if one waits.
+      only: { followUps: t.staffId ? await waitingAnswer(tx, t.staffId) : [] },
       update: ['tasks'],
       ends: [t.id]
     };
@@ -309,7 +317,11 @@ export async function loadWork(tx: Tx, e: WorkEvent): Promise<WorkRows> {
     tx,
     followUps,
     or(
-      inArray(followUps.id, [...(seeds.followUps ?? []), ...reach.handOffs]),
+      inArray(followUps.id, [
+        ...(seeds.followUps ?? []),
+        ...(seeds.only?.followUps ?? []),
+        ...reach.handOffs
+      ]),
       inArray(followUps.threadId, threadIds)
     )
   );
@@ -502,6 +514,22 @@ async function idsOf(
   const rows: { id: number }[] = await tx.select({ id: table.id }).from(table).where(where);
   return rows.map((r) => r.id);
 }
+
+/**
+ * The Odd's `answered` run on no work still waiting to start, which an answer
+ * to something it raised on no work joins (`offWorkAnswer`).
+ */
+const waitingAnswer = (tx: Tx, staffId: string): Promise<number[]> =>
+  idsOf(
+    tx,
+    followUps,
+    and(
+      eq(followUps.staffId, staffId),
+      eq(followUps.kind, 'answered'),
+      isNull(followUps.threadId),
+      queuedRows
+    )
+  );
 
 /** The threads parked on any of the tasks. */
 async function parkedIds(tx: Tx, taskIds: number[]): Promise<number[]> {

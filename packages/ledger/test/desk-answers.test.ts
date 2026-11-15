@@ -112,24 +112,41 @@ async function held(): Promise<Map<string, string>> {
     ...served.map((s) => [`${s.staffId} goal ${s.goalId}`, `serves:${s.staffId}`] as const)
   ]);
 }
-type Mark = { followUp: number; held: Map<string, string> };
+type Mark = { followUp: number; notes: Map<number, string | null>; held: Map<string, string> };
 async function markNow(): Promise<Mark> {
   const [last] = await db.select({ id: max(followUps.id) }).from(followUps);
-  return { followUp: last?.id ?? 0, held: await held() };
+  const notes = await db.select({ id: followUps.id, note: followUps.note }).from(followUps);
+  return {
+    followUp: last?.id ?? 0,
+    notes: new Map(notes.map((f) => [f.id, f.note])),
+    held: await held()
+  };
 }
 /**
- * What reached an Odd since `mark`: each new follow-up as `<kind>:<odd>`, each
+ * The follow-ups an answer reached since `mark`: each new one, and each one
+ * waiting since before that an answer joined as a line (`offWorkAnswer`).
+ */
+async function since(mark: Mark) {
+  const ups = await db.select().from(followUps).orderBy(followUps.id);
+  return ups.filter((f) => f.id > mark.followUp || f.note !== mark.notes.get(f.id));
+}
+/**
+ * What reached an Odd since `mark`: each follow-up new or joined as `<kind>:<odd>`, each
  * new grant as `grant:<odd>`, each tool it newly uses without asking as
  * `standing:<odd>`, and each Odd newly serving a goal as `serves:<odd>`.
  */
 async function reached(mark: Mark): Promise<string[]> {
-  const ups = await db.select().from(followUps);
+  const ups = await since(mark);
   const now = await held();
   return [
-    ...ups.filter((f) => f.id > mark.followUp).map((f) => `${f.kind}:${f.staffId}`),
+    ...ups.map((f) => `${f.kind}:${f.staffId}`),
     ...[...now].filter(([key]) => !mark.held.has(key)).map(([, shown]) => shown)
   ].sort();
 }
+
+/** Ada's `answered` runs an answer reached since `mark`. */
+const heard = async (mark: Mark) =>
+  (await since(mark)).filter((f) => f.staffId === 'ada' && f.kind === 'answered');
 
 /** The effects a cell names, as the office reads them. */
 const effectsOf = (cell: AskAnswer[Decision]): readonly Effect[] =>
@@ -673,7 +690,7 @@ test('an answer with no run of its own, a no with no reason among them, to an as
     await answer(kind, decision, id, null);
     const toAda = (await reached(mark)).filter((r) => r.endsWith(':ada'));
     assert.deepEqual(toAda, ['answered:ada'], where);
-    const [woke] = await db.select().from(followUps).where(eq(followUps.askId, id));
+    const [woke] = await heard(mark);
     const title = (await askRow(id))?.title ?? '';
     assert.ok(woke?.note?.includes(`"${title}"`), `${where}: ${woke?.note}`);
   }
@@ -704,7 +721,7 @@ test("a yes to a hire raised on no work wakes the Odd that proposed it, once, wi
     (await reached(mark)).filter((r) => r.endsWith(':ada')),
     ['answered:ada']
   );
-  const [woke] = await db.select().from(followUps).where(eq(followUps.askId, id));
+  const [woke] = await heard(mark);
   assert.ok(
     woke?.note?.includes('approved "Hire a baker": Bo came from the personas instead.'),
     `${woke?.note}`
@@ -936,7 +953,7 @@ test('dropping a task given on no work wakes the Odd that gave it, once, with th
   const mark = await markNow();
   assert.equal(await finishTask(t.id, false, 'not now'), true);
   assert.deepEqual(await reached(mark), ['answered:ada']);
-  const woke = await db.select().from(followUps).where(eq(followUps.taskId, t.id));
+  const woke = await heard(mark);
   assert.equal(woke.length, 1);
   assert.equal(woke[0].kind, 'answered');
   assert.match(woke[0].note ?? '', /dropped "Book the van": not now/);
