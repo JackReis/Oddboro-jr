@@ -23,7 +23,7 @@ import {
   writeFileSync
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { afterEach, test } from 'node:test';
 import {
   L,
   OFFICE_GEMINI_KEY,
@@ -48,6 +48,13 @@ import type { AgentTool, LaterTool } from '../../routes/api/agents/+server.ts';
 const route = await import('../../routes/api/agents/[tool]/+server.ts');
 const claudeRoute = await import('../../routes/api/setup/claude/+server.ts');
 const { geminiKeyMissing, clearGeminiKey, setGeminiKey } = await import('./gemini.ts');
+const { SLOTS } = await import('./agent-sign-in.ts');
+
+// A test that fails or runs out of time leaves its install or sign-in running,
+// and every test after it would find that tool still busy.
+afterEach(() => {
+  for (const slot of Object.values(SLOTS)) slot.stop('The test ended.');
+});
 
 const GROK_HOME = join(folder, 'accounts', 'grok', 'office');
 const CODEX_HOME = join(folder, 'accounts', 'codex', 'office');
@@ -85,9 +92,12 @@ const pickOffice = (office: unknown, platform: NodeJS.Platform = 'darwin') =>
   );
 const stateOf = async (id: string) => (await listed()).find((t) => t.id === id)?.signIn;
 
-/** `check` once it gives a value, within 4 s. */
+/**
+ * `check` once it gives a value, within 30 s: a stand-in installer can take
+ * seconds to start on a busy machine, and a value ends the wait at once.
+ */
 async function waitFor<T>(check: () => T | undefined, what: string): Promise<T> {
-  const until = Date.now() + 4000;
+  const until = Date.now() + 30_000;
   for (;;) {
     const v = check();
     if (v !== undefined) return v;
@@ -166,8 +176,8 @@ const install = (tool: string) =>
 const installRuns = (): { args: string[]; env: string[] }[] =>
   existsSync(installs)
     ? readFileSync(installs, 'utf8')
-        .trim()
         .split('\n')
+        .slice(0, -1) // The child may still be writing the last line.
         .map((l) => JSON.parse(l) as { args: string[]; env: string[] })
     : [];
 /** Every installer the page ran so far, by its name and arguments. */
@@ -814,10 +824,7 @@ test("a Grok installed from the page only into xAI's install folder is offered, 
     try {
       const run = await chatOf('gus');
       assert.ok(existsSync(join(GROK_HOME, 'models-args.json')), 'the renewal did not run');
-      assert.ok(
-        run.args.some((a) => a.startsWith('--single=')),
-        run.args.join(' ')
-      );
+      assert.ok(run.args.includes('--prompt-file'), run.args.join(' '));
     } finally {
       for (const f of ['auth.json', 'renewed.json', 'models.log', 'models-args.json'])
         rmSync(join(GROK_HOME, f), { force: true });
@@ -910,8 +917,13 @@ test("an office run on Codex or Grok goes through the tool's own sandboxed launc
       prompt: { type: string; data?: string; mimeType?: string; text?: string }[];
       env?: unknown;
     };
-    // With a picture, the message goes as content blocks and never as --single.
-    assert.ok(!g.args.some((a) => a.startsWith('--single=')));
+    // With a picture, the message goes as content blocks, in a .json file and never on the command line.
+    const file = g.args[g.args.indexOf('--prompt-file') + 1];
+    assert.ok(file.endsWith('.prompt.json'), file);
+    assert.ok(
+      !g.args.some((a) => a.includes(picture.data)),
+      'the picture went on the command line'
+    );
     // No file tool, never Grok's whole set, so it answers from the message, at the effort asked.
     // Grok has no "no tools", so todo_write, which touches no file, stands in.
     assert.equal(g.args[g.args.indexOf('--tools') + 1], 'todo_write');
