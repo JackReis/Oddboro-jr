@@ -868,12 +868,13 @@
                         only read, less any whose name says it changes something. Read and write
                         reaches every tool.
                       {:else if list.length}
-                        None of these tools qualify for Read only access. To share a result, you can
+                        None of these tools only read, so a Read only grant reaches none of them.
+                        Read and write reaches every tool. To share a saved result instead,
                         <a
                           class="text-sea underline"
                           href={siteLink('/info/folder-sharing/')}
                           target="_blank"
-                          rel="noreferrer">give the Odd a read-only folder</a
+                          rel="noreferrer">give the Odd a folder it can read</a
                         >.
                       {:else}
                         The service returned no tools. Check the account and its access, then

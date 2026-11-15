@@ -19,17 +19,7 @@ To ask about files in a folder you gave, choose **Use in chat** under the folder
 
 ## Reviewing work from another tool
 
-Save the result you want reviewed in a project folder on the computer running Oddboro. A terminal report, a downloaded GitHub build log or a file from a synced drive works once the file is available on that computer. For a job in WSL, save the result in a project folder you can open from Windows. Give the reviewing Odd **Can read** on that folder. In chat, name the file and ask what it shows. If the file is missing, check the saved path on the office computer and the folder listed under that Odd's Settings.
-
-For example, to review a Multica teammate's answer, open a terminal in the folder you want to share. With the Multica CLI signed in, replace `ISSUE-ID` with the issue identifier and save its comments:
-
-```sh
-multica issue comment list ISSUE-ID --output json --full > review.json
-```
-
-Ask your Odd, “Read review.json. What did the reviewer clear, what is still on hold, and which records support the answer?” The file contains the comments at the time you saved it. Run the command again to share later replies. Reading this copy leaves the original assignment in Multica. [Multica CLI guide](https://multica.ai/docs/cli)
-
-For a live review through an existing Multica connection, open the Odd's Access tab, choose **Add service** and paste your team's hosted MCP server address. Choose **Read only** and finish the account or key step on the Desk. Review the tools marked **reads only** before you confirm. Ask the Odd for the latest reply on a specific issue. If the service exposes no tools at that level, use the saved comments above.
+To have an Odd review work from another tool, save the result as a file in a project folder and give the Odd **Can read** on that folder. It reads the file as it was when you saved it.
 
 ## Folders Oddboro never gives
 
