@@ -13,6 +13,20 @@ Even with Can write, an Odd never changes another AI tool's instruction files th
 
 The change takes effect on the Odd's next run. Click ✕ beside a folder to take it back.
 
+## Reviewing work from another tool
+
+Save the result you want reviewed in a project folder on the computer running Oddboro. A terminal report, a downloaded GitHub build log or a file from a synced drive works once the file is available on that computer. For a job in WSL, save the result in a project folder you can open from Windows. Give the reviewing Odd **Can read** on that folder. In chat, name the file and ask what it shows. If the file is missing, check the saved path on the office computer and the folder listed under that Odd's Settings.
+
+For example, to review a Multica teammate's answer, open a terminal in the folder you want to share. With the Multica CLI signed in, replace `ISSUE-ID` with the issue identifier and save its comments:
+
+```sh
+multica issue comment list ISSUE-ID --output json --full > review.json
+```
+
+Ask your Odd, “Read review.json. What did the reviewer clear, what is still on hold, and which records support the answer?” The file contains the comments at the time you saved it. Run the command again to share later replies. Reading this copy leaves the original assignment in Multica. [Multica CLI guide](https://multica.ai/docs/cli)
+
+For a live review through an existing Multica connection, open the Odd's Access tab, choose **Add service** and paste your team's hosted MCP server address. Choose **Read only** and finish the account or key step on the Desk. Review the tools marked **reads only** before you confirm. Ask the Odd for the latest reply on a specific issue. If the service exposes no tools at that level, use the saved comments above.
+
 ## Folders Oddboro never gives
 
 These folders would let an Odd past the limits you set for it, so Oddboro refuses them and offers no way around it:
