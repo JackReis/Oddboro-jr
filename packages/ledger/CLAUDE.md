@@ -726,7 +726,8 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
 - A standing yes is a list of a write grant's tools the Odd uses without
   asking (`grants.standing`, `src/standing.ts`): at Draft the gateway passes a
   call to one of them on instead of holding it, in any run with a place,
-  never a lesson run, and in a run that serves a colleague's hand-off only
+  never a lesson run, and in a run that serves a colleague's hand-off, or a
+  lead's pick-up of a colleague's result (`FROM_COLLEAGUE`), only
   when the owner lets that Odd act on its own on work from colleagues
   (`staff.acts_on_hand_offs`; `handedOver` in `capabilities.ts` empties the
   list otherwise, so each call waits for the owner's yes). A `standing` ask carries the tools in

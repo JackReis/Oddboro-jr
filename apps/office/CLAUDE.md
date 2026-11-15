@@ -605,7 +605,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    same three actions ask what happens when another Odd hands that Odd work
    (`HandOffChoice.svelte`, in the check's look), every time an Odd goes to
    Act from a lower level and never for one already there. Ask me first is
-   picked to start with; Cancel changes nothing. The raise sends the pick as
+   picked to start with every time, by design: no permission is given unless
+   the owner picks it. Cancel changes nothing. The raise sends the pick as
    `actsOnHandOffs` (Settings PATCH, the ask POST, the hire POST), and the
    office keeps the stored value when none comes. The words live in the
    ledger's `HAND_OFF_CHOICE`. While the Odd is at Act, the Settings tab shows
@@ -1028,7 +1029,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    call without both is refused and holds nothing. The run hears that
    nothing changed yet. A tool the Odd uses without asking (`grants.standing`,
    the ledger's `standing.ts`) goes straight through in any run with a place,
-   but one that serves a colleague's hand-off while the owner asks first on
+   but one a colleague's words reach (one that serves a colleague's hand-off,
+   or a lead's pick-up of a result) while the owner asks first on
    that Odd's work from colleagues (`actsOnHandOffs` off, `handedOver` in the
    ledger's `capabilities.ts`): there each call waits for the owner's yes,
    is listed without the two fields, and each such call rides on the run's
@@ -1060,9 +1062,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    (`capped`, `accessInRun`). When the owner lets the Odd act on its own on
    work from colleagues (`staff.acts_on_hand_offs`), the hand-off's own run
    and every run that serves it keep the Odd's level; the hub's pick-up, a
-   thread picked back up and a lesson run stay at Draft. A run that serves a
-   hand-off passes `HAND_OFF_ID`, so `my_access` leaves out the standing yeses
-   it does not have there. An Odd at Act is told what the owner chose, in its
+   thread picked back up and a lesson run stay at Draft. A run a colleague's
+   words reach (one that serves a hand-off, or the hub's pick-up of a result)
+   passes `FROM_COLLEAGUE`, so `my_access` leaves out the standing yeses it
+   does not have there. An Odd at Act is told what the owner chose, in its
    prompt and in `my_access` (`handOffsLine`). `run-ceiling.test.ts` checks
    every state with the choice off and on.
    Physical mail signs in to LegalZoom's read-only endpoint. The owner chooses

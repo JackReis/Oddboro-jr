@@ -9,7 +9,8 @@
 // the choice lifts exactly the states marked `lifted`. A no's lesson, a lead's
 // pick-up and a thread picked back up stay at Draft either way. Every Odd here
 // is at Act when its run starts, so a run held to Draft shows it. A standing
-// yes holds in a colleague's hand-off only with the choice on. Run with
+// yes holds in a colleague's hand-off, and in the lead's pick-up of a result,
+// only with the choice on. Run with
 // `npm test -w @oddboro/office`.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -324,8 +325,12 @@ for (const s of STATES)
 // its my_access all read the same capabilities (`handedOver`), so the prompt
 // shows what the gateway holds.
 const stands = `Except stage: ${owner} lets you use that one without asking, so a call goes straight through.`;
-async function standingOdd(id: string, acts: boolean): Promise<string> {
-  await hire(id, 'draft', acts);
+async function standingOdd(
+  id: string,
+  acts: boolean,
+  permission: Level = 'draft'
+): Promise<string> {
+  await hire(id, permission, acts);
   await L.addConnector({
     id: `notes-${id}`,
     name: 'Notes',
@@ -351,6 +356,28 @@ for (const acts of [false, true])
     const h = await gave('lead', o, { title: `Notes for ${o}` });
     const run = await runOf(h.id);
     // The run still loads the tool, so a call to it reaches the gateway.
+    assert.ok(JSON.stringify(run.mcp).includes(`notes-${o}`), JSON.stringify(run.mcp));
+    assert.equal(run.system.includes(stands), acts, run.system);
+    const access = L.accessInRun(await L.capabilities(who), owner, run.env);
+    assert.equal(access.includes(stands), acts, access);
+  });
+
+// The lead's pick-up of a colleague's result reads the colleague's words too.
+// It stays at Draft either way; its standing yeses follow the owner's choice,
+// as a hand-off's do. The Odd is at Act, where the owner makes the choice, and
+// the pick-up's Draft cap is what puts its standing yes in play.
+for (const acts of [false, true])
+  test(`a standing yes in the lead's pick-up of a result ${acts ? 'holds when the Odd acts on its own on work from colleagues' : 'waits for the yes when the owner asks first'}`, async () => {
+    const o = await standingOdd(`pick-up${acts ? '-on' : ''}`, acts, 'act');
+    const who = await L.staffer(o);
+    assert.ok(who);
+    const h = await gave(o, 'lead', { title: `Notes from ${o}` });
+    const done = await L.startFollowUp(h.id);
+    assert.ok(done, `${o}'s hand-off could not start`);
+    await L.finishFollowUp(done, `Notes from ${o}`, 'done', 'Done.');
+    const run = await runOf(await only(o, 'handed_back'));
+    // Draft either way: the choice never lifts a pick-up's level.
+    assert.equal(run.env.CEILING, 'draft');
     assert.ok(JSON.stringify(run.mcp).includes(`notes-${o}`), JSON.stringify(run.mcp));
     assert.equal(run.system.includes(stands), acts, run.system);
     const access = L.accessInRun(await L.capabilities(who), owner, run.env);

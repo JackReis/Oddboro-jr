@@ -154,8 +154,9 @@ export function capped(caps: Capabilities, ceiling: Level): Capabilities {
 }
 
 /**
- * What a run that serves a colleague's hand-off can do, for an Odd the owner
- * did not let act on its own there (`actsOnHandOffs` off): no standing yes
+ * What a run a colleague's words reach can do (one that serves a colleague's
+ * hand-off, or a lead's pick-up of a result), for an Odd the owner did not
+ * let act on its own on work from colleagues (`actsOnHandOffs` off): no standing yes
  * applies, so each change through a write grant waits for the owner's yes, as
  * any call at Draft does. A colleague's words never reach a tool without the
  * owner's yes. With the choice on, nothing changes. The run's tools, its
@@ -222,7 +223,8 @@ export function officeHeldIn(env: Record<string, string | undefined>): boolean {
  * What my_access says in one run: the Odd's access as that run holds it. Only
  * the run knows four things, so the office passes them in its environment:
  * its ceiling (`CEILING`), set when it is below the Odd's own level, whether
- * it serves a colleague's hand-off (`HAND_OFF_ID`, `handedOver`), the
+ * a colleague's words reach it (`FROM_COLLEAGUE`: it serves a colleague's
+ * hand-off or picks up a result, `handedOver`), the
  * sign-ins that ran out (`SIGNED_OUT`), and whether the office holds the
  * network (`officeHeldIn`). An Odd at Act is told what the owner chose for
  * work another Odd hands it (`handOffsLine`). An Odd lacking an office tool the owner can give
@@ -236,7 +238,7 @@ export function accessInRun(
 ): string {
   const ceiling = parseLevel(env.CEILING);
   const held = ceiling ? capped(own, ceiling) : own;
-  const caps = env.HAND_OFF_ID ? handedOver(held) : held;
+  const caps = env.FROM_COLLEAGUE === '1' ? handedOver(held) : held;
   const folders = folderLines(caps.own);
   const signedOut = (env.SIGNED_OUT ?? '').split(',');
   const outside = caps.outside.map((a) =>

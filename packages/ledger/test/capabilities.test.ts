@@ -241,7 +241,7 @@ test("my_access says a capped run's level and why, and an uncapped run's own lev
   );
 });
 
-test("a standing yes holds in a colleague's hand-off only when the owner lets the Odd act on its own there", () => {
+test("a standing yes holds in a run a colleague's words reach only when the owner lets the Odd act on its own on their work", () => {
   const standing = { ...grant('act'), standing: ['stage'] };
   const own = (acts: boolean): Capabilities => ({
     level: 'draft',
@@ -258,8 +258,8 @@ test("a standing yes holds in a colleague's hand-off only when the owner lets th
     'Except stage: Sam lets you use that one without asking, so a call goes straight through.';
   // my_access says the same, from the run's environment.
   assert.ok(accessInRun(own(false), 'Sam', {}).includes(said));
-  assert.ok(!accessInRun(own(false), 'Sam', { HAND_OFF_ID: '7' }).includes(said));
-  assert.ok(accessInRun(own(true), 'Sam', { HAND_OFF_ID: '7' }).includes(said));
+  assert.ok(!accessInRun(own(false), 'Sam', { FROM_COLLEAGUE: '1' }).includes(said));
+  assert.ok(accessInRun(own(true), 'Sam', { FROM_COLLEAGUE: '1' }).includes(said));
 });
 
 test('an Odd at Act is told what the owner chose for work another Odd hands it', () => {

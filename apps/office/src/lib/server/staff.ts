@@ -314,8 +314,9 @@ export async function runHomeOf(who: StaffRow): Promise<string> {
  * at Draft lists every tool, and the gateway holds each change for the
  * owner's yes (`writesWait`), on the desk where `place` says, but for the
  * tools the owner lets the Odd use without asking (`standing`), in any run
- * with a place but one that serves a colleague's hand-off (`handed`) while the
- * owner keeps such work to ask first (`handedOver`); a run with no place (a
+ * with a place but one a colleague's words reach (`handed`: one that serves a
+ * colleague's hand-off, or a lead's pick-up of a result) while the owner keeps
+ * such work to ask first (`handedOver`); a run with no place (a
  * lesson run) changes nothing. At Act it holds only calls to the tools the
  * owner set to ask first (`askFirst`).
  */
@@ -775,6 +776,12 @@ export type RunOpts = {
   threadId?: number;
   /** On a lead's pick-up of a colleague's result, that colleague: what the run puts on the desk names them. */
   via?: string;
+  /**
+   * A colleague's words reach this run: it serves a colleague's hand-off, or
+   * is a lead's pick-up of a result. Unless the owner lets the Odd act on its
+   * own on work from colleagues, no standing yes applies (`handedOver`).
+   */
+  fromColleague?: boolean;
   /** The hand-backs this run's brief already holds in full, so its lead's story leaves them out. */
   shown?: number[];
   /** Pictures the owner attached in a chat, for a tool that cannot open one with its own tools (Codex). */
@@ -905,7 +912,7 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
           threadId: opts.threadId,
           via: opts.via
         },
-    opts.handOffId !== undefined
+    !!opts.fromColleague
   );
   // A source can sign out between the check of both jobs and this run.
   const unavailable = caps.outside.filter(
@@ -1009,6 +1016,7 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
       handOffId: opts.handOffId,
       threadId: opts.threadId,
       via: opts.via,
+      fromColleague: opts.fromColleague,
       lessonRun: !!opts.lessonRun,
       // Every run while held, whatever its own tool or switches: its
       // office_report speaks of other Odds too.
@@ -1624,6 +1632,9 @@ export async function followThrough(
       draftOnly,
       lessonRun: servesNoThread(f.kind),
       handOffId: serves?.id,
+      // A lead's pick-up reads a colleague's result: it stays at Draft by its
+      // kind, and its standing yeses follow the owner's choice too.
+      fromColleague: serves !== undefined || f.kind === 'handed_back',
       threadId: thread?.id,
       via,
       shown: f.kind === 'handed_back' ? [f.id, ...joinedIds] : undefined,
