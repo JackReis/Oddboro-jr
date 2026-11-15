@@ -77,6 +77,17 @@
     if (j?.files) void act(() => check(j.id));
   }
 
+  function reviewFolder(path: string) {
+    name = 'Review ' + (path.split(/[\\/]/).filter(Boolean).at(-1) || path);
+    instructions = [
+      `1. Review the current work in ${path}. Cite the file and the specific issue you found.`,
+      '2. Check your previous review and open asks. If the issue is already resolved or waiting for my answer, leave it there.',
+      '3. When a change would help, put the exact change and the reason on my Desk for approval. Wait for my answer before making it.',
+      '4. After approval, check the file again. Apply the agreed change only if it is still needed and you have access. Report what you verified.'
+    ].join('\n');
+    report = true;
+  }
+
   async function save() {
     await act(async () => {
       if (editing === 'new')
@@ -120,6 +131,18 @@
   <div class="mt-2">
     {#snippet form()}
       <div class="flex flex-col gap-2 rounded-xl bg-raise p-3">
+        {#if editing === 'new' && !name && !instructions && profile.folders.length}
+          <select
+            aria-label="Start a review of a folder"
+            class="rounded-lg bg-night/60 px-3 py-2 text-sm"
+            onchange={(e) => reviewFolder(e.currentTarget.value)}
+          >
+            <option value="">Start a review of a folder...</option>
+            {#each profile.folders as folder (folder.path)}
+              <option value={folder.path}>{folder.shown}</option>
+            {/each}
+          </select>
+        {/if}
         <input
           class="rounded-lg bg-night/60 px-3 py-2 text-sm outline-none placeholder:text-faint"
           placeholder="Name, e.g. Sort personal mail"
