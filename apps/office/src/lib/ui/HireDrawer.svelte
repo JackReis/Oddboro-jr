@@ -174,6 +174,29 @@
   let tools = $state<string[] | undefined>();
   let busy = $state(false);
   let problem = $state('');
+  let skipped = $state<string[]>([]);
+
+  async function importAgent(file: File) {
+    busy = true;
+    problem = '';
+    try {
+      if (file.size > 256 * 1024) throw new Error('Choose an agent file smaller than 256 KB.');
+      const { readClaudeAgent } = await import('../staff/claude-agent.ts');
+      const draft = readClaudeAgent(await file.text());
+      name = draft.name;
+      role = draft.role;
+      remit = draft.remit;
+      desk = draft.desk;
+      pickAgent('claude');
+      pickedModel = draft.model;
+      skipped = draft.skipped;
+      path = 'odd';
+    } catch (e) {
+      problem = e instanceof Error ? e.message : 'Could not read that agent file.';
+    } finally {
+      busy = false;
+    }
+  }
 
   // Fill the window from the proposal. The job description is read from its
   // file now, so edits the owner made in the viewer are in it.
@@ -304,6 +327,7 @@
     <p class="text-xs leading-relaxed text-muted">{line}</p>
     <button
       class="self-start rounded-lg bg-sea px-3 py-2 text-sm font-medium text-night"
+      disabled={busy}
       onclick={go}>{label}</button
     >
   </div>
@@ -323,6 +347,23 @@
       'Hire a persona',
       () => (path = 'persona')
     )}
+    <label class="flex flex-col gap-2 rounded-xl bg-raise p-3">
+      <span class="font-semibold text-ink">Import a Claude Code agent</span>
+      <span class="text-xs text-muted"
+        >Choose its Markdown file. Review its instructions and access before hiring.</span
+      >
+      <input
+        type="file"
+        accept=".md,.markdown"
+        disabled={busy}
+        onchange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (file) void importAgent(file);
+        }}
+      />
+    </label>
+    {#if problem}<p class="text-xs text-coral" role="alert">{problem}</p>{/if}
   </section>
 {:else if path === 'persona'}
   <section class="flex h-full min-h-0 flex-col" aria-label="Hire a persona">
@@ -481,6 +522,12 @@
   </section>
 {:else}
   <section class="flex h-full min-h-0 flex-col" aria-label="Hire an Odd">
+    {#if skipped.length}
+      <p class="border-b border-hairline p-3 text-xs text-ink">
+        Settings left in the agent file: {skipped.join(', ')}. Review this Odd's model and access
+        before hiring.
+      </p>
+    {/if}
     <header class="border-b border-hairline p-3">
       <!-- No title: the window's tab already says Hire. -->
       <div class="text-xs text-muted">
