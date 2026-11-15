@@ -4,6 +4,7 @@
   import { systemWords } from '@oddboro/ledger/system-words';
   import { shownAddress, type Address } from '#lib/address.ts';
   import { call } from '../api.ts';
+  import RestoreBackup from '../RestoreBackup.svelte';
   import NotifyHelp from './NotifyHelp.svelte';
   import { browserNeeds } from './notify-help.ts';
 
@@ -15,6 +16,8 @@
     owner: string;
     suggested: string;
     app?: boolean;
+    /** Whether the office keeps its own database, which a backup restores into. */
+    ownDatabase?: boolean;
     system?: System;
     /** Whether the office can show its own notifications on this computer. */
     notify?: boolean;
@@ -30,6 +33,7 @@
   let checks = $state<Check[] | undefined>();
   /** In the Mac app, which shows its own notifications and has no browser tab. */
   let app = $state(false);
+  let ownDatabase = $state(false);
   let system = $state<System | undefined>();
   let canNotify = $state(true);
   let canOpenSettings = $state(false);
@@ -45,6 +49,7 @@
       const s = await call<Setup>('/api/setup');
       onsetup(s);
       app = !!s.app;
+      ownDatabase = !!s.ownDatabase;
       system = s.system;
       canNotify = s.notify !== false;
       canOpenSettings = !!s.notifySettings;
@@ -285,6 +290,16 @@
         {/if}
       {/if}
     </div>
+  </div>
+{/if}
+
+{#if checks && ownDatabase}
+  <div class="mt-4">
+    <div class="text-[10px] tracking-[0.14em] text-muted uppercase">Have a backup?</div>
+    <p class="mt-2 mb-2 text-xs text-muted">
+      Bring an office you backed up into this one, with its Odds and their work.
+    </p>
+    <RestoreBackup />
   </div>
 {/if}
 
