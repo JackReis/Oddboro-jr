@@ -84,7 +84,7 @@ if (has('search_ledger'))
   tool(
     'search_ledger',
     {
-      description: `Search the office ledger: every decision ${OWNER} made, all work done by Odds or by ${OWNER}, and reports. It searches by meaning when available, otherwise by keywords. No matches does not mean the office has no record: try fewer words, or an empty query for the newest rows, before asking ${OWNER} to repeat information. Check it before raising an ask or giving the owner a task.`,
+      description: `Search the office ledger: every decision ${OWNER} made, all work done by Odds or by ${OWNER}, and reports. It searches by meaning when available, otherwise by keywords. No matches does not mean the office has no record: try fewer words, or an empty query for the newest rows, before asking ${OWNER} to repeat information. Check it before raising an ask or giving ${OWNER} a task.`,
       inputSchema: {
         query: z
           .string()
@@ -251,7 +251,7 @@ if (has('give_owner_a_task'))
         why: z
           .string()
           .describe(
-            `Why only the owner can do this, after checking your notes, relevant Ledger entries and shared work. Name the relevant colleague you considered and why they cannot do it. If there is no suitable colleague, say so. ${offered('hand_off') ? 'Work a colleague can do goes through hand_off.' : 'If you cannot hand work to a suitable colleague, explain the access limit rather than treating it as owner-only work.'}`
+            `Why only the owner can do this, after checking your notes, relevant Ledger entries and shared work. Name the relevant colleague you considered and why they cannot do it. If there is no suitable colleague, say so. ${HANDS_OFF.tool ? 'Work a colleague can do goes through hand_off.' : 'If you cannot hand work to a suitable colleague, explain the access limit rather than treating it as owner-only work.'}`
           ),
         steps: z
           .array(z.string())

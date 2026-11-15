@@ -49,3 +49,14 @@ test('a search with no matches tells the hire how to find existing answers, and 
   });
   assert.notEqual(result.isError, true);
 });
+
+test("a colleague's run on a hand-off, which cannot hand on, is never told a task's work goes through hand_off", async () => {
+  const client = await toolServer('iris', { RUN_KEY: 'hand-off', HAND_OFF_ID: '1' });
+  const tools = (await client.listTools()).tools;
+  assert.ok(!tools.some((tool) => tool.name === 'hand_off'));
+  const why = JSON.stringify(
+    tools.find((tool) => tool.name === 'give_owner_a_task')?.inputSchema.properties?.why
+  );
+  assert.doesNotMatch(why, /hand_off/);
+  assert.match(why, /explain the access limit/);
+});

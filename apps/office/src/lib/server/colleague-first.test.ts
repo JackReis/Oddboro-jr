@@ -17,7 +17,7 @@ test('a new hire sees what its colleague covers and checks existing work before 
   assert.ok(run.system.includes(`Paige (paige): ${L.MANAGER_ROLE}. ${remit}`));
   assert.match(run.system, /Use search_ledger for relevant decisions and work/);
   assert.match(run.system, /If a colleague can do it and you can hand off, call hand_off/);
-  assert.match(run.system, /does not let you read a colleague’s private files/);
+  assert.match(run.system, /does not let you read a colleague's private files/);
   const check = run.system.indexOf('2. Check what the office already knows');
   const ask = run.system.indexOf('3. Give');
   assert.ok(check >= 0 && ask > check);

@@ -159,7 +159,7 @@ function firstDayBrief(): string[] {
     '',
     '1. Read your job description, notes/intake.md if you have one, my_goals and my_jobs.',
     '2. Check what the office already knows about your job: search relevant Ledger entries when you have access, and read relevant work already shared with you. For anything still missing, check the colleagues listed in your prompt. If one can help and you can hand off, give them the work and finish this run. Their answer brings you back.',
-    '3. Give {owner} a task only for what still needs them after that check. Ask only the questions your intake and the office could not answer. Say why no colleague can do it, then stop.',
+    '3. Give {owner} a task only for what still needs them after that check. A decision or preference only {owner} can make goes to {owner}, never to a colleague. Ask only the questions your intake and the office could not answer. Say why no colleague can do it, then stop.',
     `4. If a tool you need is not in my_access, ask for it with ask_for_access. For ${SWITCH_NAMES.commands} or ${SWITCH_NAMES.web}, ask with ask_for_switch when my_access says {owner} can switch it on.`,
     '5. Otherwise do the first piece of real work your job calls for, now: the first run of your job, or the first thing your job description says to do, so {owner} sees it today. Work for a goal you serve is not yours to start: the Odd who leads it hands you each piece.',
     '6. Your reply goes on their desk. Write it to {owner}: what you did, and what comes next.'
