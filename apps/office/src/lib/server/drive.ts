@@ -3,9 +3,10 @@
 // what it started, and ends the run once, on the tool's result, its exit, the
 // deadline or the run's stop signal. It decides no reply and no words: each
 // caller makes those from the `RunEnd`. Server only.
-import { execFileSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { basename } from 'node:path';
 import { currentPlatform } from '@oddboro/ledger';
+import { waitsToBeReaped } from '@oddboro/ledger/platform';
 import type { LiveRun } from '@oddboro/ledger/run-registry';
 import type { Launch } from './cli.ts';
 import { stopGroups, type ResultFacts, type RunEvent } from './launch.ts';
@@ -55,14 +56,7 @@ export function processGone(pid: number): boolean {
     // EPERM: it is there, under another user.
     return (e as NodeJS.ErrnoException).code === 'ESRCH';
   }
-  if (currentPlatform() === 'win32') return false;
-  try {
-    return execFileSync('ps', ['-o', 'stat=', '-p', String(pid)], { encoding: 'utf8' })
-      .trim()
-      .startsWith('Z');
-  } catch {
-    return false;
-  }
+  return waitsToBeReaped(pid);
 }
 
 /** A stop's signals land after it returns, so a pid gets this long to go before it counts as left behind. */

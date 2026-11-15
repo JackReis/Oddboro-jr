@@ -445,3 +445,13 @@ test('an edit the owner saves to a file of an Odd that left queues no lesson run
     []
   );
 });
+
+test('a tool call still running when its test ends is cut off with its tool server', async () => {
+  const c = await toolServer('rico', { RUN_KEY: 'k-left-running', ...said });
+  void c.callTool({ name: 'leave_office', arguments: { why: 'Left running.' } }).catch(() => {});
+});
+
+test('so the next test starts with nothing the last one left running', async () => {
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.deepEqual(await db.select().from(asks), []);
+});

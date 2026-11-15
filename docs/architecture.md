@@ -80,7 +80,7 @@ new one takes the same four parts:
    a state its type allows and refuses a row whose columns disagree, and a
    serializer that writes every column back. The work's are in
    `packages/ledger/src/work/state.ts`. A check in a migration holds each
-   rule for every new write, as `0030_work_checks` does.
+   rule for every new write, as `0033_work_checks` does.
 2. **Its events and deciders.** What can happen, as plain data, each with one
    pure decider: no database, no clock. The work's are `WorkEvent` and
    `DECIDERS`; the lessons' are `LessonCommand` and `decideLesson` in
@@ -116,7 +116,14 @@ change.
   `packages/ledger/src/desk-answers.ts`, which says what each answer does. A
   kind the owner answers on its own card (a reply, a filter, a folder, a call)
   gives `approve` a `by`, the line a bare yes gets, and its route approves it;
-  a plain yes (a `switch` ask) names its effects directly.
+  a plain yes (a `switch`, `level` or `office_tool` ask) names its effects
+  directly. Check-types then fails at `TWINS` in
+  `packages/ledger/src/work/twins.ts`, the repeat guard's switch in
+  `raiseAsk` (`office-asks.ts`), `grantSetting` in `office-decide.ts`,
+  `carriedLinesOf` and `carryOutBrief` in
+  `apps/office/src/lib/server/follow-up-brief.ts`, `YES_SAID` in
+  `apps/office/src/lib/ui/yes-said.ts`, and `ASK_ROWS` in the office's
+  `named-tools.test.ts`.
 - **A follow-up kind.** Start at `FOLLOW_UP_KINDS` in
   `packages/ledger/src/work/kinds.ts`. Check-types fails at every
   `Record<FollowUpKind, ...>`, `AT_DRAFT` and `SERVES_NO_THREAD` beside it

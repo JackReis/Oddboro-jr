@@ -123,6 +123,8 @@ export type WorkEvent =
        * office closes it as a no, with this line as the answer that goes back.
        */
       withdrawn?: string;
+      /** A yes that puts the Odd at Act: the owner's choice for work another Odd hands it. */
+      actsOnHandOffs?: boolean;
       /** Writes in the same transaction that only the entry knows, such as setting a goal. */
       perKind: PerKindInTx[];
       effects: AskEffects;

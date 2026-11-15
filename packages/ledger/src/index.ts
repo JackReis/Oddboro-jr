@@ -9,6 +9,7 @@ export * from './agents.ts';
 export * from './accounts.ts';
 export * from './first-questions.ts';
 export * from './access-words.ts';
+export { ACT_CHECK_NEEDED } from './act-check.ts';
 export {
   clockTime,
   describe as describeSchedule,
@@ -30,7 +31,7 @@ export {
   type Candidate,
   type WayIn
 } from './registry.ts';
-export { sql as pg, DATABASE_URL, LOCAL } from './db.ts';
+export { sql as pg, DATABASE_URL, LOCAL, openPool } from './db.ts';
 export * from './home.ts';
 export * from './platform.ts';
 export * from './offices.ts';
@@ -49,6 +50,7 @@ export * from './lead-brief.ts';
 export * from './sharing.ts';
 export { WEEKDAYS } from './time.ts';
 export * from './project-sessions.ts';
+export { PROJECT_RECEIVERS } from './project-receiver.ts';
 export * from './leaving.ts';
 export * from './missed-runs.ts';
 export * from './bug-drafts.ts';

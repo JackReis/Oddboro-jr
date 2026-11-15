@@ -12,6 +12,8 @@
 import { error, json } from '@sveltejs/kit';
 import {
   account as accountRow,
+  ACT_CHECK_NEEDED,
+  actCheckPassed,
   addJob,
   AGENT_NAMES,
   agentsOn,
@@ -47,6 +49,8 @@ type Body = Partial<Record<'name' | 'role' | 'room' | 'permission' | 'remit' | '
   look?: unknown;
   portraitPx?: unknown;
   newParts?: unknown;
+  /** At Act, the owner's choice for work another Odd hands the hire. */
+  actsOnHandOffs?: unknown;
   job?: {
     name?: unknown;
     instructions?: unknown;
@@ -62,7 +66,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const name = text(b.name, LIMITS.name);
   const role = text(b.role, LIMITS.role);
   const remit = text(b.remit, LIMITS.remit);
-  const desk = text(b.desk, 20_000);
+  const desk = text(b.desk, LIMITS.desk);
   const drawn = drawnFrom(b);
   const office = await currentOffice();
   const rooms = new Set(office.world.rooms.map((r) => r.id.split('#')[0]));
@@ -75,6 +79,8 @@ export const POST: RequestHandler = async ({ request }) => {
   if (problems.length) error(400, problems.join('; '));
   if (!rooms.has(room)) error(400, 'Pick a room on the floor');
   if (!permission) error(400, 'Pick read, draft or act');
+  // A hire at Act waits for the owner's Act check (`hire` refuses it too).
+  if (permission === 'act' && !(await actCheckPassed())) error(409, ACT_CHECK_NEEDED);
   // Left out, the hire runs on the column's default, Claude Code.
   const agent = b.agent === undefined ? undefined : offeredAgent(b.agent, currentPlatform());
   if (b.agent !== undefined && !agent)
@@ -122,7 +128,8 @@ export const POST: RequestHandler = async ({ request }) => {
       tools,
       look: drawn.look,
       portraitPx: drawn.portraitPx,
-      newParts: drawn.newParts
+      newParts: drawn.newParts,
+      actsOnHandOffs: b.actsOnHandOffs === true
     });
   } catch (e) {
     error(400, e instanceof Error ? e.message : String(e));

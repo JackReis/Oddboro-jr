@@ -41,6 +41,9 @@
   import HireDrawer from '#lib/ui/HireDrawer.svelte';
   import FileViewer from '#lib/ui/FileViewer.svelte';
   import ReportView from '#lib/ui/ReportView.svelte';
+  import ActCheck from '#lib/ui/ActCheck.svelte';
+  import HandOffChoice from '#lib/ui/HandOffChoice.svelte';
+  import { actCheck } from '#lib/ui/act-check.svelte.ts';
   import {
     advanced,
     close,
@@ -139,6 +142,10 @@
   // Advanced mode as the server says; Setup changes it on this page as the owner answers.
   $effect.pre(() => {
     advanced.on = data.advanced;
+  });
+  // Whether the owner passed the Act check; passing it on this page sets it from then on.
+  $effect.pre(() => {
+    if (data.actChecked) actCheck.passed = true;
   });
   // Off, nothing offers Projects, and an open Projects window closes.
   $effect(() => {
@@ -1509,6 +1516,8 @@
       </div>
     </div>
   {/if}
+  {#if actCheck.asking}<ActCheck />{/if}
+  {#if actCheck.choosing}<HandOffChoice name={actCheck.choosing} />{/if}
 </main>
 
 <style>

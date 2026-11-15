@@ -105,6 +105,8 @@ export function askRaised(
     call: null,
     catchUp: null,
     switches: null,
+    level: null,
+    officeTools: null,
     odd: null,
     standing: null,
     revises: null,
@@ -169,7 +171,8 @@ function doneWith(rows: WorkRows, ask: Ask, decision: Decision) {
     made: approve && ask.filter?.created ? ask.filter : undefined,
     called: approve && ask.call?.result ? ask.call.result : undefined,
     gave: approve ? ask.folder?.given : undefined,
-    turned: ask.kind === 'switch' && approve ? rows.prepared.switches : undefined
+    turned: ask.kind === 'switch' && approve ? rows.prepared.switches : undefined,
+    granted: approve ? rows.prepared.setting : undefined
   };
 }
 type DoneWith = ReturnType<typeof doneWith>;
@@ -229,6 +232,9 @@ export function askDecided(
   const did = doneWith(rows, ask, decision);
   const row = askRow(ask);
   const after: After[] = [{ record: decisionLine(rows, { ask, twins, did, e }) }];
+  // The owner's choice for work from colleagues, made with a raise to Act, as the Settings tab writes it.
+  if (did.granted?.also)
+    after.push({ record: { kind: 'access', actor: 'owner', title: did.granted.also } });
 
   // Only the run this ask's own answer starts, never a twin's, replies under its card.
   const chat: InChat | undefined = e.inChat
@@ -323,6 +329,10 @@ export function askDecided(
       case 'turn_on':
         if (did.turned) startCarryOuts(d, [ask, ...twins], { chat }, now);
         break;
+      // The level or tools changed with the claim: the work that waited on them picks up.
+      case 'grant_setting':
+        if (did.granted) startCarryOuts(d, [ask, ...twins], {}, now);
+        break;
       case 'carry_out':
         oweRun(
           d,
@@ -413,7 +423,8 @@ export function askDecided(
 
 /**
  * The ledger line of the owner's answer, as `decide` writes it. A folder
- * given or switches turned on read as the Settings tab's change does, from
+ * given, switches turned on, a level raised or office tools turned on read as
+ * the Settings tab's change does, from
  * the words the loader prepared.
  */
 function decisionLine(
@@ -421,7 +432,7 @@ function decisionLine(
   o: { ask: Ask; twins: readonly Ask[]; did: DoneWith; e: EventOf<'askDecided'> }
 ): LedgerLine {
   const { ask, twins, e } = o;
-  const { sent, made, called, gave, turned } = o.did;
+  const { sent, made, called, gave, turned, granted } = o.did;
   const verb = sent
     ? replyDone(sent)
     : { approve: 'Approved', deny: 'Denied', iterate: 'Sent back' }[e.decision];
@@ -440,9 +451,11 @@ function decisionLine(
           ? folderTitle
           : turned?.off.length
             ? turnedOn(turned.before.name, turned.off)
-            : called
-              ? `${called.ok ? 'Made' : 'Made, and it failed'}: ${ask.title}`
-              : `${verb}: ${ask.title}`,
+            : granted?.title
+              ? granted.title
+              : called
+                ? `${called.ok ? 'Made' : 'Made, and it failed'}: ${ask.title}`
+                : `${verb}: ${ask.title}`,
     body: `${sent ? `To ${sent.to.join(', ')}${cc}. Subject: ${sent.subject}. ` : ''}${called ? `It returned: ${callResultText(called, 600)} ` : ''}${turned ? (turned.networkBody ?? '') + ' ' : ''}Asked by ${ask.staffId}. ${ask.why}${
       twins.length
         ? ` This also answers ${twins.map((t) => `#${t.id}`).join(', ')}, the same ask from another of ${ask.staffId}'s runs.`

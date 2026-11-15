@@ -54,10 +54,15 @@ export const SERVES_NO_THREAD: Record<FollowUpKind, boolean> = {
 };
 
 /**
- * Whether a follow-up's run works at Draft at most: both sides of a hand-off,
- * the hub picking its thread back up, a run reading the owner's answer to
- * something raised on no work, and a run that only reads the owner's reason or
- * edit for a lesson (every kind `SERVES_NO_THREAD` marks).
+ * Whether a follow-up's run works at Draft at most by its kind alone: the
+ * giver's pick-up of a hand-off's result, the hub picking its thread back up,
+ * a run reading the owner's answer to something raised on no work, and a run
+ * that only reads the owner's reason or edit for a lesson (every kind
+ * `SERVES_NO_THREAD` marks). The owner's choice never lifts these. A
+ * hand-off's own run, and a run of any other kind that serves one, works at
+ * Draft at most too (`runsAtDraft`), but an approval ask's carry-out, unless
+ * the owner lets the Odd act on its own on work from colleagues
+ * (`staff.actsOnHandOffs`).
  */
 export const AT_DRAFT: Record<FollowUpKind, boolean> = {
   carry_out: false,
@@ -66,7 +71,7 @@ export const AT_DRAFT: Record<FollowUpKind, boolean> = {
   task_done: false,
   goal: false,
   first_day: false,
-  hand_off: true,
+  hand_off: false,
   handed_back: true,
   resume: true,
   answered: true,
@@ -75,16 +80,21 @@ export const AT_DRAFT: Record<FollowUpKind, boolean> = {
 export const atDraft = (kind: FollowUpKind): boolean => AT_DRAFT[kind];
 
 /**
- * Whether a follow-up's run works at Draft at most. Today only its kind decides
- * (`AT_DRAFT`). It also takes whether the run serves a hand-off or thread, and
- * whether it carries out an approval, so that a rule weighing either changes
- * this body and none of its callers.
+ * Whether a follow-up's run works at Draft at most: a kind `AT_DRAFT` names,
+ * or a run that serves a colleague's hand-off, so a colleague's words never
+ * stand in for the owner's yes, even after a yes that raised this Odd's own
+ * level or tools. The carry-out of an approval ask is the owner's yes to that
+ * exact action, so it keeps the Odd's level and one yes stays one yes. The
+ * owner can let an Odd act on its own on work from colleagues
+ * (`actsOnHandOffs`): then every run that serves a hand-off keeps its level.
+ * It never lifts a kind `AT_DRAFT` names.
  */
 export const runsAtDraft = (run: {
   kind: FollowUpKind;
   serves: boolean;
   carriesApproval: boolean;
-}): boolean => AT_DRAFT[run.kind];
+  actsOnHandOffs: boolean;
+}): boolean => AT_DRAFT[run.kind] || (run.serves && !run.carriesApproval && !run.actsOnHandOffs);
 
 /**
  * The level a run may act at: the Odd's own, or Draft when the run is held to

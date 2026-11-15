@@ -1,5 +1,5 @@
 {
-  "id": "da64e7d9-259f-4773-8c68-717087924a1f",
+  "id": "5b74267c-2ce9-4c92-85db-e11eb7838934",
   "prevId": "089406c6-170a-4f23-baae-7fe08c116ade",
   "version": "7",
   "dialect": "postgresql",
@@ -309,6 +309,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "level": {
+          "name": "level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "office_tools": {
+          "name": "office_tools",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "odd": {
           "name": "odd",
           "type": "text",
@@ -393,12 +405,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "asks_open_undecided": {
-          "name": "asks_open_undecided",
-          "value": "(\"asks\".\"status\" = 'open') = (\"asks\".\"decided_at\" is null)"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.attachments": {
@@ -829,16 +836,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "follow_ups_ended_together": {
-          "name": "follow_ups_ended_together",
-          "value": "(\"follow_ups\".\"outcome\" is null) = (\"follow_ups\".\"done_at\" is null)"
-        },
-        "follow_ups_one_unpark": {
-          "name": "follow_ups_one_unpark",
-          "value": "num_nonnulls(\"follow_ups\".\"unparked_task\", \"follow_ups\".\"unparked_at\") <= 1"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.goal_progress": {
@@ -2796,12 +2794,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "tasks_withdrawn_dropped": {
-          "name": "tasks_withdrawn_dropped",
-          "value": "not \"tasks\".\"withdrawn\" or \"tasks\".\"status\" = 'dropped'"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.threads": {
@@ -2953,16 +2946,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "threads_one_park": {
-          "name": "threads_one_park",
-          "value": "num_nonnulls(\"threads\".\"resume_at\", \"threads\".\"resume_on_task\") <= 1"
-        },
-        "threads_held_has_time": {
-          "name": "threads_held_has_time",
-          "value": "\"threads\".\"held_by\" is null or \"threads\".\"resume_at\" is not null"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.usage": {

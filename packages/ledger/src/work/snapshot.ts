@@ -19,6 +19,8 @@ export type Odd = {
   name: string;
   leftAt: Date | null;
   level: Level;
+  /** The owner lets it act on its own on work from colleagues (`staff.actsOnHandOffs`). */
+  actsOnHandOffs: boolean;
   agent: Agent;
   manager: boolean;
 };
@@ -35,6 +37,13 @@ export type Prepared = {
   sharing?: HandOff;
   /** A folder yes's answer line, which reads the file system to show the path. */
   folderTitle?: string;
+  /**
+   * A level or office tool yes, for an Odd still here: the Settings tab's
+   * line for the change, empty when it changes nothing, and `also`, the
+   * owner's choice for work from colleagues that a raise to Act stores
+   * (`settingGranted`).
+   */
+  setting?: { title?: string; also?: string };
 };
 
 /** The loaded rows, as states. Named so, since the office's `Work` is a run's item. */

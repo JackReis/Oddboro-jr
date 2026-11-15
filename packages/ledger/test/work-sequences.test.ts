@@ -720,6 +720,8 @@ function preparedFor(rows: WorkRows, id: number): Prepared {
       // The answer reads only the Odd's name from the staff row the loader read.
       switches: { before: { name: o.name } as StaffRow, off: ['web'], networkBody: undefined }
     };
+  if (a.kind === 'level' || a.kind === 'office_tool')
+    return { setting: { title: `Raised ${o.name} from draft to act` } };
   if (a.held) return { sharing: { from: a.held.from, title: a.held.title, brief: a.held.brief } };
   return {};
 }

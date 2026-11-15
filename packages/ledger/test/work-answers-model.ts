@@ -62,8 +62,8 @@ const AT = T0.toISOString();
 /**
  * Each ask kind the generator raises: where, with what, and what the office
  * did for a yes it approves by doing. The generator asks for one tool, one
- * folder and one set of switches, so every open ask of one Odd and one of
- * those kinds is a twin of the others.
+ * folder, one set of switches, one level and one set of office tools, so
+ * every open ask of one Odd and one of those kinds is a twin of the others.
  */
 export const RAISE: Record<
   AskKind,
@@ -98,6 +98,8 @@ export const RAISE: Record<
     done: { folder: { ...FOLDER, given: FOLDER } }
   },
   switch: { at: ANYWHERE, with: () => ({ switches: ['web'] }) },
+  level: { at: ANYWHERE, with: () => ({ level: 'act' }) },
+  office_tool: { at: ANYWHERE, with: () => ({ officeTools: ['office_report'] }) },
   call: {
     at: ANYWHERE,
     with: () => ({ call: CALL }),
@@ -415,6 +417,9 @@ export const KINDS: Record<
   filter: { yes: ['back'], no: NO, sendBack: true },
   folder: { yes: ['carryOuts'], no: NO, sendBack: true },
   switch: { yes: ['carryOuts'], no: NO, sendBack: true },
+  // As a switch's, but the runs it starts reply under no chat card (`NO_CARD`).
+  level: { yes: ['carryOuts'], no: NO, sendBack: true },
+  office_tool: { yes: ['carryOuts'], no: NO, sendBack: true },
   call: { yes: ['carryOut'], no: NO, sendBack: true },
   remove: { yes: ['back', 'leaves'], no: NO, sendBack: false },
   bring_back: { yes: ['back'], no: NO, sendBack: false },
@@ -422,6 +427,9 @@ export const KINDS: Record<
   catch_up: { yes: [], no: [], sendBack: false, unheard: () => true },
   standing: { yes: ['back'], no: NO, sendBack: false }
 };
+
+/** The kinds whose yes starts its carry-outs with no chat card, even when answered in chat. */
+const NO_CARD: AskKind[] = ['level', 'office_tool'];
 
 const WINDOW_MARKER = 'until the usage window resets';
 
@@ -472,7 +480,7 @@ export function decideAsk(r: Model, e: EventOf<'askDecided'>): void {
         });
         break;
       case 'carryOuts':
-        carryOuts(r, [a, ...twins], chat);
+        carryOuts(r, [a, ...twins], NO_CARD.includes(a.kind) ? undefined : chat);
         break;
       case 'rework':
         oweRun(r, { staffId: a.staffId, kind: 'rework', askId: a.id, lines: 1, chat });

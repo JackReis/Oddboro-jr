@@ -43,7 +43,13 @@ const ODDS: Odd[] = [
   { id: 'rae', name: 'Rae', level: 'read', leftAt: null },
   { id: 'gus', name: 'Gus', level: 'act', leftAt: minutes(-60) },
   { id: 'kit', name: 'Kit', level: 'read', leftAt: null }
-].map((o) => ({ ...o, level: o.level as Level, agent: 'claude', manager: false }));
+].map((o) => ({
+  ...o,
+  level: o.level as Level,
+  actsOnHandOffs: false,
+  agent: 'claude',
+  manager: false
+}));
 
 const handOff = (from: string, more: Partial<HandOff> = {}): HandOff => ({
   from,

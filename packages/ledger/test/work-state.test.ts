@@ -88,6 +88,8 @@ const ask = (over: Partial<AskRow> = {}): AskRow => ({
   call: null,
   catchUp: null,
   switches: null,
+  level: null,
+  officeTools: null,
   odd: null,
   standing: null,
   revises: null,

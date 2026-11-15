@@ -2,6 +2,7 @@
 // calls, and taking an ask or a task off the desk.
 import { inArray } from 'drizzle-orm';
 import { db } from './db.ts';
+import type { Tx } from './threads.ts';
 import { fixedError } from './errors.ts';
 import {
   asks,
@@ -13,11 +14,11 @@ import {
 import { bringBack, leavingRefused, removeOdd } from './leaving.ts';
 import { giveStanding } from './standing.ts';
 import { oweCatchUp } from './missed-runs.ts';
-import { type FolderAccess } from './access-words.ts';
+import { levelAtMost, type FolderAccess } from './access-words.ts';
 import type { GmailFilter } from './filter-words.ts';
 import { type AskEffect } from './desk-answers.ts';
 import type { AskRow, ReportRow } from './office.ts';
-import { changeOwnTools, staffer } from './office-staff.ts';
+import { changeLevel, changeOwnTools, changeTools, staffer } from './office-staff.ts';
 import { changeFolder, switchesOff, checkFolder } from './office-folders.ts';
 import { record } from './office-ledger.ts';
 import { raiseAsk, ask, type Decision, carryOutTogether } from './office-asks.ts';
@@ -35,16 +36,19 @@ export { callResultText };
  * to connect; approving any other ask but a hire sends the staffer to carry it
  * out. A hire is approved by hiring, from the hire window. Iterate sends it
  * back with what to change, and needs their words; an ask the office raised
- * itself takes a yes or a no only (`yesOrNo`).
+ * itself takes a yes or a no only (`yesOrNo`). A yes to a level ask that
+ * puts the Odd at Act takes the owner's choice for work another Odd hands it
+ * (`actsOnHandOffs`); left out, the stored choice stays.
  */
 export async function decideAsk(
   id: number,
   decision: Decision,
   reason: string | null,
   reportWhenDone = false,
-  inChat = false
+  inChat = false,
+  actsOnHandOffs?: boolean
 ): Promise<boolean> {
-  return decide(id, decision, reason, { reportWhenDone, inChat });
+  return decide(id, decision, reason, { reportWhenDone, inChat, actsOnHandOffs });
 }
 
 /** What approving an ask means, done in the transaction that approves it. */
@@ -150,6 +154,52 @@ export type FolderNotGiven = { refused: string; status: 400 | 404 | 409 };
 class FolderRefused extends Error {}
 
 /**
+ * Make the change a level or office tool ask asked for, in `tx`, with the
+ * yes, or neither happens: the Settings tab's own change (`changeLevel`,
+ * `changeTools`). A level the Odd already holds or passed stays as it is, so
+ * a yes never undoes a higher level set since, and tools already on stay on;
+ * either still starts the work. Nothing for any other kind, or when the Odd
+ * is gone. A new kind fails the type check here until it says which. A raise
+ * to Act takes the owner's choice for work another Odd hands it
+ * (`actsOnHandOffs`). The answer's ledger lines come from `settingGranted`,
+ * which the loader reads before the claim.
+ */
+async function grantSetting(tx: Tx, claimed: AskRow, actsOnHandOffs?: boolean): Promise<void> {
+  switch (claimed.kind) {
+    case 'level': {
+      if (!claimed.level) throw fixedError('This ask names no level');
+      const before = await staffer(claimed.staffId, tx);
+      if (!before || levelAtMost(claimed.level, before.permission)) return;
+      await changeLevel(tx, claimed.staffId, claimed.level, actsOnHandOffs);
+      return;
+    }
+    case 'office_tool':
+      if (!claimed.officeTools?.length) throw fixedError('This ask names no office tool');
+      await changeTools(tx, claimed.staffId, claimed.officeTools, true);
+      return;
+    case 'approval':
+    case 'access':
+    case 'hire':
+    case 'goal':
+    case 'plan':
+    case 'hand_offs':
+    case 'window':
+    case 'reply':
+    case 'filter':
+    case 'folder':
+    case 'switch':
+    case 'call':
+    case 'remove':
+    case 'bring_back':
+    case 'catch_up':
+    case 'standing':
+      return;
+    default:
+      claimed.kind satisfies never;
+  }
+}
+
+/**
  * The owner gives the folder a folder ask asked for, or a narrower one, at
  * the level they pick: `path` as typed or picked, checked as the Settings tab
  * checks it (`checkFolder`). The folder is given (`changeFolder`, as
@@ -202,6 +252,8 @@ async function decide(
   reason: string | null,
   o: Approval & {
     reportWhenDone?: boolean;
+    /** A yes that puts the Odd at Act: the owner's choice for work another Odd hands it. */
+    actsOnHandOffs?: boolean;
     reply?: ReplyDraft;
     filter?: GmailFilter;
     call?: HeldCall;
@@ -229,8 +281,11 @@ async function decide(
     reportWhenDone: o.reportWhenDone,
     done: { reply: o.reply, filter: o.filter, call: o.call, folder: o.folder },
     withdrawn: o.withdrawn,
+    actsOnHandOffs: o.actsOnHandOffs,
     perKind:
-      raised && decision === 'approve' ? [...(o.perKind ?? []), ...yesInTx(raised, o.folder)] : [],
+      raised && decision === 'approve'
+        ? [...(o.perKind ?? []), ...yesInTx(raised, o.folder, o.actsOnHandOffs)]
+        : [],
     effects: ASK_EFFECTS
   });
   if (!('refused' in decided)) return true;
@@ -241,9 +296,14 @@ async function decide(
 /**
  * What a yes changes in the transaction that closes the ask, by its kind, so
  * a refusal leaves the ask open and nothing changed: the folder given, the
- * switches turned on, the standing yes put on the grant.
+ * switches turned on, the level or office tools granted, the standing yes put
+ * on the grant.
  */
-function yesInTx(a: AskRow, folder: FolderRequest | undefined): PerKindInTx[] {
+function yesInTx(
+  a: AskRow,
+  folder: FolderRequest | undefined,
+  actsOnHandOffs: boolean | undefined
+): PerKindInTx[] {
   const given = a.kind === 'folder' ? folder?.given : undefined;
   const effects: PerKindInTx[] = [];
   if (given)
@@ -272,6 +332,13 @@ function yesInTx(a: AskRow, folder: FolderRequest | undefined): PerKindInTx[] {
           throw fixedError(
             "This Odd's tool cannot run commands here. Move it to another tool on its Settings tab first"
           );
+      }
+    });
+  if (effectsOf(a.kind, 'approve').includes('grant_setting'))
+    effects.push({
+      name: 'setting',
+      run: async (tx) => {
+        await grantSetting(tx, a, actsOnHandOffs);
       }
     });
   if (effectsOf(a.kind, 'approve').includes('give_standing'))

@@ -1,6 +1,6 @@
 // Which requests the office answers: `guardOffice`, the first step of the
 // server's `handle`, in front of the real routes, over the office's own database (local-db.ts) in a
-// throwaway folder on a free port. Run with `npm test -w @oddboro/office`.
+// throwaway folder. Run with `npm test -w @oddboro/office`.
 import assert from 'node:assert/strict';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 import type { RequestEvent } from '@sveltejs/kit';
+import { kitUrl, ownProof, REQUEST_TARGETS } from './request-targets.ts';
 
 const folder = mkdtempSync(join(tmpdir(), 'oddboro-owner-page-'));
 const port = await new Promise<number>((done) => {
@@ -16,18 +17,16 @@ const port = await new Promise<number>((done) => {
     s.close(() => done(p));
   });
 });
-const TOKEN = 'shell-token-for-tests';
-// Set before the office's modules load: they read where everything is, the
-// shell's token and the app's ORIGIN as they start.
+// Set before the office's modules load: they read where everything is and
+// the app's ORIGIN as they start. No ODDBORO_APP: this is an office run from
+// source, which has no key (app-key.test.ts has the app's rules).
 Object.assign(process.env, {
   ODDBORO_HOME: folder,
   ODDBORO_DB_PORT: String(port),
   // A file that does not exist, so no .env reaches this office.
   ODDBORO_ENV: join(folder, 'none.env'),
-  DATABASE_URL: `postgres://postgres:postgres@127.0.0.1:${port}/postgres`,
   ODDBORO_LOCAL_DB: '1',
   OLLAMA_URL: 'http://127.0.0.1:9',
-  ODDBORO_UPDATE_TOKEN: TOKEN,
   ORIGIN: 'http://office.test:4500',
   // An empty home of its own, so the office never finds the owner's own
   // tools there (a real grok in ~/.grok/bin), and no tool's maker is asked
@@ -91,7 +90,7 @@ async function send(
   });
   const event = {
     request,
-    url: new URL(request.url),
+    url: kitUrl(request),
     params: s.params ?? {},
     getClientAddress: () => s.from ?? '127.0.0.1'
   } as unknown as RequestEvent;
@@ -322,35 +321,24 @@ test('a forwarded address the office cannot read counts as another computer', as
   }
 });
 
-test('the shell reports an update with its token, and nothing else reports one', async () => {
+test('outside the app nothing needs a key, and a key in a header opens nothing', async () => {
+  // Reads and the page's actions pass with no key at all.
+  for (const s of [{ method: 'GET', path: '/' }, { headers: PAGE }] as Sent[]) {
+    const r = await send(ok, s);
+    assert.deepEqual([r.status, r.ran], [200, true]);
+  }
+  // With no app there is no shell, so whatever a header says, no update report gets in.
   const report = { path: '/api/update', body: JSON.stringify({ checked: true }) };
-  const shell = await send(updateRoute.POST as Route, {
-    ...report,
-    headers: { 'x-oddboro-update-token': TOKEN, 'content-type': 'application/json' }
-  });
-  assert.deepEqual([shell.status, shell.ran], [200, true]);
-  for (const token of ['', 'wrong-token-for-tests']) {
+  for (const key of ['', 'a'.repeat(64)]) {
     const r = await send(updateRoute.POST as Route, {
       ...report,
-      headers: { 'x-oddboro-update-token': token }
+      headers: { 'x-oddboro-key': key }
     });
-    assert.deepEqual([token, r.status, r.ran], [token, 403, false]);
+    assert.deepEqual([key, r.status, r.ran], [key, 403, false]);
   }
-  // The token counts only from this computer, and only for updates.
-  const away = await send(updateRoute.POST as Route, {
-    ...report,
-    from: '192.168.1.20',
-    headers: { 'x-oddboro-update-token': TOKEN }
-  });
-  assert.deepEqual([away.status, away.ran], [403, false]);
-  const elsewhere = await send(ok, { headers: { 'x-oddboro-update-token': TOKEN } });
-  assert.deepEqual([elsewhere.status, elsewhere.ran], [403, false]);
-  // The owner's page reaches the route, which still refuses a report without the token.
-  const page = await send(updateRoute.POST as Route, {
-    ...report,
-    headers: { ...PAGE, 'x-oddboro-update-token': 'wrong-token-for-tests' }
-  });
-  assert.deepEqual([page.status, page.ran], [403, true]);
+  // The owner's page reaches the route, which refuses a report from anyone but the shell.
+  const page = await send(updateRoute.POST as Route, { ...report, headers: PAGE });
+  assert.deepEqual([page.status, page.ran, page.text], [403, true, 'Only the app reports updates']);
 });
 
 test("a run's token reaches its gateway while the run goes, and nothing else", async () => {
@@ -501,4 +489,51 @@ test('the app allows a screenshot in chat while other actions keep their smaller
     if (before === undefined) delete process.env.ODDBORO_APP;
     else process.env.ODDBORO_APP = before;
   }
+});
+
+test('from source, an action without the page passes only as a run at its gateway, judged on the address it was sent to, and another computer gets nothing', async () => {
+  const notes = {
+    id: 'notes',
+    name: 'Notes',
+    readTools: [],
+    tools: [],
+    config: {}
+  } as unknown as import('@oddboro/ledger').ConnectorRow;
+  const { token } = openGateway([{ connector: notes, level: 'read' }], 60_000);
+  const RUN = { authorization: `Bearer ${token}` };
+  // Outside the app no request carries a key, so the shell's header opens nothing.
+  const SHELL = { 'x-oddboro-key': 'a1'.repeat(32) };
+  let rows = 0;
+  try {
+    for (const { target, kitPath, app } of REQUEST_TARGETS) {
+      rows++;
+      const path = target.replace('<root>', folder);
+      if (app === 'unparsed') {
+        assert.throws(() => new Request(`http://127.0.0.1:4500${path}`), TypeError, target);
+        continue;
+      }
+      const named: Record<string, string> = kitPath ? { 'x-sveltekit-pathname': kitPath } : {};
+      const runs = app === 'passes' && ownProof(path) === 'run';
+      for (const proof of [{}, SHELL, RUN]) {
+        const r = await send(ok, { method: 'POST', path, headers: { ...named, ...proof } });
+        const passes = runs && proof === RUN;
+        assert.deepEqual(
+          [target, kitPath, r.status, r.ran],
+          [target, kitPath, passes ? 200 : 403, passes]
+        );
+        for (const method of ['GET', 'POST']) {
+          const away = await send(ok, {
+            method,
+            path,
+            headers: { ...named, ...PAGE, ...proof },
+            from: '192.168.1.20'
+          });
+          assert.deepEqual([target, method, away.status, away.ran], [target, method, 403, false]);
+        }
+      }
+    }
+  } finally {
+    await closeGateway(token);
+  }
+  assert.equal(rows, REQUEST_TARGETS.length);
 });

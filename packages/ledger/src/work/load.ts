@@ -7,7 +7,7 @@ import { fixedError } from '../errors.ts';
 import { manager } from '../goals.ts';
 import type { StaffRow } from '../office.ts';
 import { gaveFolder, switchesOff } from '../office-folders.ts';
-import { networkNote } from '../office-staff.ts';
+import { networkNote, settingGranted } from '../office-staff.ts';
 import { ownerName, PLAN_ROW, windowBegan } from '../office-usage.ts';
 import { runsGoing } from '../run-registry.ts';
 import { asks, followUps, planLimits, staff, tasks, threads, type HandOff } from '../schema.ts';
@@ -382,7 +382,8 @@ function handOffSharing(tx: Tx, e: EventOf<'handedOff'>): Promise<HandOff> {
 
 /**
  * What an owner's yes reads that takes I/O, worked out under the locks: the
- * switches a switch yes turns on and the network words they open, a folder
+ * switches a switch yes turns on and the network words they open, a level or
+ * office tool yes's ledger words, as the Settings tab writes them, a folder
  * yes's ledger title, which shows the folder's real path, and what a held
  * hand-off carries, from access as it is at the yes. `odd` is the Odd's row
  * as the loader read it, before the claim changes it.
@@ -400,6 +401,8 @@ async function prepareYes(
     for (const s of off) after[s] = true;
     return { switches: { before: odd, off, networkBody: networkNote(odd, after).body } };
   }
+  if (effectsOf(ask.kind, 'approve').includes('grant_setting') && odd)
+    return { setting: settingGranted(odd, ask, e.actsOnHandOffs) };
   // The claim writes the event's folder onto the ask, in place of the one asked for.
   const given = (e.done?.folder ?? ask.folder)?.given;
   if (ask.kind === 'folder' && given)
@@ -422,6 +425,7 @@ function oddOf(s: typeof staff.$inferSelect, boss: string | undefined): Odd {
     name: s.name,
     leftAt: s.leftAt,
     level: s.permission,
+    actsOnHandOffs: s.actsOnHandOffs,
     agent: s.agent,
     manager: s.id === boss
   };

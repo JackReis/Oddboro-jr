@@ -17,6 +17,7 @@ export const odd = (id: string, over: Partial<Odd> = {}): Odd => ({
   name: id[0].toUpperCase() + id.slice(1),
   leftAt: null,
   level: 'act',
+  actsOnHandOffs: false,
   agent: 'claude',
   manager: false,
   ...over

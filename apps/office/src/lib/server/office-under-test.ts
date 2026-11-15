@@ -1,6 +1,6 @@
 // An office under test, for the tests of a run as the office starts it
 // (`followThrough`, `chat`): the office's own database (local-db.ts) in a
-// throwaway folder on a free port, stand-ins for `claude`, `grok`, `codex`, `gemini`,
+// throwaway folder (on Windows, on a free port), stand-ins for `claude`, `grok`, `codex`, `gemini`,
 // `xcode-select`, `security` and the installers `npm` and `bash` first on PATH, a stand-in secret store, a few
 // Odds, and the helpers that start a run and read back what its stand-in was given. Each stand-in sends back what the run gave it,
 // its arguments, the tool server's environment and the run's instructions,
@@ -27,12 +27,28 @@ import { onPath } from './on-path.ts';
 export const folder = mkdtempSync(join(tmpdir(), 'oddboro-staff-run-'));
 /** The owner's data folder in the office's home, which every Odd reads. */
 export const ownerData = join(folder, 'data');
-const port = await new Promise<number>((done) => {
-  const s = createServer().listen(0, '127.0.0.1', () => {
-    const p = (s.address() as { port: number }).port;
-    s.close(() => done(p));
-  });
-});
+/**
+ * The test database's port, which only Windows uses: on a Mac and Linux the
+ * database listens on a socket in the office home (db.ts). A port the system
+ * picks (listen on 0) comes from the range it also gives outgoing
+ * connections, and the database listens only later: in between, another test
+ * file's database or any connection could take it, and the database's listen
+ * then kills this process (EADDRINUSE). So: below every system's range for
+ * those (Linux 32768, the Mac and Windows 49152), by process id, which no two
+ * test files running at once share, and the next one up if something already
+ * listens there.
+ */
+async function databasePort(): Promise<number> {
+  for (let port = 20_000 + (process.pid % 12_000); ; port = port >= 31_999 ? 20_000 : port + 1) {
+    const free = await new Promise<boolean>((done) => {
+      const s = createServer()
+        .once('error', () => done(false))
+        .listen(port, '127.0.0.1', () => s.close(() => done(true)));
+    });
+    if (free) return port;
+  }
+}
+const port = await databasePort();
 // The stand-in for Claude Code: it reads the message, then reports one tool
 // call and a result that carries what the office gave the run, the variables
 // Run commands sets among it, and whether the git template folder those name
@@ -599,7 +615,9 @@ chmodSync(join(bin, 'security'), 0o755);
 // and the names in the environment it got, in `installs`, a line each,
 // prints a line, then waits for `<name>.go` in
 // the office's folder and ends done, or with `<name>.fail` there says why and
-// fails. Neither installs anything.
+// fails. Neither installs anything. Two minutes, longer than any test may
+// run, and it gives up, so a test that died before telling it never leaves
+// it running.
 export const installers = join(folder, 'installers');
 export const installs = join(folder, 'installs.jsonl');
 mkdirSync(installers);
@@ -621,6 +639,10 @@ setInterval(() => {
   fs.rmSync(go);
   process.exit(0);
 }, 20);
+setTimeout(() => {
+  process.stderr.write('${name} error: never told to end\\n');
+  process.exit(1);
+}, 120_000);
 `
   );
   chmodSync(join(installers, name), 0o755);
@@ -633,7 +655,6 @@ Object.assign(process.env, {
   ODDBORO_ENV: join(folder, 'none.env'),
   // No tool's maker is asked for its newest version (versions.ts).
   ODDBORO_NO_LATEST: '1',
-  DATABASE_URL: `postgres://postgres:postgres@127.0.0.1:${port}/postgres`,
   ODDBORO_LOCAL_DB: '1',
   OLLAMA_URL: 'http://127.0.0.1:9',
   // The stand-ins, node for them, and the system's own tools: never the Mac's
@@ -685,8 +706,8 @@ mock.module('@oddboro/ledger/secrets', {
 mkdirSync(join(folder, 'codex'));
 writeFileSync(join(folder, 'codex', 'auth.json'), '{}');
 // A static import beside this file loads as this file waits on its port above,
-// so home.ts would read no ODDBORO_DB_PORT and every such test file would bind
-// the one fixed port.
+// so home.ts would read neither ODDBORO_HOME nor ODDBORO_DB_PORT, and the
+// office would start in a folder other than this one.
 const { DATABASE_PORT } = await import('@oddboro/ledger/home');
 assert.equal(
   DATABASE_PORT,
@@ -837,8 +858,11 @@ export async function chatOf(id: string, message = 'Hello.'): Promise<Gave & { t
     if (e.type === 'error') text = e.message;
   });
   assert.ok(text.startsWith('{'), `${id}'s chat gave no reply: ${text}`);
-  return { ...(JSON.parse(text.slice(0, text.lastIndexOf('\nOutcome:'))) as Gave), tools };
+  return { ...gaveIn(text), tools };
 }
+/** What a run's stand-in said it was given, from the run's text, which ends with its outcome line. */
+export const gaveIn = (text: string): Gave =>
+  JSON.parse(text.slice(0, text.lastIndexOf('\nOutcome:'))) as Gave;
 /** `fn`, run as if the office ran on `platform`. */
 export async function onPlatform<T>(
   platform: NodeJS.Platform,

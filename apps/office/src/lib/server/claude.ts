@@ -5,7 +5,6 @@
 // Claude Code run starts (`claudeLaunch`), and what a run takes from Claude
 // Code's stream, which Grok's follows (`claudeReader`).
 import {
-  execFile,
   spawn,
   type ChildProcess,
   type ChildProcessWithoutNullStreams,
@@ -30,7 +29,7 @@ import {
   type ModelUsage
 } from '@oddboro/ledger';
 import { writeEnv } from '@oddboro/ledger/env';
-import { claudeCommand } from '@oddboro/ledger/platform';
+import { claudeCommand, probe, type Probe } from '@oddboro/ledger/platform';
 import type { CliRun, Launch } from './cli.ts';
 import { denyRules } from './files.ts';
 import { getSecret, setSecret } from './keychain.ts';
@@ -170,26 +169,43 @@ function readStatus(
   dir: string | undefined,
   done: (a: ClaudeAccount | undefined) => void
 ): void {
-  execFile(
-    cmd,
-    [...before, 'auth', 'status'],
-    {
-      env: dir ? { ...cleanEnv(), CLAUDE_CONFIG_DIR: dir } : cleanEnv(),
-      timeout: 15_000,
-      windowsHide: true
-    },
-    (_e, out) => {
-      try {
-        const s = JSON.parse(String(out)) as {
-          loggedIn?: boolean;
-          email?: string;
-          orgName?: string;
-          subscriptionType?: string;
-        };
-        done(s.loggedIn ? { email: s.email, org: s.orgName, plan: s.subscriptionType } : undefined);
-      } catch {
-        done(undefined);
+  const signedIn = (r: Probe): ClaudeAccount | undefined => {
+    let out: string;
+    switch (r.status) {
+      // Signed out, it may exit with an error and still print its status.
+      case 'ok':
+      case 'failed':
+        out = r.out;
+        break;
+      case 'missing':
+      case 'timeout':
+        return undefined;
+      default: {
+        const missed: never = r;
+        throw new Error(`claude auth status came back as ${JSON.stringify(missed)}`);
       }
+    }
+    try {
+      const s = JSON.parse(out) as {
+        loggedIn?: boolean;
+        email?: string;
+        orgName?: string;
+        subscriptionType?: string;
+      };
+      return s.loggedIn ? { email: s.email, org: s.orgName, plan: s.subscriptionType } : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  probe(cmd, [...before, 'auth', 'status'], {
+    env: dir ? { ...cleanEnv(), CLAUDE_CONFIG_DIR: dir } : cleanEnv(),
+    timeout: 15_000
+  }).then(
+    (r) => done(signedIn(r)),
+    (e: unknown) => {
+      // probe rejects only on a wrong argument: logged, and read as signed out, as before.
+      console.error("Could not read Claude Code's sign-in:", e);
+      done(undefined);
     }
   );
 }

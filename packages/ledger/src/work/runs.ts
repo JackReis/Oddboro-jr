@@ -226,7 +226,8 @@ export function runClaimed(
     runsAtDraft({
       kind: f.kind,
       serves: !!servesHandOff(rows, f),
-      carriesApproval: f.kind === 'carry_out' && ask?.kind === 'approval'
+      carriesApproval: f.kind === 'carry_out' && ask?.kind === 'approval',
+      actsOnHandOffs: odd.actsOnHandOffs
     })
   );
   return {
