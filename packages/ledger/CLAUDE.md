@@ -961,6 +961,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
 - On Windows, reach the system through `powershell()` or `powershellSync()`
   with values passed as `env`, never pasted into the script, so nothing needs
   quoting.
+- Start an asynchronous one-shot command through `probe()` in
+  `src/platform.ts`, never `execFile`. It says `ok`, `failed`, `missing` or
+  `timeout`, and each caller handles all four, so "not there" never reads as
+  an empty answer and no raw error reaches the owner. It hides the command's
+  window on Windows unless `showWindow`, which only certutil's trust step and
+  `openUrl` use. `test/one-shot-commands.test.ts` holds both.
 
 ## Later
 
