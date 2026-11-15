@@ -158,8 +158,7 @@ for (const code of [
 test('a service refusal shows the next step for the reason the provider returned', async () => {
   const { load } = await import('../../routes/connect/callback/+page.server.ts');
   for (const [code, words] of [
-    ['admin_policy_enforced', 'administrator'],
-    ['org_internal', 'organization'],
+    ['invalid_scope', 'problem in Oddboro'],
     ['invalid_scope', 'invalid_scope'],
     ['temporarily_unavailable', 'Wait a little'],
     ['new_provider_code', 'new_provider_code']

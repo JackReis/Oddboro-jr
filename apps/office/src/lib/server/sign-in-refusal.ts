@@ -4,17 +4,13 @@ export function signInRefusal(service: string, code: string, again: string): str
   switch (code) {
     case 'access_denied':
       return `${service} did not grant access. If you expected access, check with the person who manages the account. ${again}`;
-    case 'admin_policy_enforced':
-      return 'Your Google Workspace administrator restricts access to this app. Ask them to review the app’s access.';
-    case 'org_internal':
-      return 'This app is available only to accounts in its Google Workspace organization. Choose an account from that organization.';
     case 'server_error':
     case 'temporarily_unavailable':
       return `${service} could not finish sign-in just now. Wait a little. ${again}`;
     case 'unauthorized_client':
     case 'unsupported_response_type':
     case 'invalid_scope':
-      return `${service} rejected the app's sign-in request (${code}). Give this code to the person who manages the connection.`;
+      return `${service} rejected Oddboro's sign-in request (${code}). This is a problem in Oddboro, not your account. Report a bug with this code.`;
     default:
       return `${service} said: ${code}. ${again}`;
   }
