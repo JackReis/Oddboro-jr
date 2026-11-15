@@ -34,6 +34,10 @@ export function backUpForNewVersion(version = process.env.ODDBORO_VERSION): stri
     made = home('backups', `pre-${version}-${stamp}`);
     const dir = home('backups');
     mkdirSync(dir, { recursive: true });
+    // A copy a force-quit or crash cut off is never a backup, and only one
+    // office opens this home at a time, so clear any before copying again.
+    for (const name of readdirSync(dir))
+      if (name.startsWith('.copying-')) rmSync(join(dir, name), { recursive: true, force: true });
     const copying = mkdtempSync(join(dir, '.copying-'));
     try {
       cpSync(home('db'), join(copying, 'db'), { recursive: true });

@@ -37,3 +37,18 @@ test('an incomplete copy leaves the last version and recoverable backups alone, 
   assert.deepEqual(fs.readdirSync(join(saved, 'db')), ['last-page']);
   assert.equal(fs.readFileSync(home('version'), 'utf8').trim(), '2.0.0');
 });
+
+test('a copy a force-quit cut off is cleared before the next backup', () => {
+  fs.mkdirSync(home('db'), { recursive: true });
+  fs.writeFileSync(home('db', 'last-page'), 'all data');
+  fs.writeFileSync(home('version'), '2.0.0');
+  const leftover = home('backups', '.copying-cutoff');
+  fs.mkdirSync(join(leftover, 'db'), { recursive: true });
+  fs.writeFileSync(join(leftover, 'db', 'first-page'), 'some data');
+
+  const saved = backUpForNewVersion('3.0.0');
+  assert.ok(saved);
+  assert.ok(!fs.existsSync(leftover));
+  assert.ok(!fs.readdirSync(home('backups')).some((n) => n.startsWith('.copying-')));
+  assert.equal(fs.readFileSync(join(saved, 'db', 'last-page'), 'utf8'), 'all data');
+});
