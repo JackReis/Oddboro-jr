@@ -1255,10 +1255,11 @@
 
   <audio
     bind:this={music.audio}
-    loop={music.focus}
     preload="auto"
     onplay={() => (music.playing = true)}
-    onpause={() => (music.playing = false)}
+    onpause={() => {
+      if (!music.focus) music.playing = false;
+    }}
     ontimeupdate={(e) => (music.time = e.currentTarget.currentTime)}
     ondurationchange={(e) => (music.duration = e.currentTarget.duration || 0)}
     onended={musicEnded}

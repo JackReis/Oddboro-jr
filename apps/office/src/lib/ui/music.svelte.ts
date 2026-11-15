@@ -6,7 +6,15 @@
 // After that the music plays on each visit if the owner left it on. A browser
 // keeps a page quiet until the visitor clicks or types, so a play the browser
 // refuses waits for that. Every choice here is remembered per viewer.
-import { FOCUS, OPENING, TRACKS, trackSrc } from './tracks.ts';
+//
+// The player also offers focus noise: a soft pink noise loop in place of the
+// songs. The owner switches between the two from the menu on the player's
+// icon. The song stays loaded and paused while the noise plays, so switching
+// back picks it up where it stopped. The noise plays through Web Audio, since
+// an <audio> element that loops leaves a short silence each time it starts
+// over. Its audio context exists only once the owner plays the noise, and it
+// is suspended whenever the noise stops.
+import { FOCUS_NOISE, OPENING, TRACKS, trackSrc } from './tracks.ts';
 
 const ON = 'oddboro.music';
 const VOLUME = 'oddboro.volume';
@@ -30,6 +38,7 @@ export const music = $state<{
   volume: number;
   /** Play the current track again when it ends. */
   repeat: boolean;
+  /** Focus noise plays in place of the songs. */
   focus: boolean;
   loved: string[];
   passed: string[];
@@ -52,6 +61,16 @@ let lastVolume = 0.6;
 const history: string[] = [];
 /** Paused because the app's window went to the tray, so it plays again when the window comes back. */
 let hushed = false;
+
+/** Focus noise: one looping buffer through a gain node for the volume. */
+const noise: {
+  ctx?: AudioContext;
+  gain?: GainNode;
+  buffer?: Promise<AudioBuffer>;
+  source?: AudioBufferSourceNode;
+  /** The owner wants it playing, even while the file still loads. */
+  wanted: boolean;
+} = { wanted: false };
 
 function ids(raw: string | null): string[] {
   try {
@@ -92,11 +111,10 @@ function choose(on: boolean): void {
 }
 
 export const titleOf = (id: string | undefined): string | undefined =>
-  id === FOCUS ? 'Focus noise' : TRACKS.find((t) => t.id === id)?.title;
+  TRACKS.find((t) => t.id === id)?.title;
 
 /** The next track: random, weighted to the loved, skipping the passed and the last few played. */
 function pick(): string {
-  if (music.focus) return FOCUS;
   let pool = TRACKS.map((t) => t.id).filter((id) => !music.passed.includes(id));
   if (!pool.length) pool = TRACKS.map((t) => t.id);
   const recent = new Set([...history, music.current].slice(-Math.min(5, pool.length - 1)));
@@ -119,12 +137,16 @@ function show(id: string, a: HTMLAudioElement): void {
 function load(id: string): void {
   const a = music.audio;
   if (!a) return;
-  if (music.current && music.current !== id && music.current !== FOCUS) history.push(music.current);
+  if (music.current && music.current !== id) history.push(music.current);
   if (history.length > 50) history.shift();
   show(id, a);
 }
 
 function play(): void {
+  if (music.focus) {
+    void playNoise();
+    return;
+  }
   const a = music.audio;
   if (!a) return;
   if (!music.current) load(pick());
@@ -135,9 +157,65 @@ function play(): void {
   );
 }
 
-/** The Mac's media keys and Control Center skip tracks too. */
+/** Stops whichever sound plays. A song keeps its place. */
+function pause(): void {
+  if (music.focus) stopNoise();
+  else music.audio?.pause();
+  music.playing = false;
+}
+
+/** Whether the owner's sound plays, or is on its way to playing. */
+function sounding(): boolean {
+  return music.focus ? noise.wanted : music.audio?.paused === false;
+}
+
+/** Starts the noise loop. A browser that keeps the page quiet leaves it waiting for the first click. */
+async function playNoise(): Promise<void> {
+  noise.wanted = true;
+  const ctx = (noise.ctx ??= new AudioContext());
+  if (!noise.gain) {
+    noise.gain = ctx.createGain();
+    noise.gain.connect(ctx.destination);
+  }
+  noise.gain.gain.value = music.volume;
+  try {
+    noise.buffer ??= fetch(FOCUS_NOISE)
+      .then((r) => r.arrayBuffer())
+      .then((b) => ctx.decodeAudioData(b));
+    const buffer = await noise.buffer;
+    await ctx.resume();
+    if (!noise.wanted || noise.source || !music.focus) return;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(noise.gain);
+    source.start();
+    noise.source = source;
+    music.playing = true;
+  } catch {
+    // The file did not load: the next play tries again.
+    noise.buffer = undefined;
+  }
+}
+
+/** Stops the noise and suspends its audio context, so nothing runs while it is quiet. */
+function stopNoise(): void {
+  noise.wanted = false;
+  noise.source?.stop();
+  noise.source?.disconnect();
+  noise.source = undefined;
+  void noise.ctx?.suspend();
+}
+
+/** The Mac's media keys and Control Center play, pause and skip tracks too. */
 function mediaKeys(): void {
   if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.setActionHandler('play', () => {
+    if (!music.playing) togglePlay();
+  });
+  navigator.mediaSession.setActionHandler('pause', () => {
+    if (music.playing) togglePlay();
+  });
   navigator.mediaSession.setActionHandler('nexttrack', next);
   navigator.mediaSession.setActionHandler('previoustrack', back);
 }
@@ -153,7 +231,7 @@ function hushWhileHidden(): void {
   window.addEventListener('oddboro:hidden', () => {
     if (!music.playing) return;
     hushed = true;
-    music.audio?.pause();
+    pause();
   });
   window.addEventListener('oddboro:shown', () => {
     if (!hushed) return;
@@ -172,7 +250,7 @@ export function startMusic(firstRun: boolean): void {
   mediaKeys();
   hushWhileHidden();
   if (choice === 'off' || (!firstRun && choice !== 'on')) return;
-  load(firstRun && !music.focus && !music.passed.includes(OPENING) ? OPENING : pick());
+  if (!music.focus) load(firstRun && !music.passed.includes(OPENING) ? OPENING : pick());
   play();
   const first = () => {
     if (!music.playing && choice !== 'off') play();
@@ -184,7 +262,7 @@ export function startMusic(firstRun: boolean): void {
 export function togglePlay(): void {
   hushed = false;
   if (music.playing) {
-    music.audio?.pause();
+    pause();
     choose(false);
     return;
   }
@@ -217,13 +295,13 @@ export function back(): void {
   play();
 }
 
-/** Keep the owner's play or pause choice when changing the sound. */
+/** Switches between the songs and focus noise, keeping the owner's play or pause. */
 export function setFocus(focus: boolean): void {
   if (focus === music.focus) return;
-  const wasPlaying = music.audio?.paused === false;
+  const wasPlaying = sounding();
+  pause();
   music.focus = focus;
   remember(FOCUS_ON, focus ? '1' : '0');
-  load(focus ? FOCUS : (history.pop() ?? pick()));
   if (wasPlaying) play();
 }
 
@@ -272,6 +350,7 @@ export function setVolume(v: number): void {
   if (music.volume > 0) lastVolume = music.volume;
   remember(VOLUME, String(music.volume));
   if (music.audio) music.audio.volume = music.volume;
+  if (noise.gain) noise.gain.gain.value = music.volume;
 }
 
 /** The speaker: silence the music, or bring back the volume it had. */
