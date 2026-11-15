@@ -9,7 +9,7 @@ import ts from 'typescript';
 import { parse, sourceFiles, type Source } from './source-files.ts';
 
 /** The count when this test came in, measured by it. Lower it as branches move home; never raise it. */
-const BASELINE = 60;
+const BASELINE = 56;
 
 /** The one home of system branches, which the count leaves out. */
 const HOME = new Set(['packages/ledger/src/platform.ts', 'packages/ledger/src/system-words.ts']);
