@@ -14,10 +14,9 @@ import {
   writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { after, test } from 'node:test';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { execFileSync } from 'node:child_process';
 import { PGlite } from '@electric-sql/pglite';
 import { vector } from '@electric-sql/pglite-pgvector';
 import { sourceFiles } from './source-files.ts';
@@ -130,8 +129,10 @@ const from = (bytes: Buffer) =>
 
 /** Everything in the home a refused restore must leave as it was. */
 function snapshot(): string {
-  return execFileSync('find', ['.', '-not', '-path', './db/*'], { cwd: home(), encoding: 'utf8' })
-    .split('\n')
+  // Node's own walk, since Windows has no `find` like this one.
+  return readdirSync(home(), { recursive: true, encoding: 'utf8' })
+    .map((name) => name.split(sep).join('/'))
+    .filter((name) => !name.startsWith('db/'))
     .sort()
     .join('\n');
 }
