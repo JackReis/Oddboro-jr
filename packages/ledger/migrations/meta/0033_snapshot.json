@@ -1,5 +1,5 @@
 {
-  "id": "f4e5fbdb-6358-4b6e-b46b-095bcebbd7af",
+  "id": "f363a4c0-229b-4658-8293-37bcc6b541b9",
   "prevId": "21e042cf-4d09-4fcc-9c5f-37527a6e383e",
   "version": "7",
   "dialect": "postgresql",
@@ -405,7 +405,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "asks_open_undecided": {
+          "name": "asks_open_undecided",
+          "value": "(\"asks\".\"status\" = 'open') = (\"asks\".\"decided_at\" is null)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.attachments": {
@@ -836,7 +841,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "follow_ups_ended_together": {
+          "name": "follow_ups_ended_together",
+          "value": "(\"follow_ups\".\"outcome\" is null) = (\"follow_ups\".\"done_at\" is null)"
+        },
+        "follow_ups_one_unpark": {
+          "name": "follow_ups_one_unpark",
+          "value": "num_nonnulls(\"follow_ups\".\"unparked_task\", \"follow_ups\".\"unparked_at\") <= 1"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.goal_progress": {
@@ -1337,12 +1351,6 @@
         "embedding": {
           "name": "embedding",
           "type": "vector(768)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "embedding_model": {
-          "name": "embedding_model",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
@@ -2813,7 +2821,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "tasks_withdrawn_dropped": {
+          "name": "tasks_withdrawn_dropped",
+          "value": "not \"tasks\".\"withdrawn\" or \"tasks\".\"status\" = 'dropped'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.threads": {
@@ -2965,7 +2978,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "threads_one_park": {
+          "name": "threads_one_park",
+          "value": "num_nonnulls(\"threads\".\"resume_at\", \"threads\".\"resume_on_task\") <= 1"
+        },
+        "threads_held_has_time": {
+          "name": "threads_held_has_time",
+          "value": "\"threads\".\"held_by\" is null or \"threads\".\"resume_at\" is not null"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.usage": {

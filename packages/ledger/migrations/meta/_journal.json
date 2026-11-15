@@ -236,8 +236,15 @@
     {
       "idx": 33,
       "version": "7",
-      "when": 1794736485792,
-      "tag": "0033_embedding_model",
+      "when": 1794733791464,
+      "tag": "0033_work_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794771998985,
+      "tag": "0034_embedding_model",
       "breakpoints": true
     }
   ]

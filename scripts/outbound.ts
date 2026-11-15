@@ -106,6 +106,13 @@ export const OUTBOUND: readonly Outbound[] = [
     yes: 'The owner acting on the page; nothing leaves this computer here.'
   },
   {
+    file: 'apps/office/src/lib/ui/music.svelte.ts',
+    calls: 1,
+    to: 'The office, on this computer: the focus noise file.',
+    sends: "A request for the file. Nothing of the owner's.",
+    yes: 'The owner playing focus noise; nothing leaves this computer.'
+  },
+  {
     file: 'apps/office/src/lib/ui/atlas.ts',
     calls: 1,
     to: 'The office, on this computer: the sprite atlas.',
