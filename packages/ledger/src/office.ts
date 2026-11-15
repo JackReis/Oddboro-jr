@@ -201,6 +201,7 @@ export {
   type GoAhead,
   editOwnJob,
   setDescription,
+  DescriptionChanged,
   deleteJob,
   enabledJobs,
   job,
