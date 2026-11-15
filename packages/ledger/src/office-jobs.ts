@@ -1,6 +1,6 @@
 // Jobs and runs: an Odd's schedule, its own changes to its jobs and description,
 // and what the office did.
-import { and, asc, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { db } from './db.ts';
 import { fixedError } from './errors.ts';
 import { isOnThread, type Db } from './threads.ts';
@@ -146,14 +146,17 @@ export async function updateJob(
 export type GoAhead = { said: string } | { askId: number };
 
 /** In a chat, the owner's words go in the ledger as their decision, beside the change. */
-async function recordGoAhead(who: StaffRow, go: GoAhead, what: string): Promise<void> {
+async function recordGoAhead(who: StaffRow, go: GoAhead, what: string, q: Db = db): Promise<void> {
   if ('said' in go)
-    await record({
-      kind: 'decision',
-      actor: 'owner',
-      title: `Asked ${who.name} in chat: ${what}`,
-      body: go.said
-    });
+    await record(
+      {
+        kind: 'decision',
+        actor: 'owner',
+        title: `Asked ${who.name} in chat: ${what}`,
+        body: go.said
+      },
+      q
+    );
 }
 
 export async function editOwnJob(
@@ -207,23 +210,36 @@ export async function setDescription(
   text: string,
   by: { owner: true; was: string } | { go: GoAhead }
 ): Promise<boolean> {
-  const who = await staffer(staffId);
-  if (!who) throw fixedError('No such Odd');
-  const desk = text.trim();
-  if (!desk) throw fixedError('A job description cannot be empty');
-  if ('owner' in by && by.was.trim() !== who.desk.trim())
-    throw new Error(`${who.name}'s job description changed since you opened it. Reopen it to see.`);
-  if (desk === who.desk.trim()) return false;
-  await db.update(staff).set({ desk }).where(eq(staff.id, staffId));
-  if ('go' in by) await recordGoAhead(who, by.go, 'rewrite its job description');
-  await record({
-    kind: 'work',
-    actor: 'owner' in by ? 'owner' : staffId,
-    title: 'owner' in by ? `Edited ${who.name}'s job description` : 'Rewrote its job description',
-    body: `Before:\n${who.desk}\n\nAfter:\n${desk}`,
-    askId: 'go' in by && 'askId' in by.go ? by.go.askId : undefined
+  return db.transaction(async (tx) => {
+    // Read the version this save will replace, even if another edit is finishing.
+    const [who] = await tx
+      .select()
+      .from(staff)
+      .where(and(eq(staff.id, staffId), isNull(staff.leftAt)))
+      .for('update');
+    if (!who) throw fixedError('No such Odd');
+    const desk = text.trim();
+    if (!desk) throw fixedError('A job description cannot be empty');
+    if ('owner' in by && by.was.trim() !== who.desk.trim())
+      throw new Error(
+        `${who.name}'s job description changed since you opened it. Reopen it to see.`
+      );
+    if (desk === who.desk.trim()) return false;
+    await tx.update(staff).set({ desk }).where(eq(staff.id, staffId));
+    if ('go' in by) await recordGoAhead(who, by.go, 'rewrite its job description', tx);
+    await record(
+      {
+        kind: 'work',
+        actor: 'owner' in by ? 'owner' : staffId,
+        title:
+          'owner' in by ? `Edited ${who.name}'s job description` : 'Rewrote its job description',
+        body: `Before:\n${who.desk}\n\nAfter:\n${desk}`,
+        askId: 'go' in by && 'askId' in by.go ? by.go.askId : undefined
+      },
+      tx
+    );
+    return true;
   });
-  return true;
 }
 
 /** Remove a job that never ran. One that ran stays, paused, so its runs keep their record. */
