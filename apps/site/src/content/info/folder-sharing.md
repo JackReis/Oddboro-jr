@@ -13,11 +13,9 @@ Even with Can write, an Odd never changes another AI tool's instruction files th
 
 The change takes effect on the Odd's next run. Click ✕ beside a folder to take it back.
 
-## Use project notes in a conversation
+## Ask about a folder's files
 
-For project instructions, meeting notes or an Obsidian vault, select the folder containing the notes this Odd needs. Leave it on **Can read** for questions about the files. Choose **Use in chat** beside the folder. Oddboro puts the folder path in the message box. Add your question, name a starting note if you have one, then send the message.
-
-For example, ask the Odd to follow the links in a closeout note, reconcile the figures and name the files it used. To ask about a terminal or build result, save the output in the project folder and point the Odd to that file. The Odd can read the saved output from disk.
+To ask about files in a folder you gave, choose **Use in chat** under the folder's name. Oddboro puts the folder's path in the message box. Add your question and send it.
 
 ## Folders Oddboro never gives
 

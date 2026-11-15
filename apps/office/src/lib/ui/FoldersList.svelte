@@ -12,7 +12,8 @@
   // it. A level change or Remove sends the path as stored, so a folder gone
   // from the disk can still go. A folder given before its secret store was
   // listed reaches no run, so it says why here and can still be removed; the
-  // server works that out (`touchesStore`).
+  // server works that out (`touchesStore`). Every other folder has Use in chat,
+  // which opens the Odd's chat with the folder's path in the message box.
   import { FOLDER_LABEL, type FolderAccess } from '@oddboro/ledger/access';
   import { call } from './api.ts';
   import { chatAbout } from './chat-about.svelte.ts';
@@ -155,7 +156,7 @@
             {:else}
               <button
                 class="text-[11px] text-sea underline"
-                aria-label={`Use ${f.shown} in chat`}
+                aria-label={`Use in chat: ${nameOf(f.shown)}`}
                 onclick={() =>
                   chatAbout(profile.id, `Use the relevant files in this folder.\n${f.path}\n\n`)}
                 >Use in chat</button
