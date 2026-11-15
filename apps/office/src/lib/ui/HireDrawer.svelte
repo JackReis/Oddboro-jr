@@ -34,6 +34,7 @@
   import { withActCheck } from './act-check.svelte.ts';
   import { wins } from './windows.svelte.ts';
   import type { StaffProfile } from '../staff/roster.ts';
+  import type { ImportedServer, SortedServers } from '../staff/claude-agent.ts';
 
   type Props = {
     /** Rooms on the floor a staffer can work in: template id and name. */
@@ -174,28 +175,59 @@
   let tools = $state<string[] | undefined>();
   let busy = $state(false);
   let problem = $state('');
-  let skipped = $state<string[]>([]);
+  /**
+   * What an imported Claude Code agent file brought: the settings it left in
+   * the file, in plain words, and its MCP servers, sorted into the ones that
+   * become access asks once hired and the ones only listed (`sortServers`).
+   */
+  let imported = $state<{ skipped: string; servers: ImportedServer[]; sorted: SortedServers }>();
+  /** The hidden file box the Import button opens. */
+  let picker = $state<HTMLInputElement>();
 
   async function importAgent(file: File) {
     busy = true;
     problem = '';
     try {
       if (file.size > 256 * 1024) throw new Error('Choose an agent file smaller than 256 KB.');
-      const { readClaudeAgent } = await import('../staff/claude-agent.ts');
+      const { readClaudeAgent, skippedSaid, sortServers } =
+        await import('../staff/claude-agent.ts');
       const draft = readClaudeAgent(await file.text());
+      // A server named only by a name asks when the office's tools have it.
+      const known = draft.servers.some((s) => s.url === undefined && s.command === undefined)
+        ? (await call<{ known: { id: string; name: string }[] }>('/api/connectors')).known
+        : [];
       name = draft.name;
       role = draft.role;
       remit = draft.remit;
       desk = draft.desk;
       pickAgent('claude');
       pickedModel = draft.model;
-      skipped = draft.skipped;
+      imported = {
+        skipped: skippedSaid(draft.skipped),
+        servers: draft.servers,
+        sorted: sortServers(draft.servers, known)
+      };
+      step = 0;
       path = 'odd';
     } catch (e) {
       problem = e instanceof Error ? e.message : 'Could not read that agent file.';
     } finally {
       busy = false;
     }
+  }
+
+  /** Another choice drops what an imported file filled in, so it starts clean. */
+  function choose(next: 'odd' | 'persona') {
+    if (imported) {
+      imported = undefined;
+      name = role = remit = desk = '';
+      pickedAgent = undefined;
+      pickedAccount = null;
+      pickedModel = null;
+      step = 0;
+    }
+    problem = '';
+    path = next;
   }
 
   // Fill the window from the proposal. The job description is read from its
@@ -295,6 +327,7 @@
         remit,
         desk,
         tools,
+        servers: imported?.servers,
         askId: from?.askId,
         job: hasJob
           ? {
@@ -339,30 +372,32 @@
       'Hire an Odd',
       'Make a new worker: you pick its name, look, room and job.',
       'Hire an Odd',
-      () => (path = 'odd')
+      () => choose('odd')
     )}
     {@render choice(
       'Hire a persona',
       'Bring in a ready-made worker from New Altitude, with its own name, look and voice.',
       'Hire a persona',
-      () => (path = 'persona')
+      () => choose('persona')
     )}
-    <label class="flex flex-col gap-2 rounded-xl bg-raise p-3">
-      <span class="font-semibold text-ink">Import a Claude Code agent</span>
-      <span class="text-xs text-muted"
-        >Choose its Markdown file. Review its instructions and access before hiring.</span
-      >
-      <input
-        type="file"
-        accept=".md,.markdown"
-        disabled={busy}
-        onchange={(e) => {
-          const file = e.currentTarget.files?.[0];
-          e.currentTarget.value = '';
-          if (file) void importAgent(file);
-        }}
-      />
-    </label>
+    {@render choice(
+      'Import a Claude Code agent',
+      'Start from its Markdown file. You check its job and access before you hire it.',
+      'Import',
+      () => picker?.click()
+    )}
+    <input
+      bind:this={picker}
+      class="hidden"
+      type="file"
+      accept=".md"
+      aria-label="Claude Code agent file"
+      onchange={(e) => {
+        const file = e.currentTarget.files?.[0];
+        e.currentTarget.value = '';
+        if (file) void importAgent(file);
+      }}
+    />
     {#if problem}<p class="text-xs text-coral" role="alert">{problem}</p>{/if}
   </section>
 {:else if path === 'persona'}
@@ -522,11 +557,23 @@
   </section>
 {:else}
   <section class="flex h-full min-h-0 flex-col" aria-label="Hire an Odd">
-    {#if skipped.length}
-      <p class="border-b border-hairline p-3 text-xs text-ink">
-        Settings left in the agent file: {skipped.join(', ')}. Review this Odd's model and access
-        before hiring.
-      </p>
+    {#if imported}
+      {@const { asks, listed } = imported.sorted}
+      <div class="flex flex-col gap-1 border-b border-hairline p-3 text-xs text-ink">
+        {#if imported.skipped}<p>Not brought over: {imported.skipped}.</p>{/if}
+        {#if asks.length}
+          <p>
+            Asks you for access once hired: {asks
+              .map((a) => (a.name === a.label ? a.name : `${a.name} (${a.label})`))
+              .join(', ')}. Nothing connects until you say yes.
+          </p>
+        {/if}
+        {#if listed.length}
+          <p class="text-muted">
+            Listed only, never run: {listed.map((l) => `${l.name} (${l.why})`).join(', ')}.
+          </p>
+        {/if}
+      </div>
     {/if}
     <header class="border-b border-hairline p-3">
       <!-- No title: the window's tab already says Hire. -->
