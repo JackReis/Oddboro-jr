@@ -4,6 +4,7 @@
     music,
     next,
     seek,
+    setFocus,
     setVolume,
     titleOf,
     toggleLove,
@@ -85,12 +86,17 @@
         <circle cx="4.3" cy="12" r="1.9" fill="currentColor" />
         <circle cx="11.3" cy="10.5" r="1.9" fill="currentColor" />
       </svg>
-      {#if title}
-        <span class="truncate font-semibold text-ink"
-          ><span class="sr-only">Playing </span>{title}</span
-        >
-      {:else}
-        <span class="truncate text-muted">Music</span>
+      <select
+        aria-label="Office audio"
+        class="min-w-0 shrink-0 rounded bg-raise px-1 text-xs text-ink"
+        value={music.focus ? 'focus' : 'music'}
+        onchange={(e) => setFocus(e.currentTarget.value === 'focus')}
+      >
+        <option value="music">Soundtrack</option>
+        <option value="focus">Focus noise</option>
+      </select>
+      {#if title && !music.focus}
+        <span class="truncate font-semibold text-ink">{title}</span>
       {/if}
     </div>
     <div class="mt-1 flex items-center justify-between gap-0.5" role="group" aria-label="Music">
@@ -100,7 +106,7 @@
         aria-pressed={loved}
         aria-label="Love this track"
         title="Love this track: it comes up more often"
-        disabled={!music.current}
+        disabled={music.focus || !music.current}
         onclick={toggleLove}
       >
         <svg viewBox="0 0 16 16" class="size-3.5" aria-hidden="true">
@@ -114,14 +120,14 @@
         </svg>
       </button>
       <div class="flex items-center gap-0.5">
-        <button class="ctl" aria-label="Back" title="Back" onclick={back}>
+        <button class="ctl" aria-label="Back" title="Back" disabled={music.focus} onclick={back}>
           <svg viewBox="0 0 16 16" class="size-3.5" aria-hidden="true">
             <path d="M3 3h2v10H3zM13 3v10L6 8z" fill="currentColor" />
           </svg>
         </button>
         <button
           class="ctl play"
-          aria-label={music.playing ? 'Pause the music' : 'Play the music'}
+          aria-label={`${music.playing ? 'Pause' : 'Play'} ${music.focus ? 'focus noise' : 'the music'}`}
           title={music.playing ? 'Pause' : 'Play'}
           onclick={togglePlay}
         >
@@ -133,7 +139,13 @@
             {/if}
           </svg>
         </button>
-        <button class="ctl" aria-label="Next track" title="Next" onclick={next}>
+        <button
+          class="ctl"
+          aria-label="Next track"
+          title="Next"
+          disabled={music.focus}
+          onclick={next}
+        >
           <svg viewBox="0 0 16 16" class="size-3.5" aria-hidden="true">
             <path d="M11 3h2v10h-2zM3 3v10l7-5z" fill="currentColor" />
           </svg>
@@ -144,6 +156,7 @@
           aria-pressed={music.repeat}
           aria-label="Repeat this track"
           title="Repeat this track"
+          disabled={music.focus}
           onclick={toggleRepeat}
         >
           <svg viewBox="0 0 16 16" class="size-3.5" aria-hidden="true">
@@ -165,7 +178,7 @@
         aria-pressed={passed}
         aria-label="Pass on this track"
         title="Pass on this track: it stops coming up"
-        disabled={!music.current}
+        disabled={music.focus || !music.current}
         onclick={togglePass}
       >
         <svg viewBox="0 0 16 16" class="size-3.5" aria-hidden="true">

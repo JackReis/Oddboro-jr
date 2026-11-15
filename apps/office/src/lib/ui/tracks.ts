@@ -36,4 +36,8 @@ export const TRACKS: Track[] = [
 /** A new owner's first visit opens on this one. */
 export const OPENING = 'good-morning-neighbor';
 
-export const trackSrc = (id: string): string => `/audio/${id}.m4a`;
+// Filtered pink noise for concentration. It plays on its own, outside the song shuffle.
+export const FOCUS = 'focus-noise';
+
+export const trackSrc = (id: string): string =>
+  id === FOCUS ? '/sounds/focus-noise.m4a' : `/audio/${id}.m4a`;
