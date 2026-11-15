@@ -849,7 +849,9 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `~/.aws`, `~/.gnupg`, `~/.config`, `~/Library`, `~/AppData`,
    `~/.claude.json`, `~/.google_workspace_mcp` (where
    that MCP server keeps its sign-ins for other apps on the Mac), `~/.grok`,
-   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, everything
+   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, and the Linux
+   browsers' and keyrings' folders `~/.mozilla`, `~/.local/share/keyrings`,
+   `~/.pki`, `~/snap` and `~/.var/app`, everything
    in `~/.oddboro` besides `staff/` and `data/` (and `threads/<id>/` for a
    run on that thread), every other
    Odd's folder, and everything in `~/.claude` besides this run's sessions.
