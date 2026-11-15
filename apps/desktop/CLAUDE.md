@@ -147,6 +147,13 @@ port, 3 no Node, 4 no office server, 5 a bad server URL, 6 the server would
 not start or keep running (no randomness for the key counts as not starting),
 7 no window. 0 is a quit.
 
+Setup’s **Save support report** downloads the latest recognized office log events.
+If startup fails, the shell saves `office.support.txt` beside the log and gives its
+location in the error dialog. Each failure replaces the previous report. Both paths
+use `apps/office/src/lib/server/support-report.js`. If the bundled Node is missing,
+the report still contains the app version, system, exit code and failure reason.
+Saving a report works with online diagnostics off.
+
 ## The contract with the server
 
 - Entry: `<resources>/server/apps/office/build/index.js`, run with cwd
