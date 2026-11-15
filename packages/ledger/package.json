@@ -21,6 +21,7 @@
     "./errors": "./src/errors.ts",
     "./home": "./src/home.ts",
     "./local-db": "./src/local-db.ts",
+    "./office-backup": "./src/office-backup.ts",
     "./upgrade": "./src/upgrade.ts",
     "./update-window": "./src/update-window.ts",
     "./work-paths": "./src/work-paths.ts",
@@ -30,6 +31,8 @@
     "./filters": "./src/filter-words.ts",
     "./certificates": "./src/certificates.ts",
     "./project-terminal": "./src/project-terminal.ts",
+    "./sequences": "./src/sequences.ts",
+    "./lesson-rules": "./src/lesson-rules.ts",
     "./test-defaults": "./test/test-defaults.ts",
     "./tools-on-path": "./test/tools-on-path.ts"
   },
