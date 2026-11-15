@@ -1207,9 +1207,15 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 
 12. **Hire** on the office plate opens the hire drawer
     (`src/lib/ui/HireDrawer.svelte`). An owner can start it from a Claude Code
-    agent Markdown file. Its name, description, instructions and supported model
-    fill the same form. The form lists settings left in the file. Access still
-    comes from the office. Step one makes the person's look
+    agent Markdown file with Import. Its name, description, instructions and
+    supported model fill the same form, and the form names in plain words the
+    settings left in the file. A header that does not parse says so in one
+    sentence. Each MCP server the file lists by an https address, or by a name
+    the office's tools have (`knownTools`), becomes an access ask at read on the
+    desk when the Odd is hired (`src/lib/server/imported-servers.ts`), so nothing
+    connects without the owner's yes. A server that runs a command is listed in
+    the form and never run or asked for. Picking another choice clears the
+    import. Step one makes the person's look
     (`src/lib/ui/LookStudio.svelte`), drawn or built. Drawn: the owner
     describes them, LookStudio asks `/api/looks`, and
     the owner sees the portrait and the walk, then redraws with a note or keeps it.
