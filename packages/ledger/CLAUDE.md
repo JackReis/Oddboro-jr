@@ -353,6 +353,10 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
 - A worker requesting access for separately approved or scheduled work sets
   `connect_only` on `ask_for_access`. Its Desk card explains that approval
   only connects the tool. A normal request for the same tool still resumes its own work.
+  Its connect task starts no run on the work it was raised on, so the lead may
+  park that work on it (`parked` in `src/work/parking.ts`), and the task's card
+  leaves out that the Odd picks up when it is done (`Desk.connectOnly`).
+  `test/connect-only.test.ts` holds it.
 - An approved access ask with nothing left to connect, or one whose connect
   task the owner finishes, starts a `carry_out` follow-up: the Odd checks the
   tool and does the work that waited on it. Any other task an Odd gave the

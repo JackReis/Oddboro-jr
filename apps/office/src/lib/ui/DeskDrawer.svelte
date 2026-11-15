@@ -929,7 +929,8 @@
           class="mt-1 w-full resize-none rounded-lg bg-raise px-3 py-2 text-sm outline-none placeholder:text-faint"
           placeholder="Anything your Odds should know"
           bind:value={note}></textarea>
-        {#if from}
+        <!-- A connect-only ask's task starts no work of its own: the proposal it serves does. -->
+        {#if from && !desk.connectOnly.includes(t.id)}
           <p class="mt-2 text-[11px] text-faint">
             {from.name} picks up from here as soon as you mark it done.
           </p>
