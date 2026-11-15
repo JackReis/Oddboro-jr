@@ -180,9 +180,8 @@
     busy = true;
     problem = '';
     try {
-      if (file.size > 256 * 1024) throw new Error('Choose an agent file smaller than 256 KB.');
-      const { readClaudeAgent } = await import('../staff/claude-agent.ts');
-      const draft = readClaudeAgent(await file.text());
+      const { readClaudeAgentFile } = await import('../staff/claude-agent.ts');
+      const draft = await readClaudeAgentFile(file);
       name = draft.name;
       role = draft.role;
       remit = draft.remit;
