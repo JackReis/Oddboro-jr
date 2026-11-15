@@ -29,7 +29,11 @@ errors came in (`src/lib/server/health.ts`). The page reports its boot and
 every error it hits to `POST /api/client-log` (`src/hooks.client.ts`, as
 JSON like every action), which writes one `page:` line each, cut to 600
 characters, at most 30 a minute, with `oddboro:` defused so a page never
-speaks to the shell.
+speaks to the shell. A run that fails or is stopped writes one line to stderr
+(`run` in `staff.ts`, `runEndLine`): `office: <Odd>'s <kind> run failed: ` or
+`stopped: `, then the first line of why, cut to 200 characters, defused the
+same way. Never the owner's message or the reply. The shell puts the time on
+every line.
 
 The keychain is the system's own secret store (`@oddboro/ledger/secrets`,
 through `src/lib/server/keychain.ts`). In the Mac app the shell keeps it:
@@ -173,8 +177,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    while it walks in, and it says hello there in the session later chats
    resume. What the hello says, and whether a first day follows, come from
    `firstDayOf` in `src/lib/server/first-day.ts`. A hire with a job then gets a
-   `first_day` follow-up that starts its work at once: questions the intake left open go on the desk as a
-   task, missing tools as an access ask, otherwise the first real piece of
+   `first_day` follow-up that starts its work at once: it checks its intake,
+   relevant Ledger entries, shared work and colleagues before asking the owner.
+   A colleague's work goes through a hand-off when allowed; only what still
+   needs the owner goes on the desk as a task, missing tools as an access ask,
+   otherwise the first real piece of
    work, whose result goes on the desk. A hire with no job starts nothing: it
    runs only when handed work. One serving a goal joins the goal's thread as a
    colleague, and the hire route links it to the goal before it approves the

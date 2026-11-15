@@ -13,7 +13,9 @@
 // inside the real page. On a Mac and Windows the real app's run reads the
 // setup checks from the log instead: the office writes `office: setup <id>
 // ok|fail` for each when the window's welcome asks for them. Onboarding and
-// its data across a restart are not checked there.
+// its data across a restart are not checked there. The shell starts each of
+// the office's lines with the time in UTC (`2026-11-13T04:16:47.786Z office:
+// ...`); builds before that wrote none, so the log's patterns take either.
 //
 //   node apps/desktop/scripts/smoke.ts --artifact <installer|AppImage|dmg> --version 0.0.9
 //   node apps/desktop/scripts/smoke.ts --from <folder> --version 0.0.9
@@ -164,7 +166,7 @@ async function runningVersion(office: Office): Promise<{ version: string; health
 
 /** The version the office's first log line names (`office: <version> on ...`). */
 function loggedVersion(log: string): { version: string; health: boolean } {
-  const found = [...log.matchAll(/^office: (\S+) on /gm)].at(-1);
+  const found = [...log.matchAll(/^(?:\S+Z )?office: (\S+) on /gm)].at(-1);
   if (!found) throw new Error('no office: line in the log');
   return { version: found[1], health: true };
 }
@@ -181,7 +183,7 @@ const keptInTheApp = (name: string) =>
 /** Each setup check's last state in the log (`office: setup <id> ok|fail`), by id. */
 function setupFromLog(log: string): Map<string, string> {
   return new Map(
-    [...log.matchAll(/^office: setup ([a-z0-9-]+) (ok|fail)$/gm)].map((m) => [m[1], m[2]])
+    [...log.matchAll(/^(?:\S+Z )?office: setup ([a-z0-9-]+) (ok|fail)$/gm)].map((m) => [m[1], m[2]])
   );
 }
 
@@ -695,7 +697,7 @@ async function smokeApp(): Promise<void> {
   // office's own `office: port <n>, home <folder>` line (hooks.server.ts).
   // Required once the office writes that line; builds before NEW-1694 do not.
   const lines = logText(r).split('\n');
-  const officeLine = lines.filter((l) => /^office: port \d+, home /.test(l)).at(-1);
+  const officeLine = lines.filter((l) => /^(?:\S+Z )?office: port \d+, home /.test(l)).at(-1);
   await step(
     'the shell and the office agree on the port and the home folder',
     officeLine !== undefined,
@@ -703,7 +705,7 @@ async function smokeApp(): Promise<void> {
       const launch = lines.filter((l) => l.includes('opening: pid')).at(-1);
       const shell = launch?.match(/, port (\d+), home (.+?), webview /);
       if (!shell) throw new Error(`no launch line with a port and a home: ${launch ?? '(none)'}`);
-      const office = officeLine?.match(/^office: port (\d+), home (.+)$/);
+      const office = officeLine?.match(/^(?:\S+Z )?office: port (\d+), home (.+)$/);
       if (!office) throw new Error('no office: port line in the log');
       const said = {
         shell: { port: shell[1], home: shell[2] },
