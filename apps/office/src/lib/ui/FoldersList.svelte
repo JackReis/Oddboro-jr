@@ -15,6 +15,7 @@
   // server works that out (`touchesStore`).
   import { FOLDER_LABEL, type FolderAccess } from '@oddboro/ledger/access';
   import { call } from './api.ts';
+  import { chatAbout } from './chat-about.svelte.ts';
   import FolderWarning from './FolderWarning.svelte';
   import type { StaffProfile } from '../staff/roster.ts';
 
@@ -150,6 +151,14 @@
             {#if f.touchesStore}
               <span class="block text-[11px] text-ember"
                 >Holds keys or sign-ins, so this Odd no longer gets it.</span
+              >
+            {:else}
+              <button
+                class="text-[11px] text-sea underline"
+                aria-label={`Use ${f.shown} in chat`}
+                onclick={() =>
+                  chatAbout(profile.id, `Use the relevant files in this folder.\n${f.path}\n\n`)}
+                >Use in chat</button
               >
             {/if}
           </span>
