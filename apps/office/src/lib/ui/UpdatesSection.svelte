@@ -91,7 +91,7 @@
   {:else}
     <p class="text-xs text-muted">
       {update.current === 'development'
-        ? 'This is a development build. Only the desktop app updates itself.'
+        ? 'This is a development build. Only the Oddboro app updates itself.'
         : `This is Oddboro ${update.current}. Every update installs in your chosen window.`}
     </p>
     {#if update.ready}

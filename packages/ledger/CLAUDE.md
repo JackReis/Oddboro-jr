@@ -6,7 +6,7 @@ pokes (one-time chat messages an Odd sets for later), reports, connectors and gr
 windows, the names the owner gives the rooms, the owner's goals and who serves
 them, the lessons the owner teaches the Odds, the app's updates, and the ledger itself.
 Drizzle ORM over the `postgres` driver. Server only, except `./time`,
-`./tools`, `./agents`, `./access`, `./grantable`, `./goals`, `./update-window`, `./work-paths`, `./desk-answers`, `./live-tables` and `./filters`, which the page may import.
+`./tools`, `./agents`, `./access`, `./grantable`, `./goals`, `./update-window`, `./work-paths`, `./desk-answers`, `./live-tables`, `./filters` and `./system-words`, which the page may import.
 
 `src/run-registry.ts` holds each live run, its stop handle and its work in
 progress. `reserveRun` and `releaseRun` own its lifetime; the office derives
@@ -22,19 +22,37 @@ check that catches a missed place: `docs/architecture.md`.
 and `data/`, the folder every Odd may read. `CODE` is the code
 (`ODDBORO_CODE`, else this repo; the app's `Resources/server` in a release).
 `OFFICE_PORT` and `DATABASE_PORT` come from `ODDBORO_PORT` and
-`ODDBORO_DB_PORT` (4500 and 54329). `STAFF_SERVER` is `mcp.ts` beside it, or
+`ODDBORO_DB_PORT` (4500 and 54329); only Windows uses `DATABASE_PORT`.
+`makeHomePrivate()` sets the home to 0700 as the office starts, so no other
+account on the computer opens it. `STAFF_SERVER` is `mcp.ts` beside it, or
 `mcp.js` in a release, and `FILES_SERVER` the file tools (`files-server.ts`)
 the same way. Never write `~/.oddboro` or a port anywhere else.
 Under `node --test` (`NODE_TEST_CONTEXT`), with no `ODDBORO_HOME`, `home()` is
 a folder under the system's temp folder, made on first use and removed at
 exit, and with no `ODDBORO_DB_PORT`, `DATABASE_PORT` is 54399: a test never
 reaches the owner's real office (`test/home.test.ts`).
+Both packages' test scripts also load `test/test-defaults.ts` with `--import`,
+before any test module: each test process gets a temp `HOME` and `USERPROFILE`
+and a `PATH` of node plus the system's own folders, so no test finds the
+developer's AI tools or settings unless it stands one in. It imports only
+Node's own modules, so it cannot load a module a test means to mock.
+`test/tools-on-path.ts` lists which of some commands a process could start
+from its `PATH`, for the tests that hold that. Under test `src/secrets.ts`
+starts with a store whose every use throws, naming the stand-in to load,
+until a test stands one in (or sets `ODDBORO_SECRETS=system` to test the
+system's own store with its command stubbed).
 
 1. With no `DATABASE_URL` in `.env`, the office keeps its own Postgres:
    PGlite inside the office server, files in `~/.oddboro/db`, with
-   pgvector. `src/local-db.ts` starts it and serves it on 127.0.0.1:54329 (`DATABASE_PORT`),
-   where every other process reaches it through `DATABASE_URL`, which
-   `src/db.ts` fills in. A `DATABASE_URL` in `.env` (Postgres in Docker from
+   pgvector. `src/local-db.ts` starts it and serves it on a socket,
+   `.s.PGSQL.5432` in the office home (`LOCAL_DATABASE_SOCKET`), or on Windows
+   on 127.0.0.1:54329 (`DATABASE_PORT`). Every other process reaches it
+   through `DATABASE_URL`, which `src/db.ts` fills in from the office home, as
+   `postgres://postgres:postgres@localhost/postgres?host=<home>`, the form psql
+   reads. `openPool()` opens a pool on any such URL. An office that finds
+   another one answering on its socket stops before it opens the files, and a
+   path too long for a socket stops it with the reason
+   (`test/local-db.test.ts`). A `DATABASE_URL` in `.env` (Postgres in Docker from
    `npm run db:up`, or hosted) takes its place.
 2. The office server brings the tables up to date as it starts
    (`src/upgrade.ts`: pgvector, then `migrations/`). `npm run db:migrate`
@@ -75,11 +93,15 @@ office sets on that server what it needs from `.env` (`DATABASE_URL`,
 `OFFICE_TIME_ZONE`, `OFFICE_AGENT`; `access` in the office's `staff.ts`), and
 the server never depends on reading it.
 
-`npm test -w @oddboro/ledger` runs `test/` with `node --test`, and fails any
-test that runs past 15 seconds (`--test-timeout=15000`), or 45 seconds for the
-one test that sets its own limit (the three-server `propose_filter` test in
-`test/filters.test.ts`, 15 seconds per server), so a test past its timeout
-fails. A run that never exits, from a handle a test left open, CI ends at the
+`npm test -w @oddboro/ledger` runs `test/` with `node --test`. First
+`test/global-setup.ts` makes one database with every migration, and each file
+opens a copy (`tool-server.ts`, `pglite.ts`) instead of making and migrating
+its own; a file run on its own makes its own. It fails any
+test that runs past 15 seconds (`--test-timeout=15000`), or past its own
+limit for the two tests that start several tool servers, at 15 seconds per
+server: 45 for the `propose_filter` test in `test/filters.test.ts`, 60 for
+the shared-project test in `test/project-tools.test.ts`. So a test past its
+timeout fails. A run that never exits, from a handle a test left open, CI ends at the
 test step's timeout (`timeout-minutes: 10` on each test step in
 `.github/workflows/ci.yml`). The
 script never passes `--test-force-exit`: under it a run once reported 1,015 of
@@ -432,7 +454,10 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   (`Unreturned`). Results that land while the hub
   runs on the thread wait, and the next pick-up takes them all
   (`resultsToJoin`, named in its brief); they end with it. Both runs work at
-  Draft at most.
+  Draft at most, but the colleague's own run keeps its level when the owner
+  lets it act on its own on work from colleagues (`staff.acts_on_hand_offs`,
+  chosen with each raise to Act, `0032_colleague_hand_offs`). Its brief then
+  says so (`handOffBrief`'s `acts`). The hub's pick-up stays at Draft.
 - Every hand-off is a step in a thread (`src/threads.ts`, the `threads`
   table). An Odd's `hand_off` with no goal opens one with that Odd as the hub; with a goal it goes on the goal's thread. One goal is
   one thread (`goalThread`): led by the manager, or by the Odd opening it when
@@ -677,6 +702,30 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   tool can no longer run commands, with one ledger line in the Settings tab's
   words and its network note, and starts one `carry_out` per place
   (`carryOutTogether`). `test/switch-asks.test.ts` holds it, the tool included.
+- A `level` ask carries the level an Odd asks for in `asks.level`, raised by
+  `ask_for_level`, and an `office_tool` ask the office tools it asks for in
+  `asks.office_tools`, raised by `ask_for_office_tool`. Every Odd has both
+  (`always`), the Office Manager and persona Odds included. The level tool
+  refuses a level the Odd holds already or passed; the office tool tool takes
+  only tools the Settings tab grants (`GRANTABLE_TOOLS`), leaves out ones the
+  Odd has, and refuses when it has them all. `raiseAsk` treats one from
+  another place asking no more as a twin (`asksNoMore`). A plain approve makes
+  the Settings tab's own change (`grantSetting`: `changeLevel` or
+  `changeTools`) in the transaction that approves it, with the Settings tab's
+  ledger words. A yes never lowers a level set higher since, and starts
+  one `carry_out` per place (`carryOutTogether`); after a raise to Act, a
+  colleague's hand-off and a thread picked back up still run at Draft at
+  most, and so does every run that serves a colleague's hand-off, such as the
+  carry-out of a level, office tool or outside tool ask raised in one. The one
+  exception is the carry-out of an approval ask, the owner's yes to that exact
+  action, which runs at the Odd's level so one yes stays one yes. A raise to
+  Act also takes the owner's choice for work from colleagues
+  (`actsOnHandOffs`, passed to `decideAsk`, `setPermission` and `hire`, and
+  changed alone by `setActsOnHandOffs`): on, the hand-off and every run that
+  serves it keep the Odd's level, and a change writes its own access line
+  (`HAND_OFF_CHOICE` in `access-words.ts`). Left out, the stored choice
+  stays; a move down never changes it.
+  `test/setting-asks.test.ts` holds it, the tools included.
 - A `call` ask carries one held call in `asks.call` (`HeldCall`: the
   connector, the tool and its exact arguments), raised by the office's gateway
   (`raiseCall`) when an Odd at Draft calls a tool that changes something
@@ -690,8 +739,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   `apps/office/src/lib/server/gateway.test.ts` holds it.
 - A standing yes is a list of a write grant's tools the Odd uses without
   asking (`grants.standing`, `src/standing.ts`): at Draft the gateway passes a
-  call to one of them on instead of holding it, in any run with a place, so a
-  hand-off's too, never a lesson run. A `standing` ask carries the tools in
+  call to one of them on instead of holding it, in any run with a place,
+  never a lesson run, and in a run that serves a colleague's hand-off, or a
+  lead's pick-up of a colleague's result (`FROM_COLLEAGUE`), only
+  when the owner lets that Odd act on its own on work from colleagues
+  (`staff.acts_on_hand_offs`; `handedOver` in `capabilities.ts` empties the
+  list otherwise, so each call waits for the owner's yes). A `standing` ask carries the tools in
   `asks.standing` (`StandingRequest`), raised by `ask_for_standing_yes`, which
   every Odd has (`always`) and is offered only while it holds a grant at
   write (`withWrite` in `tools.ts`). The tool refuses an Odd at Act, whose calls go through already, a service not held at write, a tool the
@@ -842,7 +895,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   checker then names every other place.
   - To add an ask kind, start at `ASK_KINDS` in `src/schema.ts`, then its row
     in `OWNER_ANSWERS` (`src/desk-answers.ts`), which says what each answer
-    does.
+    does. The type checker then names the rest: `TWINS` and the repeat
+    guard's switch in `raiseAsk` (`src/office-asks.ts`), `grantSetting`
+    (`src/office-decide.ts`), the office's
+    `carriedLinesOf` and `carryOutBrief` switches (`follow-up-brief.ts`),
+    `YES_SAID` (`src/lib/ui/yes-said.ts`), and the `ASK_ROWS` record in the
+    office's `named-tools.test.ts`.
   - To add a follow-up kind, start at `FOLLOW_UP_KINDS` in `src/schema.ts`,
     then its rows in `AT_DRAFT` and `SERVES_NO_THREAD` (`src/hand-offs.ts`).
   - To add a connector kind, start at `CONNECTOR_KINDS` in `src/schema.ts`.
@@ -892,6 +950,11 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   - To read which system the office runs on, call `currentPlatform()` in
     `src/platform.ts`, never `process.platform`, so a test's `onPlatform`
     reaches it. `scripts/check-platform.ts` fails any other read.
+  - To change what Odds are told (a line in `src/capabilities.ts`, or a brief
+    built in this package), accept the change with
+    `npm run prompts:accept -w @oddboro/office`: the office's
+    `prompts.test.ts` holds each kind of run's prompt, and
+    `apps/office/src/lib/server/CLAUDE.md` says how.
 - The owner's name lives in the `owner` table, one row, set per install with
   `setOwnerName()` and read with `ownerName()` ("the owner" until one is set).
   Odd prompts use it, so each install's Odds call the owner by name. Never
@@ -926,6 +989,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
 - On Windows, reach the system through `powershell()` or `powershellSync()`
   with values passed as `env`, never pasted into the script, so nothing needs
   quoting.
+- Start an asynchronous one-shot command through `probe()` in
+  `src/platform.ts`, never `execFile`. It says `ok`, `failed`, `missing` or
+  `timeout`, and each caller handles all four, so "not there" never reads as
+  an empty answer and no raw error reaches the owner. It hides the command's
+  window on Windows unless `showWindow`, which only certutil's trust step and
+  `openUrl` use. `test/one-shot-commands.test.ts` holds both.
 
 ## Later
 
@@ -934,9 +1003,6 @@ Each line says what to do when its trigger comes.
 - Building NEW-1651 or NEW-1654, whichever comes first: give each run one
   row of its own, with `runs.jobId` optional, usage pointing at the run, and
   one reader per tool of that tool's stream.
-- Before any change to what Odds are told (the lines in `capabilities.ts`,
-  the office's `house.ts` or a run's brief): add snapshot tests of each kind
-  of run's prompt, so the change shows as a diff in review.
 - Building NEW-1644, or adding an office tool or an AI tool: first write a
   threat model for prompt injection: what a page, file or message an Odd
   reads could make it do, and which wall stops each.
