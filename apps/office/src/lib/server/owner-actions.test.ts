@@ -705,7 +705,8 @@ const UNDRIVEN: Partial<Record<Key, string>> = {
   'POST /api/agents/[tool]': 'Installs or signs in an AI tool on this computer.',
   'PUT /api/agents/[tool]': 'Installs or signs in an AI tool on this computer.',
   'DELETE /api/agents/[tool]': 'Removes an AI tool from this computer.',
-  'POST /api/diagnostics/envelope': "Sends to New Altitude's reports door.",
+  'POST /api/diagnostics/envelope':
+    'A test office has no report address, so it drops the envelope and changes nothing; no driver is written yet.',
   'POST /api/files/open': 'Opens the system browser.',
   'POST /api/folders/pick': "Opens the system's folder picker.",
   'POST /api/looks': AI,
@@ -724,11 +725,15 @@ const UNDRIVEN: Partial<Record<Key, string>> = {
   'POST /api/setup/claude': 'Installs or signs in Claude Code.',
   'DELETE /api/setup/claude': 'Signs Claude Code out.',
   'POST /api/setup/notify': 'Shows a system notification.',
+  'POST /api/browser-link':
+    "Only the app's shell, with its key in a header, asks for one, and `request` sends no headers.",
   'POST /api/update':
     "Only the app's shell, with its token, reports an update; an install needs one reported.",
   'GET /connect/callback': "Finishes a hosted server's sign-in, which needs one started with it.",
-  'POST /api/tasks/[id]#start-response': 'Needs a task with a reference file and a response.',
-  'POST /api/tasks/[id]#response': 'Needs a task with a reference file and a response.',
+  'POST /api/tasks/[id]#start-response':
+    'Needs a task with a reference file and a response set up; no driver is written yet.',
+  'POST /api/tasks/[id]#response':
+    'Needs a task with a reference file and a response set up; no driver is written yet.',
   'POST /api/tasks/[id]#oauth': "Starts a hosted server's sign-in.",
   'POST /api/tasks/[id]#secret': "Keeps the owner's key in the system's secret store.",
   'POST /api/tasks/[id]#tools': 'Asks the server for its tools.',
