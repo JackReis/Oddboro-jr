@@ -470,7 +470,7 @@ test('with no Sec-Fetch-Site, a foreign, unreadable or missing Origin is refused
   assert.equal(from({ host }), false);
 });
 
-test('the app allows a screenshot in chat while other actions keep their smaller limit', async () => {
+test('the app allows a screenshot in chat and a backup to restore while other actions keep their smaller limit', async () => {
   const before = process.env.ODDBORO_APP;
   process.env.ODDBORO_APP = '1';
   const body = 'x'.repeat(2 * 1024 * 1024);
@@ -481,6 +481,9 @@ test('the app allows a screenshot in chat while other actions keep their smaller
       assert.equal(large.status, 200);
       const uploaded = await send(ok, { path: '/api/staff/paige/attachments', body, headers });
       assert.equal(uploaded.status, 200);
+      // A backup to restore is the whole office, held to its own limit as it arrives.
+      const restore = await send(ok, { path: '/api/backup/restore', body, headers });
+      assert.equal(restore.status, 200);
       const other = await send(ok, { path: '/api/goals', body, headers });
       assert.equal(other.status, 413);
       assert.equal(other.ran, false);

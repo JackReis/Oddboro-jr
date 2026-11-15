@@ -126,6 +126,8 @@ export const ROUTE_IDS = {
   '/api/asks/[id]/folder': true,
   '/api/asks/[id]/original': true,
   '/api/asks/[id]/reply': true,
+  '/api/backup': true,
+  '/api/backup/restore': true,
   '/api/browser-link': true,
   '/api/client-log': true,
   '/api/connectors': true,

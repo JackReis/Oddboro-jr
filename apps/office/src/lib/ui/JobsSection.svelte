@@ -80,6 +80,31 @@
     if (j?.files) void act(() => check(j.id));
   }
 
+  // A new job can start as a review of a folder this Odd still gets: one it
+  // was given that is on the disk and holds no keys (`reach.granted`). The pick
+  // fills the name and steps, which the owner can edit; it never overwrites
+  // what the owner typed, so it stays in place but turns off once they type.
+  const reviewable = $derived(
+    profile.folders.filter((f) => profile.reach.granted.some((g) => g.path === f.path))
+  );
+  let filled = $state({ name: '', instructions: '' });
+  const untouched = $derived(
+    (!name && !instructions) || (name === filled.name && instructions === filled.instructions)
+  );
+
+  function reviewFolder(path: string) {
+    if (!path || !untouched) return;
+    name = 'Review ' + (path.split(/[\\/]/).filter(Boolean).at(-1) || path);
+    instructions = [
+      `1. Read the files in ${path}.`,
+      '2. List each issue you find, with the file it is in.',
+      '3. Leave out issues from your last review that are still waiting on me.',
+      '4. Put the list on my desk.'
+    ].join('\n');
+    report = true;
+    filled = { name, instructions };
+  }
+
   async function save() {
     await act(async () => {
       if (editing === 'new')
@@ -123,6 +148,19 @@
   <div class="mt-2">
     {#snippet form()}
       <div class="flex flex-col gap-2 rounded-xl bg-raise p-3">
+        {#if editing === 'new' && reviewable.length}
+          <select
+            aria-label="Start a review of a folder"
+            class="rounded-lg bg-night/60 px-3 py-2 text-sm text-ink outline-none disabled:opacity-50"
+            disabled={!untouched}
+            onchange={(e) => reviewFolder(e.currentTarget.value)}
+          >
+            <option value="">Start a review of a folder…</option>
+            {#each reviewable as folder (folder.path)}
+              <option value={folder.path}>{folder.shown}</option>
+            {/each}
+          </select>
+        {/if}
         <input
           class="rounded-lg bg-night/60 px-3 py-2 text-sm outline-none placeholder:text-faint"
           placeholder="Name, e.g. Sort personal mail"

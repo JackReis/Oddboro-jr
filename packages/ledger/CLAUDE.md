@@ -86,6 +86,11 @@ system's own store with its command stubbed).
    `<home>/db` to `<home>/backups/pre-<version>-<time>/db`. It compares
    `ODDBORO_VERSION` with `<home>/version`, the version that last started, and
    keeps the 3 newest copies. Development (no `ODDBORO_VERSION`) never copies.
+   Before that, a restore the owner chose goes in (`src/office-backup.ts`,
+   `applyStagedRestore`): the office as it is is copied into
+   `<home>/backups/before-restore-<time>`, then each part of the backup takes
+   its place. Those copies are never pruned. Their name keeps clear of the
+   `pre-` pattern, which the update copies' pruning counts.
 5. `npm run reset` starts the office over: it moves `~/.oddboro/db`, the
    Odds' homes, the threads' folders and the office's notes into `~/.oddboro/backups/<time>/`
    and clears the office's keys from `.env`, the owner's answer about
@@ -823,6 +828,11 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   office takes it once as the chat run ends (`takeBugDraft`) and puts it on
   the reply, where File this opens the report form. It files nothing.
   `test/bug-drafts.test.ts` holds it.
+- `oddboro_update`, every Odd's and only in owner chat, reads the office's
+  run-start update status and keeps a status or check request for its reply
+  (`src/chat-updates.ts`). A successful reply shows the existing Updates
+  controls. The tool never installs or restarts; Install now is the owner's
+  action. `test/chat-updates.test.ts` holds that limit.
 - An Odd leaves the office only on the owner's yes, and can come back
   (`src/leaving.ts`). `staff.left_at` marks one that left; the row and its
   history stay. `staffer()` and `roster()` find working Odds only, so a run,

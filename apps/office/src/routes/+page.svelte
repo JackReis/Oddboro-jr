@@ -37,6 +37,7 @@
   import GoalsPanel from '#lib/ui/GoalsPanel.svelte';
   import LessonsLibrary from '#lib/ui/LessonsLibrary.svelte';
   import Welcome from '#lib/ui/Welcome.svelte';
+  import RestoredNote from '#lib/ui/RestoredNote.svelte';
   import ProjectSessions from '#lib/ui/ProjectSessions.svelte';
   import HireDrawer from '#lib/ui/HireDrawer.svelte';
   import FileViewer from '#lib/ui/FileViewer.svelte';
@@ -1207,6 +1208,9 @@
             >Setup</button
           >
         </div>
+        {#if data.restored && !firstRun}
+          <RestoredNote restored={data.restored} />
+        {/if}
       </div>
       {#if open && !firstRun}
         <button
@@ -1252,7 +1256,9 @@
     bind:this={music.audio}
     preload="auto"
     onplay={() => (music.playing = true)}
-    onpause={() => (music.playing = false)}
+    onpause={() => {
+      if (!music.focus) music.playing = false;
+    }}
     ontimeupdate={(e) => (music.time = e.currentTarget.currentTime)}
     ondurationchange={(e) => (music.duration = e.currentTarget.duration || 0)}
     onended={musicEnded}

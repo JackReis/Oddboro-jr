@@ -168,7 +168,7 @@ import { toolServerEnv } from './run-env-allow.ts';
 import { cut, officeEnv } from './run-env.ts';
 import { sandboxPaths } from './sandbox-paths.ts';
 import { NETWORK_REFUSED, NETWORK_REFUSED_LINE } from './sandbox.ts';
-import { downtime, installsAt } from './update.ts';
+import { downtime, installsAt, updateForChat } from './update.ts';
 import { tooOldLine } from './versions.ts';
 export { activeReply, addToReply, chat, replyToOwnerTurn, stopReply } from './chat-run.ts';
 export { history, keepOwnerTurn } from './chat-turns.ts';
@@ -970,6 +970,7 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
     officeEnv({
       key,
       ownerSaid: opts.ownerSaid,
+      update: opts.ownerSaid ? await updateForChat() : undefined,
       chatExchange: opts.chatBefore && lastExchange(opts.chatBefore, { owner, odd: who.name }),
       ownerFiles: opts.ownerFiles?.map((f) => ({
         tag: f.tag,

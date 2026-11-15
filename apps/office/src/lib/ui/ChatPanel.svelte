@@ -16,6 +16,7 @@
   import { chatAnswer } from './task-steps.ts';
   import BugReport from './BugReport.svelte';
   import { failedReply } from '../bug-report.ts';
+  import UpdatesSection from './UpdatesSection.svelte';
   import Lesson from './Lesson.svelte';
   import PersonaQuiet from './PersonaQuiet.svelte';
   import { newTurnId } from '#lib/staff/chat-input.ts';
@@ -225,6 +226,8 @@
   let draft = $state('');
   /** What the bug report form starts with, while it is open. */
   let bugReport = $state<{ title?: string; body: string }>();
+  // One live section per chat, even when the owner asked about updates before.
+  const latestUpdate = $derived(lines.findLast((line) => line.updates));
   let sending = $state(false);
   // The office already holds the text, files and reply target under this turn id.
   type Blocked = { turnId: string; signIn: ChatSignIn };
@@ -750,6 +753,7 @@
             reply.text = ev.text;
             if (ev.choices?.length) reply.choices = ev.choices;
             if (ev.bug) reply.bug = ev.bug;
+            if (ev.updates) reply.updates = ev.updates;
             reply.pending = false;
             reply.at = new Date().toISOString();
           } else if (ev.type === 'error') {
@@ -789,7 +793,8 @@
     if (chatRequest.drafts[profile.id] === undefined || !visible) return;
     const d = takeDraft(profile.id) ?? '';
     if (d) typed('');
-    if (d) draft = draft.trim() ? `${draft.trimEnd()}\n\n${d}` : d;
+    // A draft the box already holds, say from pressing Use in chat twice, goes in once.
+    if (d && !draft.includes(d.trim())) draft = draft.trim() ? `${draft.trimEnd()}\n\n${d}` : d;
     void tick().then(() => {
       fit();
       box?.focus();
@@ -1489,6 +1494,11 @@
             <button class="choice" onclick={() => (bugReport = line.bug)}
               >File this bug report</button
             >
+          </div>
+        {/if}
+        {#if line === latestUpdate && !line.pending}
+          <div class="my-3 rounded-lg border border-line p-3">
+            <UpdatesSection showWindow={false} />
           </div>
         {/if}
         {#if retryable(line, i)}
