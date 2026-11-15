@@ -93,6 +93,13 @@ export const OWNER_ACTIONS = {
   'POST /api/asks/[id]/filter': { records: 'decision' },
   'POST /api/asks/[id]/folder': { records: 'decision' },
   'POST /api/asks/[id]/reply': { records: 'decision' },
+  'POST /api/backup': {
+    notAnAction:
+      "Closes the line the page shows after a restore, kept in the office's home; no record changes."
+  },
+  'POST /api/backup/restore': {
+    none: 'Puts a backup in place of the whole office at its next start, the database included; the office before it is saved aside.'
+  },
   'POST /api/browser-link': {
     notAnAction:
       "Makes a one-time link for the owner's browser, kept in memory for a minute; no record changes."
@@ -191,6 +198,7 @@ export const OWNER_ACTIONS = {
   'PATCH /api/staff/[id]#effort': { records: 'access' },
   'PATCH /api/staff/[id]#model': { records: 'access' },
   'PATCH /api/staff/[id]#account': { records: 'access' },
+  'PATCH /api/staff/[id]#actsOnHandOffs': { records: 'access' },
   'POST /api/staff/[id]/access': { records: 'access' },
   'PATCH /api/staff/[id]/access': { records: 'access' },
   'DELETE /api/staff/[id]/access': { records: 'access' },
