@@ -21,6 +21,7 @@
   import { AgentTools } from './agent-tools.svelte.ts';
   import AccountSignIn from './AccountSignIn.svelte';
   import { account } from './account.svelte.ts';
+  import PersonaBrief from './PersonaBrief.svelte';
   import PersonaOffer from './PersonaOffer.svelte';
   import { connect, PersonaOffers, personas as asked } from './persona-offers.svelte.ts';
   import {
@@ -437,6 +438,7 @@
                 <p class="font-semibold text-ink">{o.displayName}</p>
                 {#if o.jobTitle}<p class="text-muted">{o.jobTitle}</p>{/if}
               </div>
+              <PersonaBrief offer={o} />
               {#if o.joined === 'installed'}
                 <p class="mt-auto py-2 text-muted">Works here</p>
               {:else if mine?.waiting}
@@ -536,6 +538,7 @@
           {suggested.displayName} is available as a New Altitude persona. Add the persona instead of building
           an Odd that looks like them.
         </p>
+        <PersonaBrief offer={suggested} />
         <p class="leading-relaxed text-muted">{suggested.disclosure}</p>
       </div>
     </div>
