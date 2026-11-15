@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { home, OFFICE_PORT } from '@oddboro/ledger/home';
 import {
   health,
   logSetup,
@@ -39,8 +38,6 @@ test('each startup step is timed, logged and served, then ready', async () => {
   const h = health();
   assert.equal(typeof h.steps.tables, 'number');
   assert.equal(typeof h.readyMs, 'number');
-  assert.equal(h.port, OFFICE_PORT);
-  assert.equal(h.home, home());
   assert.equal(h.pid, process.pid);
 });
 

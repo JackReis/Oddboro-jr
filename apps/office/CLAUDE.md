@@ -24,8 +24,8 @@ in the app, each time a request computes the setup checks, one
 `office: setup <id> ok` or `fail` line per check (the id and result alone,
 `logSetup`); a new version's first start writes `office: first start of X after Y`
 (`backup.ts` in the ledger). `GET /api/health` serves the same: version,
-pid, the port and home it runs with, uptime, step times, how many pages hold
-the live line and how many page errors came in (`src/lib/server/health.ts`). The page reports its boot and
+pid, uptime, step times, how many pages hold the live line and how many page
+errors came in (`src/lib/server/health.ts`). The page reports its boot and
 every error it hits to `POST /api/client-log` (`src/hooks.client.ts`, as
 JSON like every action), which writes one `page:` line each, cut to 600
 characters, at most 30 a minute, with `oddboro:` defused so a page never
