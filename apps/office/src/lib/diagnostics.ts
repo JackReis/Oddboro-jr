@@ -191,6 +191,7 @@ export const ROUTE_IDS = {
   '/api/switches': true,
   '/api/tasks/[id]': true,
   '/api/update': true,
+  '/api/weather/[station]': true,
   '/atlas/[file]': true,
   '/connect/callback': true
 } as const satisfies Record<RouteId, true>;

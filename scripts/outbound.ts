@@ -17,6 +17,13 @@ export type Outbound = {
 
 export const OUTBOUND: readonly Outbound[] = [
   {
+    file: 'apps/office/src/routes/api/weather/[station]/+server.ts',
+    calls: 1,
+    to: 'The U.S. Aviation Weather Center.',
+    sends: 'The airport station code the owner entered.',
+    yes: 'The owner choosing Show weather. The office checks while it is open until the owner turns weather off.'
+  },
+  {
     file: 'apps/office/src/lib/server/project-sessions/codex-rpc.ts',
     calls: 2,
     to: 'The local Codex App Server, through authenticated loopback or the private socket the owner chose.',

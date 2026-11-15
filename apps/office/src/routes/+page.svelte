@@ -7,6 +7,8 @@
   import type { StaffActor, Pop } from '#lib/floor/staff.ts';
   import type { Beat } from '#lib/floor/reveal.ts';
   import Onboarding, { type Stage } from '#lib/ui/onboarding/Onboarding.svelte';
+  import FloorWeather from '#lib/ui/FloorWeather.svelte';
+  import { checkWeatherIfDue, restoreWeather, weather } from '#lib/ui/weather.svelte.ts';
   import FloorControls, { type Light } from '#lib/ui/FloorControls.svelte';
   import { music, musicEnded, startMusic } from '#lib/ui/music.svelte.ts';
   import { chatAbout } from '#lib/ui/chat-about.svelte.ts';
@@ -267,6 +269,7 @@
   });
   // The first run shows the lot, then the office as it goes up on it.
   let liveWorld = $state<World | undefined>();
+  const overcast = $derived(light === 'auto' && !!weather.report?.overcast);
   /** The hour the floor shows: the office's own, unless the viewer holds it at day or night. */
   const shownHour = $derived(light === 'day' ? 13 : light === 'night' ? 22 : hour);
   const office = $derived(liveWorld ? { ...data.office, world: liveWorld } : data.office);
@@ -726,7 +729,11 @@
     } catch {
       // No storage: notifications stay off.
     }
-    const timer = setInterval(() => (now = new Date()), 15_000);
+    restoreWeather();
+    const timer = setInterval(() => {
+      now = new Date();
+      checkWeatherIfDue();
+    }, 15_000);
 
     // One live line from the server. Changes arrive as they happen.
     const events = new EventSource('/api/events' satisfies ApiUrl);
@@ -776,7 +783,7 @@
         if (disposed || !host) return;
         atlasCatalog = atlas.catalog;
         floor = await F.Floor.create(host, office.world, atlas);
-        floor.setHour(shownHour);
+        floor.setHour(shownHour, overcast);
         // Dev only: lets a browser console poke at the floor.
         if (import.meta.env.DEV) (window as unknown as { floor: Floor }).floor = floor;
         start = arrival(office.world);
@@ -1090,7 +1097,7 @@
 
   $effect(() => {
     const h = shownHour;
-    if (floorReady) floor?.setHour(h);
+    if (floorReady) floor?.setHour(h, overcast);
   });
 
   $effect(() => {
@@ -1207,6 +1214,7 @@
             >Setup</button
           >
         </div>
+        {#if !firstRun}<FloorWeather />{/if}
       </div>
       {#if open && !firstRun}
         <button

@@ -251,6 +251,7 @@ export class Floor {
   /** The night tint every shaded sprite and every staffer wears right now. */
   nightTint = 0xffffff;
   private hour = 12;
+  private overcast = false;
   private zoom = 3;
   /** The zoom the camera is gliding to, and the screen point that holds still meanwhile. */
   private zoomTo = 3;
@@ -709,10 +710,12 @@ export class Floor {
 
   /** How much sun comes through the windows, 0 at night to 1 at midday. */
   private daylight() {
+    if (this.overcast) return 0;
     return Math.max(0, Math.min(1, (ambientAt(this.hour).strength - 0.45) / 0.55));
   }
 
-  setHour(hour: number) {
+  setHour(hour: number, overcast = this.overcast) {
+    this.overcast = overcast;
     this.hour = hour;
     // Street lamps come on at dusk and go out at dawn, unless the owner put one out.
     this.daylit = ambientAt(hour).strength >= 0.75;
@@ -751,6 +754,8 @@ export class Floor {
       for (let b = 0; b < bands; b++) {
         const t = b / (bands - 1);
         const c = top.map((v, i) => v + (bottom[i] - v) * t);
+        // Keep the time of day's brightness behind a solid cloud layer.
+        if (this.overcast) c.fill((c[0] + c[1] + c[2]) / 3);
         this.sky.rect(w.x, w.y + (w.h * b) / bands, w.w, Math.ceil(w.h / bands) + 1).fill(toHex(c));
       }
     }

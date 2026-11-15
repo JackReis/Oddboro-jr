@@ -212,6 +212,10 @@ An Odd may ask to read your LegalZoom physical mailbox, through LegalZoom's own 
 - **What an Odd reads goes to the AI service it runs on**, as with Google above.
 - **Disconnecting.** Revoking the last grant removes the sign-in from your computer.
 
+### Airport weather (only if you turn it on)
+
+If you choose Show weather on the office floor, Oddboro sends the station code you enter to the U.S. Aviation Weather Center. The service also sees your public IP address. This device remembers the station and checks hourly while the office is open. Turn off weather to remove the station and stop the checks.
+
 ### Other tools you connect
 
 An Odd may ask for a hosted tool (a service reached over the network). You approve or deny every connection, and you sign in to the service yourself. The office keeps the sign-in tokens in your system's secret store and refreshes them before each run. Data the Odd reads from or writes to that service goes to that service under its own terms. Each Odd gets only the access you give it: a tool connects read only, or with write from the Draft level. At Draft, each change through a write grant waits for your yes. At Act, a write-level grant to one Odd for one tool is your standing permission for that Odd to use that tool without asking each time. You can lower the Odd's level, which pauses the grant, or revoke the grant from the Odd's Settings, under Services, at any time.
