@@ -200,15 +200,30 @@ export async function editOwnJob(
 }
 
 /**
+ * A job description save that stopped because the text changed since the
+ * editor read it. `current` is the text there now, so the editor can start
+ * again from it.
+ */
+export class DescriptionChanged extends Error {
+  readonly current: string;
+  constructor(message: string, current: string) {
+    super(message);
+    this.current = current;
+  }
+}
+
+/**
  * Rewrite a staffer's job description, the text every run starts from. The owner
  * does it from the card, or the staffer does with their go-ahead. `was` is the
- * text the editor started from: if it changed since, the save stops instead of
- * overwriting someone else's edit. The ledger keeps the old and new versions.
+ * text the editor started from: the owner's when they opened it, the staffer's
+ * when its run began. If it changed since, the save stops with
+ * `DescriptionChanged` instead of overwriting someone else's edit. The ledger
+ * keeps the old and new versions.
  */
 export async function setDescription(
   staffId: string,
   text: string,
-  by: { owner: true; was: string } | { go: GoAhead }
+  by: ({ owner: true } | { go: GoAhead }) & { was: string }
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
     // Read the version this save will replace, even if another edit is finishing.
@@ -220,9 +235,10 @@ export async function setDescription(
     if (!who) throw fixedError('No such Odd');
     const desk = text.trim();
     if (!desk) throw fixedError('A job description cannot be empty');
-    if ('owner' in by && by.was.trim() !== who.desk.trim())
-      throw new Error(
-        `${who.name}'s job description changed since you opened it. Reopen it to see.`
+    if (by.was.trim() !== who.desk.trim())
+      throw new DescriptionChanged(
+        `${who.name}'s job description changed since you opened it. Reopen it to see.`,
+        who.desk
       );
     if (desk === who.desk.trim()) return false;
     await tx.update(staff).set({ desk }).where(eq(staff.id, staffId));
