@@ -3,6 +3,7 @@
   import type { Check } from '@oddboro/ledger/checks';
   import AccountSection from './AccountSection.svelte';
   import AdvancedSection from './AdvancedSection.svelte';
+  import BackupSection from './BackupSection.svelte';
   import { AgentTools } from './agent-tools.svelte.ts';
   import { call } from './api.ts';
   import DiagnosticsSection from './DiagnosticsSection.svelte';
@@ -29,6 +30,8 @@
   let { office, welcomed, ondesign, onhire, onmeet, ondone, notify, onnotify }: Props = $props();
 
   type Setup = {
+    app: boolean;
+    ownDatabase: boolean;
     checks: Check[];
     owner: string;
     zoneName: string;
@@ -192,6 +195,9 @@
         <DiagnosticsSection />
       {/if}
       <AccountSection />
+      {#if setup}
+        <BackupSection app={setup.app} ownDatabase={setup.ownDatabase} />
+      {/if}
       <AdvancedSection />
     {/if}
 
