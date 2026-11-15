@@ -14,8 +14,6 @@ import type { ThreadFor } from '../src/threads.ts';
 import { db } from './pglite.ts';
 import { ownerWords } from './owner-words.ts';
 
-// The ledger rows a decision writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 // Loaded once db.ts is this database, so every query they make lands here.
 const { handOff } = await import('../src/hand-offs.ts');
 const { decideAsk } = await import('../src/office.ts');

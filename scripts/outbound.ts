@@ -174,18 +174,11 @@ export const OUTBOUND: readonly Outbound[] = [
     yes: "The owner's choice of AI tool; the check sends no owner data."
   },
   {
-    file: 'packages/ledger/src/checks.ts',
+    file: 'packages/ledger/src/search-model.ts',
     calls: 1,
-    to: 'Ollama at OLLAMA_URL, this computer unless the owner points it elsewhere.',
-    sends: 'A request for its list of models.',
-    yes: "The owner running setup's check; it sends no owner data."
-  },
-  {
-    file: 'packages/ledger/src/embed.ts',
-    calls: 1,
-    to: 'Ollama at OLLAMA_URL, this computer unless the owner points it elsewhere.',
-    sends: 'Text written to the ledger, or searched for, to turn it into a vector.',
-    yes: 'The owner, who sets OLLAMA_URL; with it unset nothing leaves this computer.'
+    to: "Hugging Face, for the search model's files at one pinned revision, and the download host it sends them from.",
+    sends: "A download request for each file. Nothing of the owner's.",
+    yes: "The owner clicking Download on Setup's ledger search line. Embedding itself runs inside the office and sends nothing."
   },
   {
     file: 'packages/ledger/src/local-db.ts',

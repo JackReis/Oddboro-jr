@@ -8,8 +8,6 @@ import { and, eq } from 'drizzle-orm';
 import { asks, followUps, staff, tasks } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
-// The ledger rows a decision writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { answeredWith, decideAsk, desk, finishTask, raiseAsk, standsFor } =
   await import('../src/office.ts');
 

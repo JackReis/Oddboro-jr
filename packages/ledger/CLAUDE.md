@@ -161,6 +161,27 @@ and a hire's starting values.
 hand-off or number, which ledger tests and the office's format test share.
 `test/deliveries.test.ts` holds when the owner decided each ask.
 
+## Ledger search
+
+The search model is Nomic Embed Text v1.5 in int8 ONNX, 137 MB, pinned in
+`src/search-model.ts` to one Hugging Face revision and each file's SHA-256.
+It lives in `models/nomic-embed-text-v1.5/` in the office home, which a
+backup leaves out. Setup's ledger search line (`checkSearch`) offers the
+download; `POST /api/setup/search` in the office runs it. The files arrive
+in a folder of their own and move into place only when every one matches
+its pin. `src/embed.ts` runs the model through onnxruntime-node, loaded once
+per process on the first text after its files pass their checksums again,
+and tokenizes with `src/wordpiece.ts`. It prefixes `search_document: ` or
+`search_query: `, reads at most 2048 tokens, and takes the mean, layer norm
+and length 1, as Nomic says. A file that fails its checksum is removed, so
+Setup offers the download again. onnxruntime-node's install script, which
+would download CUDA libraries on Linux, never runs: the root `package.json`
+denies it in `allowScripts`. Its npm package has no build for an Intel Mac;
+there `checkSearch` says so and the ledger is searched by its words. Tests
+run a stand-in model (`test/stand-in-model.ts`) and never download; set
+`ODDBORO_TEST_SEARCH_MODEL` to a folder with the real files to run
+`test/search-model-real.test.ts`.
+
 ## Files
 
 `FILES.md` lists each file in this package and what it holds.
@@ -190,8 +211,16 @@ their change triggers; `0028_advanced_mode` adds `owner.advanced_at` and
 - The ledger is append-only. Fix a mistake with a new row, never an edit.
 - Every table the page shows has a trigger that NOTIFYs `office` with its
   name. A new table the page shows gets one in a migration.
-- Text is embedded once, when it is written, never in a loop. With Ollama
-  down the row is still written, and search falls back to words.
+- Text is embedded once, when it is written, never in a loop, inside the
+  process that writes it (`src/embed.ts`). Until the owner downloads the
+  search model from Setup, or when it cannot run, the row is still written
+  with no vector, and search goes by words. Nothing about it leaves the
+  computer but the one download (`src/search-model.ts`).
+- A row's vector is the one thing the office changes after the row is
+  written: the re-index (`reindexLedger`) makes it again, with
+  `embedding_model` naming the model, once the model arrives and as the
+  office starts while rows are owed. It touches no other column, so the
+  Ledger window hears nothing of it.
 - `STAFF_ID` is set by the office when it starts `src/mcp.ts`. A tool acts as
   that Odd and no other. In a chat, the office also sets `OWNER_SAID` to
   the owner's message. An Odd changes its own jobs or job description only with

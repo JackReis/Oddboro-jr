@@ -7,7 +7,6 @@ import { staff } from '../src/schema.ts';
 import { nextRun, runTime } from '../src/time.ts';
 import type { JobRow, RunRow } from '../src/office.ts';
 
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const O = await import('../src/office.ts');
 await db.insert(staff).values({
   id: 'writer',

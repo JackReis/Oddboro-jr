@@ -26,8 +26,6 @@ import type { ThreadFor } from '../src/threads.ts';
 import { db, sql } from './pglite.ts';
 import { oneThreadPerGoal } from './one-thread.ts';
 
-// The ledger rows a finished run writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const G = await import('../src/goals.ts');
 const H = await import('../src/hand-offs.ts');
 const O = await import('../src/office.ts');

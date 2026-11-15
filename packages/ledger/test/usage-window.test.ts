@@ -10,8 +10,6 @@ import type { ThreadFor } from '../src/threads.ts';
 import { db } from './pglite.ts';
 import { ownerWords } from './owner-words.ts';
 
-// The ledger rows a decision writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { handOff } = await import('../src/hand-offs.ts');
 const { parkThread, parkedThreads, wakeThread } = await import('../src/threads.ts');
 const { goalsWindow } = await import('../src/goals.ts');

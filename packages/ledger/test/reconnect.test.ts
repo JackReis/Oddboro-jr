@@ -8,8 +8,6 @@ import { test } from 'node:test';
 import { connectors, staff } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
-// The ledger rows a grant writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { grantAccess, reconnectTask } = await import('../src/office.ts');
 
 await db.insert(staff).values({

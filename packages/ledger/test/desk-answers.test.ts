@@ -30,7 +30,6 @@ import {
 import { db } from './pglite.ts';
 import { TEMP_IN_APPDATA } from './store-states.ts';
 
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 // The owner passed the Act check (act-check.test.ts), so a level ask's yes to
 // Act goes through. No name, so the owner is still "the owner".
 await db.insert(owner).values({ name: '', actCheckAt: new Date() });

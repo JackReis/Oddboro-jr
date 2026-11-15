@@ -7,8 +7,6 @@ import { eq } from 'drizzle-orm';
 import { followUps, staff, threads } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
-// Recording a finished run in the ledger reaches no Ollama.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 // Loaded once db.ts is this database, so every query they make lands here.
 const { handOff, handBackLater } = await import('../src/hand-offs.ts');
 const { handOffMark, handOffNewsSince } = await import('../src/hand-off-news.ts');

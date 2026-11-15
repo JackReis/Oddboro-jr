@@ -1957,8 +1957,9 @@ the persona's voice.
 2. `npm run service:uninstall -w apps/office` removes it. Stop it before
    running `npm run dev`, since both want port 4500.
 3. The office starts its own database, so nothing else has to. A database in
-   Docker needs Docker Desktop to start at login. Ollama must run for search
-   by meaning; without it the ledger falls back to words.
+   Docker needs Docker Desktop to start at login. Search by meaning runs inside
+   the office once the owner downloads the search model from Setup
+   (`POST /api/setup/search`); without it the ledger falls back to words.
 
 ## Where things live
 
