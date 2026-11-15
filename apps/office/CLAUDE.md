@@ -849,7 +849,9 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `~/.aws`, `~/.gnupg`, `~/.config`, `~/Library`, `~/AppData`,
    `~/.claude.json`, `~/.google_workspace_mcp` (where
    that MCP server keeps its sign-ins for other apps on the Mac), `~/.grok`,
-   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, everything
+   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, and the Linux
+   browsers' and keyrings' folders `~/.mozilla`, `~/.local/share/keyrings`,
+   `~/.pki`, `~/snap` and `~/.var/app`, everything
    in `~/.oddboro` besides `staff/` and `data/` (and `threads/<id>/` for a
    run on that thread), every other
    Odd's folder, and everything in `~/.claude` besides this run's sessions.
@@ -1600,6 +1602,15 @@ it.", reads too, which a browser shows as a plain page.
 - Without the key, only these get in: the sign-in callbacks (rule 5), as
   GETs to those two exact paths; the shell's proof request; a run's call to
   its gateway with its token; and a link for the owner's browser.
+- Those, and the shell's and a run's way past rule 3, are judged on the
+  address the request was sent to (`sentTo`), never on the path SvelteKit
+  hands the handle. Kit takes `/__data.json` off a data request, and a remote
+  function call under `/_app/remote/` names its page in a header the caller
+  writes, so either could otherwise pass as an exception. The table of
+  hostile and legitimate targets in `src/lib/server/request-targets.ts` runs
+  through the guard in the app (`app-key.test.ts`), from source
+  (`owner-page.test.ts`) and through the dev server's rule
+  (`vite-config.test.ts`).
 - The owner's browser has no key. When the window opens an office address in
   a new window (a file attached in a chat), the shell asks
   `POST /api/browser-link` for a code for that path and opens the address
