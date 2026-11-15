@@ -44,3 +44,26 @@ test('a body that sends a command keeps it as listed only, and junk is dropped',
   );
   assert.deepEqual(serversFrom('notes'), []);
 });
+
+test("each no to an imported file's 20 server asks joins one waiting run for the Odd", async () => {
+  const raised = await askForImported(
+    'cleo',
+    'Cleo',
+    serversFrom(
+      Array.from({ length: 20 }, (_, i) => ({
+        name: `tool ${i}`,
+        url: `https://mcp.tool${i}.dev/mcp`
+      }))
+    )
+  );
+  assert.equal(raised.length, 20);
+  const waiting = async () =>
+    (await L.followUpsToStart()).filter((f) => f.staffId === 'cleo' && f.kind === 'answered');
+  assert.deepEqual(await waiting(), []);
+  for (const a of raised) await L.decideAsk(a.id, 'deny', null);
+  const runs = await waiting();
+  assert.equal(runs.length, 1, 'one run, not twenty');
+  const run = runs[0];
+  assert.equal(run.note?.split('\n').length, 20);
+  for (const a of raised) assert.ok(run.note?.includes(`"${a.title}"`), a.title);
+});
