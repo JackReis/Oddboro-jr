@@ -22,19 +22,19 @@ import { currentPlatform } from './platform.ts';
 import { bringBack, leavingRefused, removeOdd } from './leaving.ts';
 import { giveStanding } from './standing.ts';
 import { oweCatchUp } from './missed-runs.ts';
-import { type FolderAccess, type OwnSwitch } from './access-words.ts';
+import { levelAtMost, type FolderAccess, type OwnSwitch } from './access-words.ts';
 import { filterWords, type GmailFilter } from './filter-words.ts';
 import { yesOrNo } from './tools.ts';
 import { OWNER_ANSWERS, type AskAnswer, type AskEffect } from './desk-answers.ts';
 import type { StaffRow, AskRow, ReportRow } from './office.ts';
-import { anyStaffer, networkNote } from './office-staff.ts';
+import { anyStaffer, changeLevel, changeTools, networkNote, staffer } from './office-staff.ts';
 import { changeFolder, gaveFolder, switchesOff, turnedOn, checkFolder } from './office-folders.ts';
 import { record } from './office-ledger.ts';
 import {
   raiseAsk,
   ask,
   type Decision,
-  TWINNED,
+  TWINS,
   asksNoMore,
   carryOutTogether
 } from './office-asks.ts';
@@ -49,16 +49,19 @@ import { ownerName } from './office-usage.ts';
  * to connect; approving any other ask but a hire sends the staffer to carry it
  * out. A hire is approved by hiring, from the hire window. Iterate sends it
  * back with what to change, and needs their words; an ask the office raised
- * itself takes a yes or a no only (`yesOrNo`).
+ * itself takes a yes or a no only (`yesOrNo`). A yes to a level ask that
+ * puts the Odd at Act takes the owner's choice for work another Odd hands it
+ * (`actsOnHandOffs`); left out, the stored choice stays.
  */
 export async function decideAsk(
   id: number,
   decision: Decision,
   reason: string | null,
   reportWhenDone = false,
-  inChat = false
+  inChat = false,
+  actsOnHandOffs?: boolean
 ): Promise<boolean> {
-  return decide(id, decision, reason, { reportWhenDone, inChat });
+  return decide(id, decision, reason, { reportWhenDone, inChat, actsOnHandOffs });
 }
 
 /** What approving an ask means, done before the answer goes back. */
@@ -204,6 +207,54 @@ async function turnOnSwitches(
 }
 
 /**
+ * Make the change a level or office tool ask asked for, in `tx`, with the
+ * yes, or neither happens: the Settings tab's own change (`changeLevel`,
+ * `changeTools`), with its ledger title. A level the Odd already holds or
+ * passed stays as it is, so a yes never undoes a higher level set since, and
+ * tools already on stay on; either still starts the work (`{}`). Nothing for
+ * any other kind, or when the Odd is gone. A new kind fails the type check
+ * here until it says which. A raise to Act takes the owner's choice for work
+ * another Odd hands it (`actsOnHandOffs`), and `also` is its ledger line.
+ */
+async function grantSetting(
+  tx: Tx,
+  claimed: AskRow,
+  actsOnHandOffs?: boolean
+): Promise<{ title?: string; also?: string } | undefined> {
+  switch (claimed.kind) {
+    case 'level': {
+      if (!claimed.level) throw fixedError('This ask names no level');
+      const before = await staffer(claimed.staffId, tx);
+      if (!before) return;
+      if (levelAtMost(claimed.level, before.permission)) return {};
+      return changeLevel(tx, claimed.staffId, claimed.level, actsOnHandOffs);
+    }
+    case 'office_tool':
+      if (!claimed.officeTools?.length) throw fixedError('This ask names no office tool');
+      return (await changeTools(tx, claimed.staffId, claimed.officeTools, true)) ?? {};
+    case 'approval':
+    case 'access':
+    case 'hire':
+    case 'goal':
+    case 'plan':
+    case 'hand_offs':
+    case 'window':
+    case 'reply':
+    case 'filter':
+    case 'folder':
+    case 'switch':
+    case 'call':
+    case 'remove':
+    case 'bring_back':
+    case 'catch_up':
+    case 'standing':
+      return;
+    default:
+      claimed.kind satisfies never;
+  }
+}
+
+/**
  * The owner gives the folder a folder ask asked for, or a narrower one, at
  * the level they pick: `path` as typed or picked, checked as the Settings tab
  * checks it (`checkFolder`). The folder is given (`changeFolder`, as
@@ -256,6 +307,8 @@ async function decide(
   reason: string | null,
   o: Approval & {
     reportWhenDone?: boolean;
+    /** A yes that puts the Odd at Act: the owner's choice for work another Odd hands it. */
+    actsOnHandOffs?: boolean;
     reply?: ReplyDraft;
     filter?: GmailFilter;
     call?: HeldCall;
@@ -296,7 +349,7 @@ async function decide(
   }
   const status = decision === 'approve' ? 'approved' : decision === 'deny' ? 'denied' : 'revise';
   const at = new Date();
-  const { ask, twins, turned } = await db.transaction(async (tx) => {
+  const { ask, twins, turned, granted } = await db.transaction(async (tx) => {
     const [claimed] = await tx
       .update(asks)
       .set({
@@ -330,10 +383,15 @@ async function decide(
     // The standing yes goes on the grant with the yes, or neither happens.
     if (claimed && effectsOf(claimed.kind, decision).includes('give_standing'))
       await giveStanding(tx, claimed);
+    // The level or office tools change with the yes, or neither happens.
+    const granted =
+      claimed && decision === 'approve'
+        ? await grantSetting(tx, claimed, o.actsOnHandOffs)
+        : undefined;
     // A yes or a no answers the twins too, at the same moment (`answeredWith`).
     // Sending one back leaves them waiting for the new version's answer.
     const open =
-      claimed && TWINNED.includes(claimed.kind) && decision !== 'iterate'
+      claimed && TWINS[claimed.kind] && decision !== 'iterate'
         ? await tx
             .select()
             .from(asks)
@@ -353,7 +411,7 @@ async function decide(
           .where(and(inArray(asks.id, ids), eq(asks.status, 'open')))
           .returning()
       : [];
-    return { ask: claimed, twins: answered, turned };
+    return { ask: claimed, twins: answered, turned, granted };
   });
   if (!ask) return false;
   const sent = decision === 'approve' && ask.reply?.sent ? ask.reply : undefined;
@@ -366,7 +424,8 @@ async function decide(
   await record({
     kind: 'decision',
     actor: o.withdrawn ? 'office' : 'owner',
-    // A folder given or a switch turned on from its ask reads as the Settings tab's change does.
+    // A folder given, a switch turned on, a level raised or office tools turned
+    // on from its ask reads as the Settings tab's change does.
     title: o.withdrawn
       ? `Withdrawn: ${ask.title}`
       : made
@@ -375,9 +434,11 @@ async function decide(
           ? gaveFolder((await anyStaffer(ask.staffId))?.name ?? ask.staffId, gave.path, gave.level)
           : turned?.on.length
             ? turnedOn(turned.before.name, turned.on)
-            : called
-              ? `${called.ok ? 'Made' : 'Made, and it failed'}: ${ask.title}`
-              : `${verb}: ${ask.title}`,
+            : granted?.title
+              ? granted.title
+              : called
+                ? `${called.ok ? 'Made' : 'Made, and it failed'}: ${ask.title}`
+                : `${verb}: ${ask.title}`,
     body: `${sent ? `To ${sent.to.join(', ')}${sent.cc.length ? `, cc ${sent.cc.join(', ')}` : ''}. Subject: ${sent.subject}. ` : ''}${called ? `It returned: ${callResultText(called, 600)} ` : ''}${turned ? (networkNote(turned.before, turned.after).body ?? '') + ' ' : ''}Asked by ${ask.staffId}. ${ask.why}${
       twins.length
         ? ` This also answers ${twins.map((t) => `#${t.id}`).join(', ')}, the same ask from another of ${ask.staffId}'s runs.`
@@ -386,6 +447,8 @@ async function decide(
     reason: ask.reason,
     askId: ask.id
   });
+  // The owner's choice for work from colleagues, made with a raise to Act, as the Settings tab writes it.
+  if (granted?.also) await record({ kind: 'access', actor: 'owner', title: granted.also });
   await o.carryOut?.(ask);
   // Only the run this ask's own answer starts, never a twin's, replies under its card.
   const chat: InChat | undefined = o.inChat
@@ -433,6 +496,10 @@ async function decide(
       // The switches turned on with the claim: the work that waited on them picks up.
       case 'turn_on':
         if (turned) await carryOutTogether([ask, ...twins], undefined, db, chat);
+        break;
+      // The level or tools changed with the claim: the work that waited on them picks up.
+      case 'grant_setting':
+        if (granted) await carryOutTogether([ask, ...twins]);
         break;
       case 'carry_out':
         await followUp(ask.staffId, 'carry_out', {
