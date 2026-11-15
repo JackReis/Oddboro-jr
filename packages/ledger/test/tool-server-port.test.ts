@@ -1,6 +1,8 @@
 // The test database's port (tool-server.ts, NEW-1907): with something already
-// listening where this process would put its database, the database starts on
-// the next free port, below the systems' ranges for outgoing connections. Run
+// listening where this process would put its database, the helper picks the
+// next free port, below the systems' ranges for outgoing connections, and the
+// database answers. Only Windows puts the database on that port; on a Mac and
+// Linux it listens on a socket, so there this checks the port picked. Run
 // with `npm test -w @oddboro/ledger`.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:net';

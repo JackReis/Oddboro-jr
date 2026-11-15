@@ -28,13 +28,15 @@ export const folder = mkdtempSync(join(tmpdir(), 'oddboro-staff-run-'));
 /** The owner's data folder in the office's home, which every Odd reads. */
 export const ownerData = join(folder, 'data');
 /**
- * The test database's port. A port the system picks (listen on 0) comes from
- * the range it also gives outgoing connections, and the database listens only
- * later: in between, another test file's database or any connection could
- * take it, and the database's listen then kills this process (EADDRINUSE).
- * So: below every system's range for those (Linux 32768, the Mac and Windows
- * 49152), by process id, which no two test files running at once share, and
- * the next one up if something already listens there.
+ * The test database's port, which only Windows uses: on a Mac and Linux the
+ * database listens on a socket in the office home (db.ts). A port the system
+ * picks (listen on 0) comes from the range it also gives outgoing
+ * connections, and the database listens only later: in between, another test
+ * file's database or any connection could take it, and the database's listen
+ * then kills this process (EADDRINUSE). So: below every system's range for
+ * those (Linux 32768, the Mac and Windows 49152), by process id, which no two
+ * test files running at once share, and the next one up if something already
+ * listens there.
  */
 async function databasePort(): Promise<number> {
   for (let port = 20_000 + (process.pid % 12_000); ; port = port >= 31_999 ? 20_000 : port + 1) {
