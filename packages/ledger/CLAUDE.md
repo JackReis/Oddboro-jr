@@ -31,6 +31,16 @@ Under `node --test` (`NODE_TEST_CONTEXT`), with no `ODDBORO_HOME`, `home()` is
 a folder under the system's temp folder, made on first use and removed at
 exit, and with no `ODDBORO_DB_PORT`, `DATABASE_PORT` is 54399: a test never
 reaches the owner's real office (`test/home.test.ts`).
+Both packages' test scripts also load `test/test-defaults.ts` with `--import`,
+before any test module: each test process gets a temp `HOME` and `USERPROFILE`
+and a `PATH` of node plus the system's own folders, so no test finds the
+developer's AI tools or settings unless it stands one in. It imports only
+Node's own modules, so it cannot load a module a test means to mock.
+`test/tools-on-path.ts` lists which of some commands a process could start
+from its `PATH`, for the tests that hold that. Under test `src/secrets.ts`
+starts with a store whose every use throws, naming the stand-in to load,
+until a test stands one in (or sets `ODDBORO_SECRETS=system` to test the
+system's own store with its command stubbed).
 
 1. With no `DATABASE_URL` in `.env`, the office keeps its own Postgres:
    PGlite inside the office server, files in `~/.oddboro/db`, with
