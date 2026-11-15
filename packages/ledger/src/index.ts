@@ -27,6 +27,8 @@ export {
   searchRegistry,
   ensureConnector,
   BUILT_IN,
+  GITHUB_ADDRESS,
+  GITHUB_ID,
   HEADER_NAME,
   type Candidate,
   type WayIn

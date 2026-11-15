@@ -78,6 +78,11 @@ system's own store with its command stubbed).
    `<home>/db` to `<home>/backups/pre-<version>-<time>/db`. It compares
    `ODDBORO_VERSION` with `<home>/version`, the version that last started, and
    keeps the 3 newest copies. Development (no `ODDBORO_VERSION`) never copies.
+   Before that, a restore the owner chose goes in (`src/office-backup.ts`,
+   `applyStagedRestore`): the office as it is is copied into
+   `<home>/backups/before-restore-<time>`, then each part of the backup takes
+   its place. Those copies are never pruned. Their name keeps clear of the
+   `pre-` pattern, which the update copies' pruning counts.
 5. `npm run reset` starts the office over: it moves `~/.oddboro/db`, the
    Odds' homes, the threads' folders and the office's notes into `~/.oddboro/backups/<time>/`
    and clears the office's keys from `.env`, the owner's answer about
