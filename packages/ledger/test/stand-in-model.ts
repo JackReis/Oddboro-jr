@@ -101,7 +101,7 @@ export function standInFiles(): { files: ModelFile[]; contents: Record<string, B
   };
   const files = Object.entries(contents).map(([name, b]) => ({
     name,
-    path: name,
+    asset: `stand-in-${name}`,
     bytes: b.length,
     sha256: createHash('sha256').update(b).digest('hex')
   }));

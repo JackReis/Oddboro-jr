@@ -23,7 +23,7 @@ This policy covers two things, and they work differently.
 It does not cover:
 
 - **GitHub.** When you visit, clone, star, or open an issue in the repository, GitHub collects what GitHub collects under [GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
-- **Anthropic, Hugging Face and any other service you connect the software to or download from.** Each one handles your data under its own terms and privacy policy. Section 5 lists them.
+- **Anthropic and any other service you connect the software to or download from.** Each one handles your data under its own terms and privacy policy. Section 5 lists them.
 - **Your New Altitude account.** If you have one, New Altitude holds it under the [New Altitude Privacy Policy](https://newaltitude.ai/privacy) and the terms you accepted for it.
 
 ### Definitions
@@ -109,7 +109,7 @@ To stop: open Setup and turn off "Send error and tracing reports to New Altitude
 
 ### Ledger search
 
-If you click Download on the ledger search line in Setup, the office downloads a search model (Nomic Embed Text v1.5, about 140 MB) from Hugging Face and keeps it in the office's folder on your computer. The office then turns ledger text into vectors itself, so Odds can search decisions by meaning. That text, and what an Odd searches for, never leaves your computer. Without the model, search works by words only and nothing changes about where data lives.
+If you click Download on the ledger search line in Setup, the office downloads a search model (Nomic Embed Text v1.5, about 140 MB) from Oddboro's own releases on GitHub, once, and keeps it in the office's folder on your computer. The office then turns ledger text into vectors itself, so Odds can search decisions by meaning. That text, and what an Odd searches for, never leaves your computer. Without the model, search works by words only and nothing changes about where data lives.
 
 ### System features the software uses
 
@@ -158,13 +158,11 @@ If New Altitude offers your account a persona, such as Nate, you can add it as a
 - New Altitude keeps these conversations under the [New Altitude Privacy Policy](https://newaltitude.ai/privacy), may let its staff read them, and sends them to the AI providers it uses.
 - To stop, choose Disconnect next to the persona under Setup, Account, or sign out. It stays in your office, quiet.
 
-### Hugging Face
-
-The search model comes from [Hugging Face](https://huggingface.co), only when you click Download in Setup. Hugging Face sees that download request, which carries your IP address and the files asked for, and nothing of yours. The office checks each file against a checksum fixed in the software before it uses it. See section 4.
-
 ### GitHub
 
-You clone the software from GitHub. If you choose the `https://local.oddboro.com` address during setup and your computer has no [Caddy](https://caddyserver.com), the office downloads the official Caddy release from GitHub (`api.github.com` and GitHub's release files) and checks it against the published checksum. GitHub sees those download requests.
+You clone the software from GitHub. The search model also comes from Oddboro's own GitHub releases, once, when you turn on ledger search by clicking Download in Setup. GitHub sees that download request as it sees the app's update checks: your IP address and the files asked for, and nothing of yours. The office checks each file against a checksum fixed in the software before it uses it. See section 4.
+
+If you choose the `https://local.oddboro.com` address during setup and your computer has no [Caddy](https://caddyserver.com), the office downloads the official Caddy release from GitHub (`api.github.com` and GitHub's release files) and checks it against the published checksum. GitHub sees those download requests.
 
 An Odd may also ask for your GitHub, through GitHub's own MCP server. You approve or deny it, and you sign in to GitHub yourself, in your browser. GitHub shows you what Oddboro asks for: `repo` (the repositories you can reach, public and private), `read:org` (your organizations) and `read:user` (your profile). GitHub has no narrower way to read private repositories, so the access you give each Odd sets what it may do, as for any other tool: at Read it gets only GitHub's tools that read.
 

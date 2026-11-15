@@ -725,7 +725,7 @@ const UNDRIVEN: Partial<Record<Key, string>> = {
   'POST /api/setup/claude': 'Installs or signs in Claude Code.',
   'DELETE /api/setup/claude': 'Signs Claude Code out.',
   'POST /api/setup/notify': 'Shows a system notification.',
-  'POST /api/setup/search': 'Downloads the search model from Hugging Face.',
+  'POST /api/setup/search': "Downloads the search model from Oddboro's GitHub release.",
   'POST /api/backup':
     "Removes a file in the office's home and touches no table; no driver is written yet.",
   'POST /api/backup/restore':

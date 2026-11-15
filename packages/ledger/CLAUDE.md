@@ -171,8 +171,12 @@ hand-off or number, which ledger tests and the office's format test share.
 
 ## Ledger search
 
-The search model is Nomic Embed Text v1.5 in int8 ONNX, 137 MB, pinned in
-`src/search-model.ts` to one Hugging Face revision and each file's SHA-256.
+The search model is Nomic Embed Text v1.5 in int8 ONNX, 137 MB. The office
+downloads it from Oddboro's own GitHub release (`models-v1`, a pre-release the
+app's updater ignores), and `src/search-model.ts` pins each file's size and
+SHA-256. The files are Nomic's own, unchanged, from the Hugging Face revision
+the code names. A download follows redirects only over HTTPS to GitHub's own
+hosts (`DOWNLOAD_HOSTS`) and refuses any other.
 It lives in `models/nomic-embed-text-v1.5/` in the office home, which a
 backup leaves out. Setup's ledger search line (`checkSearch`) offers the
 download; `POST /api/setup/search` in the office runs it. The files arrive

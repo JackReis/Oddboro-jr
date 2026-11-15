@@ -6,30 +6,54 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import {
   downloadModel,
+  type FetchUrl,
   MODEL_FILES,
   MODEL_MB,
   modelDir,
   partialDownloads,
+  RELEASE,
+  removeModel,
   type ModelFile
 } from '../src/search-model.ts';
 import { standInFiles } from './stand-in-model.ts';
 
 const { files, contents } = standInFiles();
-/** A server that sends each file as `send` says. */
-const serve =
-  (
-    send: (f: ModelFile) => Response | Promise<Response> = (f) =>
-      new Response(new Uint8Array(contents[f.name]))
-  ) =>
-  (f: ModelFile) =>
-    Promise.resolve(send(f));
+const FILE_HOST = 'https://release-assets.githubusercontent.com/github-production-release-asset/';
+
+/**
+ * The network as GitHub runs it: the release answers each file with a
+ * redirect to its file host, which sends the file as `send` says. Every URL
+ * asked for lands in `asked`.
+ */
+const serve = (
+  send: (f: ModelFile) => Response | Promise<Response> = (f) =>
+    new Response(new Uint8Array(contents[f.name])),
+  redirect: (f: ModelFile) => string = (f) => FILE_HOST + f.asset,
+  asked: string[] = []
+): FetchUrl => {
+  return async (url, init) => {
+    asked.push(url.href);
+    assert.equal(init.redirect, 'manual', 'the office follows each redirect itself');
+    for (const f of files) {
+      if (url.href === RELEASE + f.asset)
+        return new Response(null, { status: 302, headers: { location: redirect(f) } });
+      if (url.href === FILE_HOST + f.asset) return send(f);
+    }
+    return new Response('', { status: 404 });
+  };
+};
 const nothingKept = () => {
   assert.ok(!existsSync(modelDir()), 'no model');
   assert.deepEqual(partialDownloads(), [], 'and no part of one');
 };
 
-test('Setup says about 140 MB, and the real files are pinned to a revision and a checksum', () => {
+test('Setup says about 140 MB, and the real files come from our release, each pinned to a checksum', () => {
   assert.equal(MODEL_MB, 140);
+  assert.equal(RELEASE, 'https://github.com/New-Altitude/Oddboro/releases/download/models-v1/');
+  assert.deepEqual(
+    MODEL_FILES.map((f) => f.asset),
+    ['nomic-embed-text-v1.5-int8.onnx', 'nomic-embed-text-v1.5-vocab.txt']
+  );
   for (const f of MODEL_FILES) assert.match(f.sha256, /^[0-9a-f]{64}$/);
 });
 
@@ -81,7 +105,7 @@ test('a file longer than its pin keeps nothing', async () => {
 test('no network, or no file, says so and keeps nothing', async () => {
   await assert.rejects(
     downloadModel(files, () => Promise.reject(new TypeError('fetch failed'))),
-    /could not reach Hugging Face/
+    /could not reach GitHub/
   );
   await assert.rejects(
     downloadModel(
@@ -94,7 +118,12 @@ test('no network, or no file, says so and keeps nothing', async () => {
 });
 
 test('a good download lands whole, and a failed one after leaves it as it was', async () => {
-  await downloadModel(files, serve());
+  const asked: string[] = [];
+  await downloadModel(files, serve(undefined, undefined, asked));
+  assert.deepEqual(
+    asked,
+    files.flatMap((f) => [RELEASE + f.asset, FILE_HOST + f.asset])
+  );
   for (const f of files) assert.deepEqual(readFileSync(join(modelDir(), f.name)), contents[f.name]);
   assert.deepEqual(partialDownloads(), []);
   await assert.rejects(
@@ -115,4 +144,32 @@ test('two clicks at once make one download', async () => {
   });
   await Promise.all([downloadModel(files, once), downloadModel(files, once)]);
   assert.equal(asked, files.length);
+});
+
+test('a redirect away from GitHub is refused and keeps nothing', async () => {
+  removeModel();
+  for (const to of [
+    'https://example.com/model_int8.onnx',
+    'http://release-assets.githubusercontent.com/model_int8.onnx',
+    'https://release-assets.githubusercontent.com.example.com/model_int8.onnx'
+  ]) {
+    const asked: string[] = [];
+    await assert.rejects(
+      downloadModel(
+        files,
+        serve(undefined, () => to, asked)
+      ),
+      /somewhere other than GitHub/
+    );
+    assert.deepEqual(asked, [RELEASE + files[0].asset], 'nothing is asked of the other host');
+    nothingKept();
+  }
+});
+
+test('a redirect that never ends is refused and keeps nothing', async () => {
+  removeModel();
+  const loop: FetchUrl = async (url) =>
+    new Response(null, { status: 302, headers: { location: url.href } });
+  await assert.rejects(downloadModel(files, loop), /too many times/);
+  nothingKept();
 });

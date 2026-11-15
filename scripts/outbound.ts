@@ -183,7 +183,7 @@ export const OUTBOUND: readonly Outbound[] = [
   {
     file: 'packages/ledger/src/search-model.ts',
     calls: 1,
-    to: "Hugging Face, for the search model's files at one pinned revision, and the download host it sends them from.",
+    to: "GitHub, for the search model's files on Oddboro's own release (github.com), and the GitHub host it redirects them to. A redirect anywhere else is refused.",
     sends: "A download request for each file. Nothing of the owner's.",
     yes: "The owner clicking Download on Setup's ledger search line. Embedding itself runs inside the office and sends nothing."
   },
