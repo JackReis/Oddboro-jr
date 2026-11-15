@@ -434,7 +434,8 @@ export const asks = pgTable(
  */
 export type StepAction =
   | { kind: 'secret'; connector: string; name: string }
-  | { kind: 'oauth'; connector: string }
+  /** `google`: the sign-in is Google's, so the step can name Google's own limits. */
+  | { kind: 'oauth'; connector: string; google?: boolean }
   | { kind: 'aws'; connector: string }
   | { kind: 'postal'; connector: string }
   | { kind: 'choice'; options: string[] }

@@ -285,7 +285,11 @@ function connectSteps(conn: ConnectorRow, again = false): Step[] {
             text: `Click Sign in. ${conn.config.oauth === 'google' ? 'Google' : conn.name}'s sign-in page opens in a new tab.`,
             done: false,
             key,
-            action: { kind: 'oauth' as const, connector: conn.id }
+            action: {
+              kind: 'oauth' as const,
+              connector: conn.id,
+              ...(conn.config.oauth === 'google' ? { google: true } : {})
+            }
           },
           {
             text: 'Approve access on that page. This step ticks itself when it lands.',
