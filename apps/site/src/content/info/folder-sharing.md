@@ -17,6 +17,10 @@ The change takes effect on the Odd's next run. Click ✕ beside a folder to take
 
 To ask about files in a folder you gave, choose **Use in chat** under the folder's name. Oddboro puts the folder's path in the message box. Add your question and send it.
 
+## Reviewing work from another tool
+
+To have an Odd review work from another tool, save the result as a file in a project folder and give the Odd **Can read** on that folder. It reads the file as it was when you saved it.
+
 ## Folders Oddboro never gives
 
 These folders would let an Odd past the limits you set for it, so Oddboro refuses them and offers no way around it:
