@@ -3,23 +3,31 @@
 import assert from 'node:assert/strict';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import { mock, test } from 'node:test';
 import type { ChatEvent } from '../staff/chat.ts';
 
-process.env.ODDBORO_UPDATE_TOKEN = 'test-update-token';
+process.env.ODDBORO_UPDATES = '1';
 process.env.ODDBORO_VERSION = '0.0.10';
 const { L, chat, folder, history } = await import('./office-under-test.ts');
 const { activeReply, stopReply, replyToOwnerTurn } = await import('./chat-run.ts');
 const { loadUpdate, status, checked, updateForChat } = await import('./update.ts');
+const { KEY_HEADER, KEY_LINE, readKey } = await import('./app-key.ts');
 const { POST } = await import('../../routes/api/update/+server.ts');
 await loadUpdate();
+// The shell's key, on the pipe the shell would use.
+const KEY = 'b2'.repeat(32);
+const pipe = new PassThrough();
+const keyRead = readKey(pipe, 200);
+pipe.write(`${KEY_LINE}${KEY}\n`);
+await keyRead;
 
 const post = (body: unknown, shell = false) =>
   POST({
     request: new Request('http://localhost/api/update', {
       method: 'POST',
       body: JSON.stringify(body),
-      headers: shell ? { 'x-oddboro-update-token': 'test-update-token' } : {}
+      headers: shell ? { [KEY_HEADER]: KEY } : {}
     }),
     getClientAddress: () => '127.0.0.1'
   } as Parameters<typeof POST>[0]);

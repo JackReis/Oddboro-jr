@@ -9,7 +9,7 @@ export type RunFacts = {
   key: string;
   /** The owner's own message, when this is a chat. */
   ownerSaid?: string;
-  /** The updater's status when this owner chat starts. No shell token or release notes. */
+  /** The updater's status when this owner chat starts. No app key or release notes. */
   update?: ChatUpdateStatus;
   /** In a chat, the last exchange before the owner's message, which `tell_lead` passes on. */
   chatExchange?: string;

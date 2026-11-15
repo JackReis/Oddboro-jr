@@ -25,7 +25,7 @@ download address, an install time or an executable.
   owner chats and has no restart action. Scheduled installation remains the
   updater's existing owner-configured behavior.
 
-The shell still downloads and verifies updates. Its token, signing keys and
+The shell still downloads and verifies updates. The app's key, signing keys and
 installer never reach an Odd. A requested check starts after the chat reply
 is saved; the card shows its result as the updater reports it. A later chat
 run reads the latest status. The tool must not call a pending check complete.
