@@ -27,6 +27,7 @@
   import GoalsPanel from '#lib/ui/GoalsPanel.svelte';
   import LessonsLibrary from '#lib/ui/LessonsLibrary.svelte';
   import Welcome from '#lib/ui/Welcome.svelte';
+  import RestoredNote from '#lib/ui/RestoredNote.svelte';
   import ProjectSessions from '#lib/ui/ProjectSessions.svelte';
   import HireDrawer from '#lib/ui/HireDrawer.svelte';
   import FileViewer from '#lib/ui/FileViewer.svelte';
@@ -1208,6 +1209,9 @@
             >Setup</button
           >
         </div>
+        {#if data.restored && !firstRun}
+          <RestoredNote restored={data.restored} />
+        {/if}
       </div>
       {#if open && !firstRun}
         <button

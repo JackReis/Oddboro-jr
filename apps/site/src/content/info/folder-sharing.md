@@ -13,6 +13,10 @@ Even with Can write, an Odd never changes another AI tool's instruction files th
 
 The change takes effect on the Odd's next run. Click ✕ beside a folder to take it back.
 
+## Ask about a folder's files
+
+To ask about files in a folder you gave, choose **Use in chat** under the folder's name. Oddboro puts the folder's path in the message box. Add your question and send it.
+
 ## Reviewing work from another tool
 
 Save the result you want reviewed in a project folder on the computer running Oddboro. A terminal report, a downloaded GitHub build log or a file from a synced drive works once the file is available on that computer. For a job in WSL, save the result in a project folder you can open from Windows. Give the reviewing Odd **Can read** on that folder. In chat, name the file and ask what it shows. If the file is missing, check the saved path on the office computer and the folder listed under that Odd's Settings.
