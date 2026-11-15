@@ -46,6 +46,11 @@ export function stopRuns(id: string): void {
   for (const run of runsGoing.values()) if (run.staffId === id) run.stop.abort('left');
 }
 
+/** Stop every run, as the office stops to restore a backup. */
+export function stopEveryRun(): void {
+  for (const run of runsGoing.values()) run.stop.abort();
+}
+
 export function workAbout(leadId: string, key: string): WorkAbout | undefined {
   return [...runsGoing.values()].find(
     (r) => !r.work?.queued && r.work?.about?.leadId === leadId && r.work.about.key === key

@@ -27,11 +27,13 @@
   import GoalsPanel from '#lib/ui/GoalsPanel.svelte';
   import LessonsLibrary from '#lib/ui/LessonsLibrary.svelte';
   import Welcome from '#lib/ui/Welcome.svelte';
+  import RestoredNote from '#lib/ui/RestoredNote.svelte';
   import ProjectSessions from '#lib/ui/ProjectSessions.svelte';
   import HireDrawer from '#lib/ui/HireDrawer.svelte';
   import FileViewer from '#lib/ui/FileViewer.svelte';
   import ReportView from '#lib/ui/ReportView.svelte';
   import ActCheck from '#lib/ui/ActCheck.svelte';
+  import HandOffChoice from '#lib/ui/HandOffChoice.svelte';
   import { actCheck } from '#lib/ui/act-check.svelte.ts';
   import {
     advanced,
@@ -1207,6 +1209,9 @@
             >Setup</button
           >
         </div>
+        {#if data.restored && !firstRun}
+          <RestoredNote restored={data.restored} />
+        {/if}
       </div>
       {#if open && !firstRun}
         <button
@@ -1522,6 +1527,7 @@
     </div>
   {/if}
   {#if actCheck.asking}<ActCheck />{/if}
+  {#if actCheck.choosing}<HandOffChoice name={actCheck.choosing} />{/if}
 </main>
 
 <style>
