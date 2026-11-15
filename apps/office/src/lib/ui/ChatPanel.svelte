@@ -814,7 +814,8 @@
     if (chatRequest.drafts[profile.id] === undefined || !visible) return;
     const d = takeDraft(profile.id) ?? '';
     if (d) typed('');
-    if (d) draft = draft.trim() ? `${draft.trimEnd()}\n\n${d}` : d;
+    // A draft the box already holds, say from pressing Use in chat twice, goes in once.
+    if (d && !draft.includes(d.trim())) draft = draft.trim() ? `${draft.trimEnd()}\n\n${d}` : d;
     void tick().then(() => {
       fit();
       box?.focus();
