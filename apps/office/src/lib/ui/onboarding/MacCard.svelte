@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { Check } from '@oddboro/ledger/checks';
+  import type { System } from '@oddboro/ledger/platform';
+  import { systemWords } from '@oddboro/ledger/system-words';
   import { call } from '../api.ts';
+  import NotifyHelp from './NotifyHelp.svelte';
+  import { browserNeeds } from './notify-help.ts';
 
   // The first card: what the Mac has, ticked off one at a time. Anything
   // missing gets a button that fixes it from here. The owner moves on with
@@ -10,10 +14,11 @@
     owner: string;
     suggested: string;
     app?: boolean;
-    /** mac, linux or windows. */
-    system?: string;
+    system?: System;
     /** Whether the office can show its own notifications on this computer. */
     notify?: boolean;
+    /** Whether this system has a notification settings page the office can open. */
+    notifySettings?: boolean;
   };
   type Props = { onnext: () => void; onsetup: (s: Setup) => void };
   let { onnext, onsetup }: Props = $props();
@@ -24,11 +29,13 @@
   let checks = $state<Check[] | undefined>();
   /** In the Mac app, which shows its own notifications and has no browser tab. */
   let app = $state(false);
-  let system = $state<string | undefined>();
+  let system = $state<System | undefined>();
   let canNotify = $state(true);
-  /** What the owner calls this computer. */
-  const computer = $derived(system === 'mac' ? 'Your Mac' : 'This computer');
-  const thisComputer = $derived(system === 'mac' ? 'this Mac' : 'this computer');
+  let canOpenSettings = $state(false);
+  /** What the owner calls this computer, and the rest of Setup's words that differ by system. */
+  const words = $derived(systemWords(system));
+  const thisComputer = $derived(`this ${words.word}`);
+  const browserNeedsMore = $derived(browserNeeds(system));
   let problem = $state('');
 
   async function load() {
@@ -39,6 +46,7 @@
       app = !!s.app;
       system = s.system;
       canNotify = s.notify !== false;
+      canOpenSettings = !!s.notifySettings;
       checks = s.checks.filter((c) => SHOWN.includes(c.id));
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
@@ -153,9 +161,7 @@
             {#if addr.state === 'ready' && addr.secure}
               The office's address on {thisComputer}, secure. No port to remember.
             {:else if addr.state === 'ready' && addr.canSecure}
-              Make it secure so your browser can show notifications. {system === 'windows'
-                ? 'Windows asks you to confirm it, once.'
-                : `It takes your ${system === 'mac' ? 'Mac' : 'computer'}'s password, once.`}
+              Make it secure so your browser can show notifications. {words.trustAsks}
             {:else if addr.state === 'ready'}
               The office's address on {thisComputer}. No port to remember.
             {:else if addr.state === 'own'}
@@ -173,11 +179,7 @@
         {#if addr.state === 'ready'}
           {#if addr.canSecure}
             <button class="btn" disabled={addrBusy} onclick={() => setUpAddress('secure')}
-              >{addrBusy
-                ? system === 'windows'
-                  ? 'Waiting for you to confirm'
-                  : 'Waiting for your password'
-                : 'Make it secure'}</button
+              >{addrBusy ? words.trustWaiting : 'Make it secure'}</button
             >
           {:else if here === addr.url}
             <span class="text-xs text-moss">✓ {addr.secure ? 'Secure' : 'On'}</span>
@@ -202,9 +204,7 @@
           Firefox keeps its own list of trusted certificates, so it may warn about this address even
           after {thisComputer} trusts it. To fix it, open <code>about:config</code> in Firefox and
           set
-          <code>security.enterprise_roots.enabled</code> to true, or use {system === 'mac'
-            ? 'Safari or Chrome'
-            : 'Chrome or Edge'} for the office.
+          <code>security.enterprise_roots.enabled</code> to true, or use {words.notFirefox} for the office.
         </p>
       {/if}
     </div>
@@ -219,7 +219,7 @@
         <div class="rounded-lg bg-raise px-3 py-2 text-sm">
           <div class="flex items-center gap-3">
             <span class="min-w-0 flex-1">
-              {app ? 'Oddboro' : computer}
+              {app ? 'Oddboro' : words.label}
               <span class="block text-xs text-muted"
                 >{app
                   ? 'Pings from your Odds, even with the window closed.'
@@ -244,48 +244,14 @@
                 }}>No</button
               >
             </div>
-          {:else if mac === 'missing' && system !== 'mac' && !app}
-            <ol class="mt-2 list-decimal space-y-1 ps-4 text-xs text-muted">
-              <li>
-                Check that notifications are on in your system's settings, and not paused or in Do
-                Not Disturb.
-              </li>
-              {#if system === 'linux'}
-                <li>
-                  Oddboro sends them with notify-send, so your desktop needs a notification service.
-                  GNOME, KDE and most desktops have one built in.
-                </li>
-              {:else if system === 'windows'}
-                <li>
-                  They arrive as Windows PowerShell's. In Settings, Notifications, check that
-                  Windows PowerShell is allowed.
-                  <button class="link" onclick={openSettings}>Open it</button>
-                </li>
-              {/if}
-              <li><button class="link" onclick={testMac}>Send another test</button>.</li>
-            </ol>
           {:else if mac === 'missing'}
-            <ol class="mt-2 list-decimal space-y-1 ps-4 text-xs text-muted">
-              <li>
-                {system === 'windows'
-                  ? 'In Settings, open System, then Notifications.'
-                  : 'In System Settings, open Notifications.'}
-                <button class="link" onclick={openSettings}>Open it</button>
-              </li>
-              {#if app}
-                <li>Find Oddboro. Turn on Allow notifications.</li>
-              {:else}
-                <li>
-                  Find Script Editor: it carries the office's notifications. Turn on Allow
-                  notifications.
-                </li>
-                <li>
-                  If Script Editor is not listed, open it once from Applications, Utilities, then
-                  come back.
-                </li>
-              {/if}
-              <li><button class="link" onclick={testMac}>Send another test</button>.</li>
-            </ol>
+            <NotifyHelp
+              {system}
+              {app}
+              canOpen={canOpenSettings}
+              onOpen={openSettings}
+              onTest={testMac}
+            />
           {/if}
         </div>
       {/if}
@@ -308,8 +274,10 @@
         {#if quiet && browser === 'default'}
           <p class="mt-2 text-xs text-muted">
             Your browser did not ask out loud. Look for a bell in the address bar and allow
-            notifications there, or allow them for this site in the browser's site settings. On a
-            Mac, the browser itself also needs notifications on in System Settings, Notifications.
+            notifications there, or allow them for this site in the browser's site settings.
+            {#if browserNeedsMore}
+              {browserNeedsMore}
+            {/if}
           </p>
         {:else if browser === 'denied'}
           <p class="mt-2 text-xs text-muted">

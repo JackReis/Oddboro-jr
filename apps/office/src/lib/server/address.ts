@@ -47,6 +47,7 @@ import {
   OFFICE_PORT,
   SYSTEM,
   WINDOWS,
+  currentSystem,
   home,
   installService,
   powershell,
@@ -54,6 +55,7 @@ import {
 } from '@oddboro/ledger';
 import { writeEnv } from '@oddboro/ledger/env';
 import { fixedError } from '@oddboro/ledger/errors';
+import { systemWords } from '@oddboro/ledger/system-words';
 import { HOSTS } from './hosts.ts';
 
 const SECURE = HOSTS[0];
@@ -431,36 +433,48 @@ export async function setUpAddress(): Promise<Address> {
   return address();
 }
 
+/** A path in single quotes, for a shell. */
+const quote = (p: string) => `'${p.replaceAll("'", "'\\''")}'`;
+
 /**
- * Trust Caddy's authority on this Mac, so browsers accept the office's
- * certificate. macOS asks for the owner's password in its own dialog.
+ * Each system's way to trust the root certificate at `root`. Each asks the
+ * owner in the system's own dialog.
+ */
+const TRUST_ROOT: Record<System, (root: string) => Promise<{ ok: boolean }>> = {
+  // macOS asks for the owner's password in its own dialog.
+  mac: (root) =>
+    run('osascript', [
+      '-e',
+      'on run argv',
+      '-e',
+      'do shell script (item 1 of argv) with prompt "Oddboro wants to trust its own certificate, so your browser opens the office securely." with administrator privileges',
+      '-e',
+      'end run',
+      `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ${quote(root)}`
+    ]),
+  // pkexec shows the desktop's own password dialog. p11-kit's trust (Arch,
+  // Fedora) adds it to the system list; Debian and Ubuntu use update-ca-certificates.
+  linux: (root) =>
+    run('pkexec', [
+      'sh',
+      '-c',
+      `if command -v trust >/dev/null; then trust anchor --store ${quote(root)}; else cp ${quote(root)} /usr/local/share/ca-certificates/oddboro-caddy.crt && update-ca-certificates; fi`
+    ]),
+  // Windows adds it to the owner's own list after its own dialog asks them, with no admin.
+  windows: (root) => run('certutil.exe', ['-user', '-addstore', 'Root', root])
+};
+
+/**
+ * Trust Caddy's authority on this computer, so browsers accept the office's
+ * certificate. The system asks the owner in its own dialog. A system the
+ * office does not know has no way to, so nothing runs there.
  */
 export async function secureAddress(): Promise<Address> {
   const root = await rootCert();
   if (!root) throw fixedError('Caddy has not made its certificate yet. Try again in a moment.');
-  const q = (p: string) => `'${p.replaceAll("'", "'\\''")}'`;
-  // Windows adds it to the owner's own list after its own dialog asks them, with no admin.
-  const r = WINDOWS
-    ? await run('certutil.exe', ['-user', '-addstore', 'Root', root])
-    : MAC
-      ? await run('osascript', [
-          '-e',
-          'on run argv',
-          '-e',
-          'do shell script (item 1 of argv) with prompt "Oddboro wants to trust its own certificate, so your browser opens the office securely." with administrator privileges',
-          '-e',
-          'end run',
-          `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ${q(root)}`
-        ])
-      : // pkexec shows the desktop's own password dialog. p11-kit's trust (Arch,
-        // Fedora) adds it to the system list; Debian and Ubuntu use update-ca-certificates.
-        await run('pkexec', [
-          'sh',
-          '-c',
-          `if command -v trust >/dev/null; then trust anchor --store ${q(root)}; else cp ${q(root)} /usr/local/share/ca-certificates/oddboro-caddy.crt && update-ca-certificates; fi`
-        ]);
-  if (!r.ok)
-    throw fixedError('The certificate was not trusted. Try again, and enter your password.');
+  const system = currentSystem();
+  if (!system || !(await TRUST_ROOT[system](root)).ok)
+    throw fixedError(systemWords(system).trustFailed);
   return address();
 }
 

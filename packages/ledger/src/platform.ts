@@ -11,20 +11,27 @@ import { delimiter, join } from 'node:path';
 
 export type System = 'mac' | 'linux' | 'windows';
 
-/** The system the office runs on, or undefined for one it does not know. */
-export const SYSTEM: System | undefined = (
-  { darwin: 'mac', linux: 'linux', win32: 'windows' } as const
-)[process.platform as 'darwin' | 'linux' | 'win32'];
-export const MAC = SYSTEM === 'mac';
-export const LINUX = SYSTEM === 'linux';
-export const WINDOWS = SYSTEM === 'windows';
 /**
  * The system the office runs on, read at each call. Every other file asks this
  * instead of reading `process.platform` (scripts/check-platform.ts), so a test
- * that fakes the system reaches every reader. The constants above are fixed
+ * that fakes the system reaches every reader. The constants below are fixed
  * when this file loads.
  */
 export const currentPlatform = (): NodeJS.Platform => process.platform;
+
+const SYSTEMS: Partial<Record<NodeJS.Platform, System>> = {
+  darwin: 'mac',
+  linux: 'linux',
+  win32: 'windows'
+};
+/** The system the office runs on, read at each call, or undefined for one it does not know. */
+export const currentSystem = (): System | undefined => SYSTEMS[currentPlatform()];
+
+/** The system the office runs on, as it was when this file loaded. */
+export const SYSTEM = currentSystem();
+export const MAC = SYSTEM === 'mac';
+export const LINUX = SYSTEM === 'linux';
+export const WINDOWS = SYSTEM === 'windows';
 
 /**
  * Where the office's logs go. XDG_STATE_HOME wins wherever it is set;

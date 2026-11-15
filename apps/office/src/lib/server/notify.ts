@@ -12,7 +12,7 @@
 // the repo installs none, so it shows as Windows PowerShell's, the way a Mac
 // shows Script Editor's.
 import { execFile } from 'node:child_process';
-import { IN_APP, SYSTEM, openUrl, powershell, type System } from '@oddboro/ledger';
+import { IN_APP, SYSTEM, currentSystem, openUrl, powershell, type System } from '@oddboro/ledger';
 
 // The words come in as environment variables and are escaped for XML inside.
 const TOAST = `
@@ -54,6 +54,16 @@ const SETTINGS: Record<System, string | undefined> = {
   linux: undefined,
   windows: 'ms-settings:notifications'
 };
+
+/**
+ * Whether this system has one place for the notification settings, so Setup
+ * offers Open it. Read per call, so a test on another system gets that
+ * system's answer.
+ */
+export function canOpenNotifySettings(): boolean {
+  const system = currentSystem();
+  return !!(system && SETTINGS[system]);
+}
 
 /** Whether this computer can show the office's own notifications. */
 export const CAN_NOTIFY = IN_APP || !!(SYSTEM && NOTIFY[SYSTEM]);

@@ -12,9 +12,11 @@ import {
   WINDOWS,
   claudeCommand,
   currentPlatform,
+  currentSystem,
   serviceInstalled
 } from './platform.ts';
 import { secretStore } from './secrets.ts';
+import { computerWord } from './system-words.ts';
 
 export type Check = {
   id: string;
@@ -212,7 +214,7 @@ export async function checkDocker(): Promise<Check> {
       name: 'Docker',
       state: 'optional',
       found: 'Not installed',
-      fix: 'Only needed to run Postgres on this Mac. Install Docker Desktop, or use hosted Postgres.'
+      fix: `Only needed to run Postgres on this ${computerWord(currentSystem())}. Install Docker Desktop, or use hosted Postgres.`
     };
   const info = await run('docker', ['info', '--format', '{{.ServerVersion}}']);
   return info.ok
@@ -222,7 +224,7 @@ export async function checkDocker(): Promise<Check> {
         name: 'Docker',
         state: 'optional',
         found: 'Installed, not running',
-        fix: 'Open Docker Desktop. Only needed to run Postgres on this Mac.'
+        fix: `Open Docker Desktop. Only needed to run Postgres on this ${computerWord(currentSystem())}.`
       };
 }
 
@@ -302,7 +304,7 @@ export async function checkDatabase(url: string): Promise<DatabaseReport> {
       `Could not connect to ${where.host}: ${lastError}`,
       /password|auth/i.test(lastError)
         ? 'Check the user and password in the connection string.'
-        : 'Check the host and port, and that the database accepts connections from this Mac.'
+        : `Check the host and port, and that the database accepts connections from this ${computerWord(currentSystem())}.`
     );
 
   const checks: Check[] = [];
