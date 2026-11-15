@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import os from 'node:os';
 import { test } from 'node:test';
 import {
   health,
@@ -81,6 +82,20 @@ test('a failed run is one line: the Odd, the kind and the first line of why', ()
   );
   const long = runEndLine('Ada', 'chat', { text: 'z'.repeat(2000) });
   assert.equal(long, "office: Ada's chat run failed: " + 'z'.repeat(200));
+});
+
+test("a failed run's line names the home folder as ~", () => {
+  const home = os.homedir();
+  assert.equal(
+    runEndLine('Ada', 'chat', {
+      text: `Claude Code stopped (exit 1). open '${home}/Taxes/2026.pdf'`
+    }),
+    "office: Ada's chat run failed: Claude Code stopped (exit 1). open '~/Taxes/2026.pdf'"
+  );
+  assert.equal(
+    runEndLine('Ada', 'job', { text: 'no such file: /srv/sam/notes.md' }, '/srv/sam'),
+    "office: Ada's job run failed: no such file: ~/notes.md"
+  );
 });
 
 test('page errors are counted, and a minute holds only so many lines', () => {
