@@ -862,7 +862,9 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `~/.aws`, `~/.gnupg`, `~/.config`, `~/Library`, `~/AppData`,
    `~/.claude.json`, `~/.google_workspace_mcp` (where
    that MCP server keeps its sign-ins for other apps on the Mac), `~/.grok`,
-   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, everything
+   `~/.codex`, `~/.gemini`, `~/.docker` and `~/.kube`, and the Linux
+   browsers' and keyrings' folders `~/.mozilla`, `~/.local/share/keyrings`,
+   `~/.pki`, `~/snap` and `~/.var/app`, everything
    in `~/.oddboro` besides `staff/` and `data/` (and `threads/<id>/` for a
    run on that thread), every other
    Odd's folder, and everything in `~/.claude` besides this run's sessions.
@@ -1507,7 +1509,7 @@ welcomed, the page loads the sample's empty lot (`currentOffice({ lot: true })`,
 the start panel, titled "{name}'s Lot" until the office stands on it. The
 command center's buttons and tabs appear there once the first run is over, so
 the owner meets the panel first. The cards: Your computer (`MacCard`, the checks
-from `/api/setup`, and Notifications: a test of the Mac's (`notifyMac` in `src/lib/server/notify.ts`, which macOS shows as Oddboro's in the app and as Script Editor's from the repo) with the way to System Settings if it does not show, and, outside the app, the browser's for the Desk; the owner moves on with Next), their name, Your AI (`AiCard`, item 18: a tile per tool, the picked one the office's tool, and its panel below: Claude Code's installs it through `/api/setup/claude` and is `ClaudeCard`, a Claude plan tab with the account Claude Code is signed in to, from `claude auth status`, and Sign in with Claude or Switch account, or an API key tab, with a model picker in both. On Claude Code, Sonnet cannot draw looks or design offices: `canDraw()` in `claude.ts` refuses them, and the later cards offer only the ready-made managers and Main Street; the model,
+from `/api/setup`, and Notifications: a test of the computer's (`notifyMac` in `src/lib/server/notify.ts`, which macOS shows as Oddboro's in the app and as Script Editor's from the repo) with that system's own steps if it does not show (`notify-help.ts`, shown by `NotifyHelp.svelte`: System Settings on a Mac, Settings on Windows, and on Linux a check that notifications are on and that the desktop has a notification service), and, outside the app, the browser's for the Desk; the owner moves on with Next), their name, Your AI (`AiCard`, item 18: a tile per tool, the picked one the office's tool, and its panel below: Claude Code's installs it through `/api/setup/claude` and is `ClaudeCard`, a Claude plan tab with the account Claude Code is signed in to, from `claude auth status`, and Sign in with Claude or Switch account, or an API key tab, with a model picker in both. On Claude Code, Sonnet cannot draw looks or design offices: `canDraw()` in `claude.ts` refuses them, and the later cards offer only the ready-made managers and Main Street; the model,
 or an API key kept in the keychain; `src/lib/server/claude.ts` passes both to
 every run. Next waits until the picked tool is signed in), the Office Manager (`ManagerCard`: four ready-made ones from
 `GET /api/onboarding`, or one described and drawn by `/api/looks` while the
@@ -1551,18 +1553,24 @@ falling back to `oddboro.localhost` where a network's DNS drops that answer.
 The desktop app (`ODDBORO_APP`) skips all of this: it opens the office in its own
 window, onboarding shows no address step, and it never touches Caddy.
 
-Caddy takes ports 80 and 443 and hands everything to the office on 4500
-(`src/lib/server/address.ts`, the Address row on the first card). With nothing on
-port 80 the office runs its own Caddy as `com.oddboro.caddy`, downloading it
-from Caddy's releases (checked against the published checksum) if the Mac has
+Caddy takes ports 80 and 443 and hands everything to the office on its own
+port, `OFFICE_PORT` (4500, or `ODDBORO_PORT`) (`src/lib/server/address.ts`,
+the Address row on the first card). With nothing on port 80 the office runs
+its own Caddy as `com.oddboro.caddy`, downloading it from Caddy's releases (checked against the published checksum) if the Mac has
 none. With the owner's Caddy on port 80 it adds two routes and a certificate
 policy through Caddy's admin API (127.0.0.1:2019, with an explicit origin, which
 that API wants), touches none of their files, and adds them again when the
 office starts and when a page loads (`keepAddress`). With anything else on port
-80 it stays at `:4500`; on Windows that is often http.sys, Windows' own web
-server. On Windows the office's own Caddy listens on 127.0.0.1 and [::1]
-only (`ownCaddyfile`), so the firewall never asks. On a Mac it listens on
-every address, since a process the owner runs can bind a port under 1024
+80 it stays at the office's own port; on Windows that is often http.sys,
+Windows' own web server. Port 80 is looked at with `ss` on Linux,
+`/usr/sbin/lsof` on a Mac and PowerShell on Windows, each through `probe`. A
+look that fails, times out or finds its command missing gives `unchecked`,
+never free, since reading it as free would offer a Caddy that cannot start:
+the address then stays at the office's own port and the card says it could
+not look. The card shows that port from the server (`shownAddress` in
+`src/lib/address.ts`). On Windows the office's own Caddy listens on 127.0.0.1
+and [::1] only (`ownCaddyfile`), so the firewall never asks. On a Mac it
+listens on every address, since a process the owner runs can bind a port under 1024
 only there (127.0.0.1 and ::1 were refused, measured), so other machines on
 the network can reach it, and what keeps an Odd's commands off it is the
 deny list each run gets (`macAddresses`, item 9). Linux was not measured and
@@ -1625,6 +1633,15 @@ it.", reads too, which a browser shows as a plain page.
 - Without the key, only these get in: the sign-in callbacks (rule 5), as
   GETs to those two exact paths; the shell's proof request; a run's call to
   its gateway with its token; and a link for the owner's browser.
+- Those, and the shell's and a run's way past rule 3, are judged on the
+  address the request was sent to (`sentTo`), never on the path SvelteKit
+  hands the handle. Kit takes `/__data.json` off a data request, and a remote
+  function call under `/_app/remote/` names its page in a header the caller
+  writes, so either could otherwise pass as an exception. The table of
+  hostile and legitimate targets in `src/lib/server/request-targets.ts` runs
+  through the guard in the app (`app-key.test.ts`), from source
+  (`owner-page.test.ts`) and through the dev server's rule
+  (`vite-config.test.ts`).
 - The owner's browser has no key. When the window opens an office address in
   a new window (a file attached in a chat), the shell asks
   `POST /api/browser-link` for a code for that path and opens the address
