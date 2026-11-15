@@ -590,27 +590,33 @@ async function forgetConnector(id: string): Promise<{ forgot: boolean; googleTol
     googleTold = shared.length ? { kept: shared.map((o) => o.name) } : await revokeAtGoogle(id);
   }
   const removed = secretNames(c, true).filter((name) => deleteSecret(id, name));
+  const hadVaultKeys = Object.keys(c.config.fromAws ?? {}).length > 0;
   if (product && id !== GOOGLE[product].id) {
     await db.delete(connectors).where(eq(connectors.id, id));
-    return { forgot: removed.length > 0, googleTold };
-  }
-  if (removed.length || id === POSTAL_ID) {
+  } else if (removed.length || hadVaultKeys || id === POSTAL_ID) {
     const config = { ...c.config };
     delete config.account;
     delete config.pmb;
+    delete config.fromAws;
     await db
       .update(connectors)
       .set({
         readyAt: null,
+        config,
         ...(product
-          ? { name: GOOGLE[product].name, config }
+          ? { name: GOOGLE[product].name }
           : id === POSTAL_ID
-            ? { name: POSTAL_NAME, config, tools: [], readTools: [] }
+            ? { name: POSTAL_NAME, tools: [], readTools: [] }
             : {})
       })
       .where(eq(connectors.id, id));
   }
-  return { forgot: removed.length > 0, googleTold };
+  if (hadVaultKeys) {
+    // The last dependent tool can outlive the last direct Secrets Manager grant.
+    const vault = await connector(AWS_SECRETS_ID);
+    if (vault && !(await hasGrants(vault.id))) await forgetAws(vault);
+  }
+  return { forgot: removed.length > 0 || hadVaultKeys, googleTold };
 }
 
 /**
@@ -723,6 +729,15 @@ export async function setGrantLevel(
   });
 }
 
+async function hasGrants(connectorId: string): Promise<boolean> {
+  const [held] = await db
+    .select({ id: grants.staffId })
+    .from(grants)
+    .where(eq(grants.connectorId, connectorId))
+    .limit(1);
+  return !!held;
+}
+
 export async function revoke(staffId: string, connectorId: string): Promise<void> {
   const [gone] = await db
     .delete(grants)
@@ -730,11 +745,7 @@ export async function revoke(staffId: string, connectorId: string): Promise<void
     .returning();
   if (!gone) return;
   await dropConnectTasks(connectorId, staffId);
-  const [held] = await db
-    .select({ staffId: grants.staffId })
-    .from(grants)
-    .where(eq(grants.connectorId, connectorId))
-    .limit(1);
+  const held = await hasGrants(connectorId);
   const [c, who] = await Promise.all([connector(connectorId), staffer(staffId)]);
   const { forgot, googleTold } = held ? { forgot: false } : await forgetConnector(connectorId);
   await record({
@@ -742,7 +753,7 @@ export async function revoke(staffId: string, connectorId: string): Promise<void
     actor: 'owner',
     title: `Revoked ${c?.name ?? connectorId} for ${who?.name ?? staffId}`,
     body: forgot
-      ? `No Odd holds it now, so its saved keys and sign-ins came out of this computer's password store.${
+      ? `No Odd holds it now. The office removed its saved connection details.${
           googleTold === true
             ? ' Google cancelled the sign-in too.'
             : googleTold === false
