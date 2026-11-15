@@ -7,7 +7,6 @@ import { eq } from 'drizzle-orm';
 import { asks, ledger, planLimits, staff, threads } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { handOff } = await import('../src/hand-offs.ts');
 const { parkedThreads, wakeThread, HAND_OFF_LIMIT } = await import('../src/threads.ts');
 const { decideAsk, WINDOW_ASK_LAPSED, windowAsksDue, withdrawAsk } =
