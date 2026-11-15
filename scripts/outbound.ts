@@ -106,6 +106,13 @@ export const OUTBOUND: readonly Outbound[] = [
     yes: 'The owner acting on the page; nothing leaves this computer here.'
   },
   {
+    file: 'apps/office/src/lib/ui/music.svelte.ts',
+    calls: 1,
+    to: 'The office, on this computer: the focus noise file.',
+    sends: "A request for the file. Nothing of the owner's.",
+    yes: 'The owner playing focus noise; nothing leaves this computer.'
+  },
+  {
     file: 'apps/office/src/lib/ui/atlas.ts',
     calls: 1,
     to: 'The office, on this computer: the sprite atlas.',
@@ -174,18 +181,18 @@ export const OUTBOUND: readonly Outbound[] = [
     yes: "The owner's choice of AI tool; the check sends no owner data."
   },
   {
-    file: 'packages/ledger/src/checks.ts',
+    file: 'packages/ledger/src/search-model.ts',
     calls: 1,
-    to: 'Ollama at OLLAMA_URL, this computer unless the owner points it elsewhere.',
-    sends: 'A request for its list of models.',
-    yes: "The owner running setup's check; it sends no owner data."
+    to: "GitHub, for the search model's files on Oddboro's own release (github.com), and the GitHub host it redirects them to. A redirect anywhere else is refused.",
+    sends: "A download request for each file. Nothing of the owner's.",
+    yes: "The owner clicking Download on Setup's ledger search line. Embedding itself runs inside the office and sends nothing."
   },
   {
-    file: 'packages/ledger/src/embed.ts',
+    file: 'packages/ledger/src/local-db.ts',
     calls: 1,
-    to: 'Ollama at OLLAMA_URL, this computer unless the owner points it elsewhere.',
-    sends: 'Text written to the ledger, or searched for, to turn it into a vector.',
-    yes: 'The owner, who sets OLLAMA_URL; with it unset nothing leaves this computer.'
+    to: "The office's own database socket, in the office home on this computer.",
+    sends: 'Nothing: it only opens a connection, to learn whether another office answers there.',
+    yes: 'None needed: nothing leaves this computer, and it carries no data.'
   },
   {
     file: 'packages/ledger/src/office-access.ts',

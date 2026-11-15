@@ -25,7 +25,7 @@ export type JobRow = typeof jobs.$inferSelect;
 export type RunRow = typeof runs.$inferSelect;
 export type GrantRow = typeof grants.$inferSelect;
 export type ConnectorRow = typeof connectors.$inferSelect;
-export type LedgerRow = Omit<typeof ledger.$inferSelect, 'embedding'>;
+export type LedgerRow = Omit<typeof ledger.$inferSelect, 'embedding' | 'embeddingModel'>;
 
 /**
  * The keys of the runs going in this process. The office gives every run one,
@@ -42,6 +42,10 @@ export {
   anyStaffer,
   formerStaff,
   setPermission,
+  setActsOnHandOffs,
+  ActCheckNeeded,
+  actCheckPassed,
+  passActCheck,
   NETWORK_NOTE,
   networkHeld,
   holdNetwork,
@@ -76,7 +80,7 @@ export {
   touchesSecretStore,
   checkFolder
 } from './office-folders.ts';
-export { record, searchLedger, precedent } from './office-ledger.ts';
+export { record, searchLedger, precedent, reindexLedger } from './office-ledger.ts';
 export {
   AlreadyOnDesk,
   raiseAsk,
@@ -111,9 +115,6 @@ export {
   type Unparked,
   startFollowUp,
   OUTCOME_TITLE,
-  type Unreturned,
-  pokeUnreturned,
-  recordUnreturned,
   finishFollowUp,
   CUT_OFF_RESULT,
   closeStaleFollowUps,
@@ -197,6 +198,7 @@ export {
   type GoAhead,
   editOwnJob,
   setDescription,
+  DescriptionChanged,
   deleteJob,
   enabledJobs,
   job,
@@ -218,6 +220,8 @@ export {
   recordUsage,
   type PlanWindows,
   setPlanLimits,
+  WINDOW_ASK_LAPSED,
+  windowAsksDue,
   ownerName,
   welcomed,
   finishWelcome,

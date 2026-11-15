@@ -26,7 +26,6 @@ const HOME = realpathSync(mkdtempSync(join(tmpdir(), 'own-tools-')));
 process.env.HOME = HOME;
 process.env.ODDBORO_HOME = join(HOME, '.oddboro');
 process.env.ODDBORO_CODE = join(HOME, 'code', 'oddboro');
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 after(() => rmSync(HOME, { recursive: true, force: true }));
 const O = await import('../src/office.ts');
 const C = await import('../src/capabilities.ts');
@@ -384,7 +383,12 @@ test('the secret stores are the ones the office keeps shut', () => {
     '.codex',
     '.gemini',
     '.docker',
-    '.kube'
+    '.kube',
+    '.mozilla',
+    '.local/share/keyrings',
+    '.pki',
+    'snap',
+    '.var/app'
   ]);
 });
 
