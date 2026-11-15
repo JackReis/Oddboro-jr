@@ -1952,36 +1952,37 @@ the persona's voice.
 
 ## Where things live
 
-| Path                                  | What it holds                                                                                                                         |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/floor/`                      | The PixiJS floor and the Odds on it                                                                                                   |
-| `src/lib/staff/roster.ts`             | The Odd shape the page gets (`StaffProfile`), hiring looks, and the label for each activity                                           |
-| `src/lib/ui/`                         | The card and its tabs, the Desk, the Ledger, hiring, chat                                                                             |
-| `src/lib/server/`                     | Staff runs, office runs, looks, the job clock, events, keychain. Where to start a change there: [CLAUDE.md](src/lib/server/CLAUDE.md) |
-| `src/lib/server/profile.ts`           | An Odd as the page gets it (`toProfile`): its stored switches and folders, and what its runs reach now                                |
-| `src/lib/server/sandbox.ts`           | What a run's commands reach: the variables hidden from them, Claude Code's sandbox, the developer tool folders, and the refusal line  |
-| `src/lib/server/aws.ts`               | AWS: the office's one sign-in, each AWS tool's role and the read check, the names-only Secrets Manager tool, and keys from AWS        |
-| `src/lib/site.ts`                     | Links to the public site's guides (`siteLink`): `localhost:4501` under `npm run dev`, else oddboro.com, or `ODDBORO_SITE_URL`         |
-| `src/routes/api/`                     | One folder per thing the page reads or changes                                                                                        |
-| `src/lib/server/office-design.ts`     | Drawing an office from the owner's words, and where Odds move to                                                                      |
-| `src/lib/server/design-job.ts`        | The drawing as a job on the server, which pages follow                                                                                |
-| `src/lib/ui/onboarding/`              | A new owner's first visit: the cards, the reveal's story, the music                                                                   |
-| `src/lib/floor/reveal.ts`             | The office going up beat by beat, and the bus                                                                                         |
-| `src/lib/diagnostics.ts`              | What a report may carry, and when a trace is taken: the server's, the relay's and the page's one rule                                 |
-| `src/lib/server/diagnostics.ts`       | The SDK's options and the gate every report passes, with the owner's answer                                                           |
-| `src/lib/server/account.ts`           | The New Altitude sign-in: start, callback, refresh, sign out                                                                          |
-| `src/lib/account.ts`                  | The account and its states, shared by the server and the page                                                                         |
-| `src/lib/server/persona.ts`           | The personas New Altitude offers: sync, each persona's sign-in, install, Disconnect                                                   |
-| `src/lib/server/persona-package.ts`   | A persona's package checked before the office trusts it                                                                               |
-| `src/lib/server/persona-offered.ts`   | The names and slugs on offer at the last read, as one prompt line for an Odd that can propose a hire                                  |
-| `src/lib/server/persona-run.ts`       | A persona Odd's run: its hands, then its voice, and every word sent to its door                                                       |
-| `src/lib/server/persona-door.ts`      | The persona's door on New Altitude: its address, scope, what a turn sends and what comes back                                         |
-| `src/lib/persona.ts`                  | The offers, the quiet reasons and their lines, shared by the server and the page                                                      |
-| `src/lib/ui/persona-offers.svelte.ts` | The page's offers and each persona's wait or problem, with Add, Reconnect, Disconnect and Check again                                 |
-| `src/lib/ui/PersonaQuiet.svelte`      | A quiet persona Odd's line and its one button                                                                                         |
-| `src/lib/server/hosts.ts`             | The office's names through Caddy (`HOSTS`), alone so reporting loads before Postgres                                                  |
-| `scripts/office-service.ts`           | The login service                                                                                                                     |
-| `src/app.css`                         | Tokens. Every colour in the chrome reads these.                                                                                       |
+| Path                                  | What it holds                                                                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/floor/`                      | The PixiJS floor and the Odds on it                                                                                                                                          |
+| `src/lib/staff/roster.ts`             | The Odd shape the page gets (`StaffProfile`), hiring looks, and the label for each activity                                                                                  |
+| `src/lib/ui/`                         | The card and its tabs, the Desk, the Ledger, hiring, chat                                                                                                                    |
+| `src/lib/server/`                     | Staff runs, office runs, looks, the job clock, events, keychain. Where to start a change there: [CLAUDE.md](src/lib/server/CLAUDE.md)                                        |
+| `src/lib/server/profile.ts`           | An Odd as the page gets it (`toProfile`): its stored switches and folders, and what its runs reach now                                                                       |
+| `src/lib/server/sandbox.ts`           | What a run's commands reach: the variables hidden from them, Claude Code's sandbox, the developer tool folders, and the refusal line                                         |
+| `src/lib/server/aws.ts`               | AWS: the office's one sign-in, each AWS tool's role and the read check, the names-only Secrets Manager tool, and keys from AWS                                               |
+| `src/lib/site.ts`                     | Links to the public site's guides (`siteLink`): `localhost:4501` under `npm run dev`, else oddboro.com, or `ODDBORO_SITE_URL`                                                |
+| `src/routes/api/`                     | One folder per thing the page reads or changes                                                                                                                               |
+| `src/lib/server/office-design.ts`     | Drawing an office from the owner's words, and where Odds move to                                                                                                             |
+| `src/lib/server/design-job.ts`        | The drawing as a job on the server, which pages follow                                                                                                                       |
+| `src/lib/ui/onboarding/`              | A new owner's first visit: the cards, the reveal's story, the music                                                                                                          |
+| `src/lib/floor/reveal.ts`             | The office going up beat by beat, and the bus                                                                                                                                |
+| `src/lib/diagnostics.ts`              | What a report may carry, and when a trace is taken: the server's, the relay's and the page's one rule                                                                        |
+| `src/lib/server/diagnostics.ts`       | The SDK's options and the gate every report passes, with the owner's answer                                                                                                  |
+| `src/lib/server/account.ts`           | The New Altitude sign-in: start, callback, refresh, sign out                                                                                                                 |
+| `src/lib/account.ts`                  | The account and its states, shared by the server and the page                                                                                                                |
+| `src/lib/server/persona.ts`           | The personas New Altitude offers: sync, each persona's sign-in, install, Disconnect                                                                                          |
+| `src/lib/server/persona-package.ts`   | A persona's package checked before the office trusts it                                                                                                                      |
+| `src/lib/server/persona-offered.ts`   | The names and slugs on offer at the last read, as one prompt line for an Odd that can propose a hire                                                                         |
+| `src/lib/server/persona-run.ts`       | A persona Odd's run: its hands, then its voice, and every word sent to its door                                                                                              |
+| `src/lib/server/persona-door.ts`      | The persona's door on New Altitude: its address, scope, what a turn sends and what comes back                                                                                |
+| `src/lib/persona.ts`                  | The offers, the quiet reasons and their lines, shared by the server and the page                                                                                             |
+| `src/lib/ui/persona-offers.svelte.ts` | The page's offers and each persona's wait or problem, with Add, Reconnect, Disconnect and Check again                                                                        |
+| `src/lib/ui/PersonaQuiet.svelte`      | A quiet persona Odd's line and its one button                                                                                                                                |
+| `src/lib/server/office-backup.ts`     | Back up this office and Restore from a backup: the download, taking a file back, and starting again so it goes in. What a backup holds is in the ledger's `office-backup.ts` |
+| `src/lib/server/hosts.ts`             | The office's names through Caddy (`HOSTS`), alone so reporting loads before Postgres                                                                                         |
+| `scripts/office-service.ts`           | The login service                                                                                                                                                            |
+| `src/app.css`                         | Tokens. Every colour in the chrome reads these.                                                                                                                              |
 
 ## Rules for this app
 
