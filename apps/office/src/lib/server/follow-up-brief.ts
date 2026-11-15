@@ -58,7 +58,8 @@ export function followUpBrief(
   {
     also = [],
     draftOnly = false,
-    level
+    level,
+    actsOnHandOffs = false
   }: {
     /** Twins answered with `a` whose work this carry-out does too (`standsFor`). */
     also?: AskRow[];
@@ -66,6 +67,8 @@ export function followUpBrief(
     draftOnly?: boolean;
     /** The Odd's level: only at Draft is it offered a standing yes after a call. */
     level?: Level;
+    /** The owner lets this Odd act on its own on work from colleagues (`staff.actsOnHandOffs`). */
+    actsOnHandOffs?: boolean;
   } = {}
 ): string[] {
   switch (f.kind) {
@@ -78,7 +81,7 @@ export function followUpBrief(
     case 'task_done':
       return taskDoneBrief(f, r, t);
     case 'carry_out':
-      return carryOutBrief(f, a, also, draftOnly, level);
+      return carryOutBrief(f, a, also, draftOnly, level, actsOnHandOffs);
     case 'denied':
       return deniedBrief(f, a);
     case 'rework':
@@ -155,10 +158,11 @@ function firstDayBrief(): string[] {
     'You joined the office today, and you just said hello to {owner} in chat. Get started now, so they never have to ask.',
     '',
     '1. Read your job description, notes/intake.md if you have one, my_goals and my_jobs.',
-    '2. If you cannot do good work without answers from {owner}, put only the questions your intake did not answer in the response of give_owner_a_task, then stop.',
-    `3. If a tool you need is not in my_access, ask for it with ask_for_access. For ${SWITCH_NAMES.commands} or ${SWITCH_NAMES.web}, ask with ask_for_switch when my_access says {owner} can switch it on.`,
-    '4. Otherwise do the first piece of real work your job calls for, now: the first run of your job, or the first thing your job description says to do, so {owner} sees it today. Work for a goal you serve is not yours to start: the Odd who leads it hands you each piece.',
-    '5. Your reply goes on their desk. Write it to {owner}: what you did, and what comes next.'
+    '2. Check what the office already knows about your job: search relevant Ledger entries when you have access, and read relevant work already shared with you. For anything still missing, check the colleagues listed in your prompt. If one can help and you can hand off, give them the work and finish this run. Their answer brings you back.',
+    '3. Give {owner} a task only for what still needs them after that check. A decision or preference only {owner} can make goes to {owner}, never to a colleague. Ask only the questions your intake and the office could not answer. Say why no colleague can do it, then stop.',
+    `4. If a tool you need is not in my_access, ask for it with ask_for_access. For ${SWITCH_NAMES.commands} or ${SWITCH_NAMES.web}, ask with ask_for_switch when my_access says {owner} can switch it on.`,
+    '5. Otherwise do the first piece of real work your job calls for, now: the first run of your job, or the first thing your job description says to do, so {owner} sees it today. Work for a goal you serve is not yours to start: the Odd who leads it hands you each piece.',
+    '6. Your reply goes on their desk. Write it to {owner}: what you did, and what comes next.'
   ];
 }
 
@@ -297,7 +301,8 @@ function carryOutBrief(
   a: AskRow | undefined,
   also: AskRow[],
   draftOnly: boolean,
-  level?: Level
+  level?: Level,
+  actsOnHandOffs = false
 ): string[] {
   // A connect task's end starts this run and wakes the work parked on that task at once.
   const askLines = [...askLinesOf(a), ...(f.pickedUp ?? []).map((t) => `- ${pickedUpLine(t)}`)];
@@ -354,8 +359,8 @@ function carryOutBrief(
       return [
         // A yes to Draft reaches a run held to Draft anyway, so only a yes to Act
         // carried out in one says the run does not have it. A level carry-out is
-        // held to Draft only when it serves a colleague's hand-off (staff.ts), as
-        // the line says.
+        // held to Draft only when it serves a colleague's hand-off and the owner
+        // chose to be asked first on such work (staff.ts), as the line says.
         ...(a.level !== 'act'
           ? [`${said}, and this run has it.`]
           : draftOnly
@@ -364,7 +369,9 @@ function carryOutBrief(
               ]
             : [
                 `${said}, and this run has it.`,
-                'Work a colleague hands you, and a thread you pick back up, still runs at Draft at most.'
+                actsOnHandOffs
+                  ? '{owner} lets you act on your own on work a colleague hands you, so it runs at Act too. A thread you pick back up still runs at Draft at most.'
+                  : 'Work a colleague hands you, and a thread you pick back up, still runs at Draft at most.'
               ]),
         ...alsoAnswers('level'),
         '',
