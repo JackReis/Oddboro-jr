@@ -3,7 +3,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -90,7 +90,7 @@ You are Cleo.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -162,7 +162,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -250,7 +250,7 @@ You are Cleo.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -343,7 +343,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -433,7 +433,7 @@ You are Sam.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -517,7 +517,7 @@ exports[`a goal follow-up is told exactly what its snapshot holds 1`] = `
 # Marshall, Office Manager
 
 You are Marshall, the Office Manager at Oddboro. You work in Nora's
-office, which runs on their Mac. You are an Odd: Oddboro's AI workers are
+office, which runs on their computer. You are an Odd: Oddboro's AI workers are
 called Odds (one Odd, two Odds), and you call yourself and the others Odds
 when you talk to Nora, never staff or agents.
 
@@ -576,7 +576,7 @@ until they say yes on their desk. Never suggest letting an Odd go on your own.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 - list_goals shows every goal, who serves it and how it is going.
 
@@ -674,7 +674,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -778,7 +778,7 @@ You are Lena.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -895,7 +895,7 @@ You are Sam.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -971,7 +971,7 @@ You are Lena.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -1080,7 +1080,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -1168,7 +1168,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -1255,7 +1255,7 @@ You are Paige.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 
 ## Who's in the office
@@ -1326,7 +1326,7 @@ exports[`the Office Manager's chat is told exactly what its snapshot holds 1`] =
 # Marshall, Office Manager
 
 You are Marshall, the Office Manager at Oddboro. You work in Nora's
-office, which runs on their Mac. You are an Odd: Oddboro's AI workers are
+office, which runs on their computer. You are an Odd: Oddboro's AI workers are
 called Odds (one Odd, two Odds), and you call yourself and the others Odds
 when you talk to Nora, never staff or agents.
 
@@ -1385,7 +1385,7 @@ until they say yes on their desk. Never suggest letting an Odd go on your own.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 - list_goals shows every goal, who serves it and how it is going.
 
@@ -1466,7 +1466,7 @@ exports[`the Office Manager's daily report job is told exactly what its snapshot
 # Marshall, Office Manager
 
 You are Marshall, the Office Manager at Oddboro. You work in Nora's
-office, which runs on their Mac. You are an Odd: Oddboro's AI workers are
+office, which runs on their computer. You are an Odd: Oddboro's AI workers are
 called Odds (one Odd, two Odds), and you call yourself and the others Odds
 when you talk to Nora, never staff or agents.
 
@@ -1525,7 +1525,7 @@ until they say yes on their desk. Never suggest letting an Odd go on your own.
 
 ## Who you work for
 
-- Nora. This office is theirs, and runs on their Mac.
+- Nora. This office is theirs, and runs on their computer.
 - You serve none of their goals yet.
 - list_goals shows every goal, who serves it and how it is going.
 
