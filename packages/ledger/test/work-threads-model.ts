@@ -402,8 +402,8 @@ function withdrawal(id: number, line: string): EventOf<'askDecided'> {
 }
 
 /**
- * Each event's new rounds, after its model ran: work that ended and opened
- * again starts a round with no hand-off counted, and a yes to going on
+ * Each event's new rounds, after its model ran: work that ended or stopped
+ * and opened again starts a round with no hand-off counted, and a yes to going on
  * starts the hand-off it held as the first of a new round, or, when the
  * usage window holds it, a round with none counted yet. A hand-off's own
  * model counts its round itself.
@@ -412,7 +412,7 @@ export function newRounds(r: Model, e: WorkEvent, was: Map<number, string>): voi
   if (e.kind === 'handedOff') return;
   for (const t of r.threads.values()) {
     const before = was.get(t.id);
-    if ((before === 'done' || before === 'failed') && t.status === 'open') t.used = 0;
+    if (before !== undefined && before !== 'open' && t.status === 'open') t.used = 0;
   }
   if (e.kind !== 'askDecided' || e.decision !== 'approve') return;
   const a = askOf(r, e.id);

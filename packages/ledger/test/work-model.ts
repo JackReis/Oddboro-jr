@@ -67,6 +67,8 @@ export type TaskRec = {
   staffId: string | null;
   title: string;
   status: 'open' | 'done' | 'dropped';
+  /** Dropped because its Odd left, so its answer goes to nobody. */
+  withdrawn?: boolean;
   askId: number | null;
   handOffId: number | null;
   threadId: number | null;

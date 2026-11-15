@@ -3,7 +3,7 @@
 import type { Outcome } from '../src/schema.ts';
 import type { LiveKind, WorkEvent } from '../src/work/events.ts';
 import { SERVES_NO_THREAD } from '../src/work/kinds.ts';
-import { wake } from './work-answers-model.ts';
+import { ranOwn, wake } from './work-answers-model.ts';
 import {
   askOf,
   insert,
@@ -244,7 +244,7 @@ export function finish(
   const k = givesBack && lifted && 'task' in lifted ? r.tasks.get(lifted.task) : undefined;
   if (k && k.status !== 'open') {
     meet('a park given back on a task that ended');
-    // A done task an Odd gave starts that Odd's own run as it ends, before this wake.
-    wake(r, k.id, k.status === 'done' && k.staffId !== null);
+    // The task's own run, if its end started one, was set going before this wake.
+    wake(r, k.id, ranOwn(r, k));
   }
 }

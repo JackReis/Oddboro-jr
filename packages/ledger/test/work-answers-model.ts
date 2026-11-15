@@ -19,7 +19,8 @@ import {
   windowHolds,
   type AskRec,
   type Chat,
-  type Model
+  type Model,
+  type TaskRec
 } from './work-model.ts';
 import { T0 } from './work-rows.ts';
 
@@ -184,6 +185,25 @@ export function wake(r: Model, taskId: number, ownRunEarlier: boolean): void {
     const runId = answerLead(r, t.id, `"${k.title}"`);
     if (runId !== undefined) r.expected.wake = { runId, title: k.title, ownRunEarlier };
   }
+}
+
+/**
+ * Whether an ended task started a run of its own, as `ownRunOf` reads it: a
+ * done task an Odd gave, or a dropped one whose answer went to its work, or
+ * on no work to the Odd that gave it unless it was withdrawn. Never on
+ * stopped work or work whose lead left.
+ */
+export function ranOwn(r: Model, k: TaskRec): boolean {
+  const from = askOf(r, k.askId);
+  const threadId = k.threadId ?? from?.threadId ?? null;
+  const handOffId = k.handOffId ?? from?.handOffId ?? null;
+  const owns =
+    k.status === 'done'
+      ? k.staffId !== null
+      : threadId !== null || (handOffId === null && k.staffId !== null && !k.withdrawn);
+  if (!owns) return false;
+  const own = threadId === null ? undefined : r.threads.get(threadId);
+  return !own || (own.status !== 'stopped' && !left(r, own.hub));
 }
 
 /** An answer goes back to the hand-off or thread it was raised on; false when it was raised on neither. */
@@ -711,6 +731,7 @@ export function endTask(r: Model, e: EventOf<'taskEnded'>): void {
   }
   const done = e.ended === 'done';
   t.status = done ? 'done' : 'dropped';
+  t.withdrawn = e.ended === 'withdrawn';
   const marker = `"${t.title}"`;
   const chat = e.inChat && t.staffId ? { staffId: t.staffId, card: `task:${t.id}` } : undefined;
   const from = askOf(r, t.askId);
