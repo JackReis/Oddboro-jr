@@ -6,6 +6,9 @@ A virtual office for one person, the owner. AI workers called Odds work on a
 pixel-art floor, and where each one stands tells you what it is doing. The office runs on your
 computer, a Mac, Linux or Windows, and its first Odd is the Office Manager you pick.
 
+[Watch the Oddboro launch demo or read the transcript](https://natesnewsletter.substack.com/p/oddboro-manage-multiple-ai-agents-launch).
+The replay shows how the Office Manager keeps track of work across agents.
+
 ## Get started
 
 The quickest way is the app, for a Mac, Windows or Linux, from
