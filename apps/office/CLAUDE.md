@@ -1193,7 +1193,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     less any tool the Odd already holds or has asked for (`sortFor`). Save
     updates the same Odd through the description route, then raises those
     access asks at read, as a hire does; a refused save raises none. The file's
-    tools and permission mode are never taken. A local Odd's Skills tab, under
+    tools and permission mode are never taken. A hire from an agent file keeps the
+    file's `name` (`claude_agent_name`). Importing that name again opens on the
+    Odds hired from it (or, hired before the office kept it, an Odd of the
+    same name) and a separate new hire; choosing one reviews its job
+    description here against the file. A local Odd's Skills tab, under
     Knowledge, lists the SKILL.md files the owner attached, each by name with
     when to use it and Remove (`src/lib/ui/StaffSkills.svelte`, the ledger's
     `staff_skills`). Add a skill reads the name and when to use it from the

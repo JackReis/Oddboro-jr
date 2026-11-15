@@ -15,6 +15,7 @@
   import { HIRE_DEFAULTS } from '@oddboro/ledger/grantable';
   import { OFFICE_TOOLS } from '@oddboro/ledger/tools';
   import Pixel from './Pixel.svelte';
+  import JobDescription from './JobDescription.svelte';
   import LookStudio, { type Drawn } from './LookStudio.svelte';
   import SchedulePicker from './SchedulePicker.svelte';
   import ModelPicker from './ModelPicker.svelte';
@@ -39,6 +40,8 @@
   import type { ImportedServer, SortedServers } from '../staff/claude-agent.ts';
 
   type Props = {
+    staff: StaffProfile[];
+    version: number;
     /** Rooms on the floor a staffer can work in: template id and name. */
     rooms: { id: string; name: string }[];
     /** A hire a staffer proposed. Hiring from it approves that ask. */
@@ -49,13 +52,15 @@
     /** A persona hired here joined, through its own sign-in: the window closes. */
     ondone: () => void;
   };
-  let { rooms, from, id, onhired, ondone }: Props = $props();
+  let { staff, version, rooms, from, id, onhired, ondone }: Props = $props();
 
   // Hire opens on a choice: make an Odd, or hire a persona New Altitude offers
   // the owner's account. A proposal skips the choice: it opens on the builder,
   // or on the persona it names (`suggested`).
   // A window keeps the proposal it opened with, so its first value is the one.
-  let path = $state<'choose' | 'odd' | 'persona'>(untrack(() => from) ? 'odd' : 'choose');
+  let path = $state<'choose' | 'odd' | 'persona' | 'matches'>(
+    untrack(() => from) ? 'odd' : 'choose'
+  );
   // The offers, read once the account is signed in, so the list is ready when
   // the sign-in finishes.
   const personas = new PersonaOffers();
@@ -186,6 +191,21 @@
   /** The hidden file box the Import button opens. */
   let picker = $state<HTMLInputElement>();
 
+  /** The `name` in the imported file, kept on the hire even when the owner renames it. */
+  let sourceName = $state<string>();
+  /** The Odd whose instructions the owner is reviewing against the file. */
+  let updating = $state<StaffProfile>();
+  // Odds hired from this agent before. One hired before the office kept the
+  // agent's name is matched by its own name instead.
+  const matches = $derived(
+    staff.filter(
+      (p) =>
+        !p.persona &&
+        !p.manager &&
+        (p.claudeAgentName ? p.claudeAgentName === sourceName : p.name === name)
+    )
+  );
+
   async function importAgent(file: File) {
     busy = true;
     problem = '';
@@ -208,8 +228,9 @@
         servers: draft.servers,
         sorted: sortServers(draft.servers, known)
       };
+      sourceName = draft.sourceName;
       step = 0;
-      path = 'odd';
+      path = matches.length ? 'matches' : 'odd';
     } catch (e) {
       problem = e instanceof Error ? e.message : 'Could not read that agent file.';
     } finally {
@@ -221,6 +242,7 @@
   function choose(next: 'odd' | 'persona') {
     if (imported) {
       imported = undefined;
+      sourceName = updating = undefined;
       name = role = remit = desk = '';
       pickedAgent = undefined;
       pickedAccount = null;
@@ -316,6 +338,7 @@
         actsOnHandOffs,
         name,
         role,
+        claudeAgentName: sourceName,
         look: look?.look,
         portraitPx: look?.portraitPx,
         newParts: look?.newParts,
@@ -400,6 +423,32 @@
       }}
     />
     {#if problem}<p class="text-xs text-coral" role="alert">{problem}</p>{/if}
+  </section>
+{:else if path === 'matches'}
+  <section
+    class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 text-sm"
+    aria-label="Review agent import"
+  >
+    {#if updating}
+      <JobDescription
+        profile={updating}
+        {version}
+        proposal={{ desk, servers: imported?.servers ?? [] }}
+      />
+      <button class="self-start text-xs text-muted" onclick={() => (updating = undefined)}
+        >Back to matches</button
+      >
+    {:else}
+      <p class="text-sm text-ink">
+        Update an existing Odd's instructions or hire another worker from this file.
+      </p>
+      {#each matches as p (p.id)}
+        {@render choice(p.name, `${p.role} · ${p.id}`, 'Review instructions', () => (updating = p))}
+      {/each}
+      <button class="self-start rounded-lg bg-raise px-3 py-2" onclick={() => (path = 'odd')}
+        >Hire a new Odd</button
+      >
+    {/if}
   </section>
 {:else if path === 'persona'}
   <section class="flex h-full min-h-0 flex-col" aria-label="Hire a persona">
