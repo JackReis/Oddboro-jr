@@ -169,6 +169,31 @@ and a hire's starting values.
 hand-off or number, which ledger tests and the office's format test share.
 `test/deliveries.test.ts` holds when the owner decided each ask.
 
+## Ledger search
+
+The search model is Nomic Embed Text v1.5 in int8 ONNX, 137 MB. The office
+downloads it from Oddboro's own GitHub release (`models-v1`, a pre-release the
+app's updater ignores), and `src/search-model.ts` pins each file's size and
+SHA-256. The files are Nomic's own, unchanged, from the Hugging Face revision
+the code names. A download follows redirects only over HTTPS to GitHub's own
+hosts (`DOWNLOAD_HOSTS`) and refuses any other.
+It lives in `models/nomic-embed-text-v1.5/` in the office home, which a
+backup leaves out. Setup's ledger search line (`checkSearch`) offers the
+download; `POST /api/setup/search` in the office runs it. The files arrive
+in a folder of their own and move into place only when every one matches
+its pin. `src/embed.ts` runs the model through onnxruntime-node, loaded once
+per process on the first text after its files pass their checksums again,
+and tokenizes with `src/wordpiece.ts`. It prefixes `search_document: ` or
+`search_query: `, reads at most 2048 tokens, and takes the mean, layer norm
+and length 1, as Nomic says. A file that fails its checksum is removed, so
+Setup offers the download again. onnxruntime-node's install script, which
+would download CUDA libraries on Linux, never runs: the root `package.json`
+denies it in `allowScripts`. Its npm package has no build for an Intel Mac;
+there `checkSearch` says so and the ledger is searched by its words. Tests
+run a stand-in model (`test/stand-in-model.ts`) and never download; set
+`ODDBORO_TEST_SEARCH_MODEL` to a folder with the real files to run
+`test/search-model-real.test.ts`.
+
 ## Files
 
 `FILES.md` lists each file in this package and what it holds.
@@ -198,8 +223,16 @@ their change triggers; `0028_advanced_mode` adds `owner.advanced_at` and
 - The ledger is append-only. Fix a mistake with a new row, never an edit.
 - Every table the page shows has a trigger that NOTIFYs `office` with its
   name. A new table the page shows gets one in a migration.
-- Text is embedded once, when it is written, never in a loop. With Ollama
-  down the row is still written, and search falls back to words.
+- Text is embedded once, when it is written, never in a loop, inside the
+  process that writes it (`src/embed.ts`). Until the owner downloads the
+  search model from Setup, or when it cannot run, the row is still written
+  with no vector, and search goes by words. Nothing about it leaves the
+  computer but the one download (`src/search-model.ts`).
+- A row's vector is the one thing the office changes after the row is
+  written: the re-index (`reindexLedger`) makes it again, with
+  `embedding_model` naming the model, once the model arrives and as the
+  office starts while rows are owed. It touches no other column, so the
+  Ledger window hears nothing of it.
 - `STAFF_ID` is set by the office when it starts `src/mcp.ts`. A tool acts as
   that Odd and no other. In a chat, the office also sets `OWNER_SAID` to
   the owner's message. An Odd changes its own jobs or job description only with
@@ -307,8 +340,10 @@ their change triggers; `0028_advanced_mode` adds `owner.advanced_at` and
 FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   takes too), and `ask_for_folder` refuses it (`FOLDER_REFUSED.broad`).
   `setFolder()` finds a folder the Odd has by that real
-  path, so a level change replaces it, and refuses a new one inside or
-  holding another the Odd has (`FOLDER_REFUSED.nested`). A stored folder no
+  path, so a level change replaces it. Folders may sit one inside another,
+  but a folder only to read is refused inside or around one to change, by a
+  new folder or a level change (`FOLDER_REFUSED.readInsideChange`,
+  `nestRefused`). A stored folder no
   run gets (`touchesSecretStore()`) does not count for a folder inside it, so
   the owner can give a clean one there, and still counts for a folder that
   would hold it, which would put its store in a run; `folderAskRefused` does
@@ -714,8 +749,9 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   real path `checkFolder` gave and `read` or `write`), raised by
   `ask_for_folder`, which every Odd has (`always`). The tool refuses at once
   with the Settings tab's words (`FOLDER_REFUSED`), and refuses a folder the
-  Odd has at that level or above, or one `setFolder` would refuse as nested
-  (`folderAskRefused`). `raiseAsk` refuses a repeat from the same place (the
+  Odd has at that level or above, or one `setFolder` would refuse beside the
+  folders it has (`folderAskRefused`, with `nestRefused`). `raiseAsk` refuses
+  a repeat from the same place (the
   same hand-off and thread, `AlreadyOnDesk`) unless it `revises` it; one from
   another place for the same folder at the same or a lower level is a twin
   (`asksNoMore`, as access asks are). Only the office approves one, with
