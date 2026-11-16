@@ -26,7 +26,6 @@ Object.assign(process.env, {
   // A file that does not exist, so no .env reaches this office.
   ODDBORO_ENV: join(folder, 'none.env'),
   ODDBORO_LOCAL_DB: '1',
-  OLLAMA_URL: 'http://127.0.0.1:9',
   ORIGIN: 'http://office.test:4500',
   // An empty home of its own, so the office never finds the owner's own
   // tools there (a real grok in ~/.grok/bin), and no tool's maker is asked

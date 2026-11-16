@@ -37,8 +37,7 @@ Object.assign(process.env, {
   ODDBORO_DB_PORT: String(port),
   // A file that does not exist, so no .env reaches this office.
   ODDBORO_ENV: join(folder, 'none.env'),
-  ODDBORO_LOCAL_DB: '1',
-  OLLAMA_URL: 'http://127.0.0.1:9'
+  ODDBORO_LOCAL_DB: '1'
 });
 const fake = await fakeNewAltitude();
 const { startLocalDatabase } = await import('@oddboro/ledger/local-db');

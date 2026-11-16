@@ -11,8 +11,6 @@ import { asks, connectors, grants, jobs, staff, tasks, threads } from '../src/sc
 import type { Tx } from '../src/threads.ts';
 import { db } from './pglite.ts';
 
-// Nothing answers here, so a ledger line is written with no embedding.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { decideAsk, giveTask, grantAccess, raiseAsk } = await import('../src/office.ts');
 const { POSTAL_ID } = await import('../src/access-words.ts');
 const { BUILT_IN } = await import('../src/registry.ts');

@@ -76,6 +76,7 @@ export const LEFT_OUT: Record<string, string> = {
   backups: 'the copies this office made of itself',
   bin: "this computer's own web server",
   caddy: "this computer's own web address",
+  models: 'the search model, which Setup downloads again',
   version: 'which version last opened this office',
   '.env': 'its office settings travel in the manifest; a database address or password never does',
   '.s.PGSQL.5432': "the database's socket",
