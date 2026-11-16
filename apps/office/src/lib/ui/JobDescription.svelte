@@ -1,7 +1,9 @@
 <script lang="ts">
   import DocEditor from './DocEditor.svelte';
+  import AgentFileServers from './AgentFileServers.svelte';
   import { call } from './api.ts';
   import type { StaffProfile } from '../staff/roster.ts';
+  import type { ImportedServer, SortedServers } from '../staff/claude-agent.ts';
 
   // The staffer's job description, the text every run starts from, in the
   // document editor. Folded until the owner opens it.
@@ -16,6 +18,12 @@
   let editor: DocEditor | undefined = $state();
   let reading = $state(false);
   let fileMessage = $state('');
+  /** The servers of the agent file under review, and which Save asks for (`sortFor`). */
+  let fromFile = $state<{ servers: ImportedServer[]; sorted: SortedServers }>();
+  // Saved or undone, the file's servers go with it.
+  $effect(() => {
+    if (!dirty) fromFile = undefined;
+  });
 
   // Reload when the staffer changes it, unless the owner is mid-edit.
   $effect(() => {
@@ -46,9 +54,18 @@
       const { readClaudeAgentFile } = await import('../staff/claude-agent.ts');
       const agent = await readClaudeAgentFile(file);
       if (editor !== opened) return;
-      if (agent.desk === text) fileMessage = 'The saved instructions match this file.';
-      else if (!opened.review(agent.desk))
-        fileMessage = 'Finish your current edit, then choose the file again.';
+      if (agent.desk === text) {
+        fileMessage = 'The saved instructions match this file.';
+        return;
+      }
+      const sorted = agent.servers.length
+        ? await call<SortedServers>(`/api/staff/${profile.id}/description`, {
+            servers: agent.servers
+          })
+        : { asks: [], listed: [] };
+      if (editor !== opened) return;
+      if (opened.review(agent.desk)) fromFile = { servers: agent.servers, sorted };
+      else fileMessage = 'Finish your current edit, then choose the file again.';
     } catch (e) {
       if (editor === opened) fileMessage = e instanceof Error ? e.message : String(e);
     } finally {
@@ -59,7 +76,7 @@
   async function save(draft: string): Promise<string> {
     const r = await call<{ text: string }>(
       `/api/staff/${profile.id}/description`,
-      { text: draft, was: text },
+      { text: draft, was: text, servers: fromFile?.servers },
       'PUT'
     );
     text = r.text;
@@ -103,7 +120,7 @@
       {:else if text === undefined}
         <p class="py-4 text-center text-sm text-muted">Opening</p>
       {:else}
-        {#if !profile.persona}
+        {#if !profile.persona && !profile.manager}
           <label class="mb-2 block text-xs text-muted">
             Review job instructions from a Claude agent file
             <input
@@ -118,6 +135,15 @@
             />
           </label>
           {#if fileMessage}<p class="mb-2 text-xs text-muted" role="status">{fileMessage}</p>{/if}
+          {#if fromFile && dirty}
+            <div class="mb-2 flex flex-col gap-1 text-xs text-ink">
+              <AgentFileServers
+                sorted={fromFile.sorted}
+                once="saved"
+                note="Only the instructions change. Its tools and permission stay as they are."
+              />
+            </div>
+          {/if}
         {/if}
         {#if dirty}
           <details class="mb-2 text-xs text-muted">
