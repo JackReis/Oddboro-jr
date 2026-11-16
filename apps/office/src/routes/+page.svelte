@@ -9,7 +9,6 @@
   import Onboarding, { type Stage } from '#lib/ui/onboarding/Onboarding.svelte';
   import WeatherPill from '#lib/ui/WeatherPill.svelte';
   import { askWeather, weather } from '#lib/ui/weather.svelte.ts';
-  import { skyOf } from '#lib/weather.ts';
   import FloorControls, { type Light } from '#lib/ui/FloorControls.svelte';
   import { music, musicEnded, startMusic } from '#lib/ui/music.svelte.ts';
   import { chatAbout } from '#lib/ui/chat-about.svelte.ts';
@@ -277,9 +276,9 @@
   });
   // The first run shows the lot, then the office as it goes up on it.
   let liveWorld = $state<World | undefined>();
-  /** The sky outside: the office's weather, unless the viewer holds the floor at day or night. */
+  /** The weather outside, as MET Norway's symbol, unless the viewer holds the floor at day or night. */
   const sky = $derived(
-    light === 'auto' && weather.setting && weather.report ? skyOf(weather.report.symbol) : undefined
+    light === 'auto' && weather.setting && weather.report ? weather.report.symbol : undefined
   );
   /** The hour the floor shows: the office's own, unless the viewer holds it at day or night. */
   const shownHour = $derived(light === 'day' ? 13 : light === 'night' ? 22 : hour);

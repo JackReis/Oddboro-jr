@@ -1832,9 +1832,34 @@ the owner turns it on in Setup. The decision is in `docs/decisions/`
    the last answer, why the last check failed, Change in Setup, and the
    credit to MET Norway and GeoNames. A failed check greys the pill and adds a
    coral dot; the last report stays.
-7. The floor (`Floor.setWeather`) goes overcast for cloud, fog and anything
-   falling (`overcast`): grey windows and no sun shafts. Only while the light
-   is Auto; holding day or night shows the clock's sky.
+7. The floor draws each sky (`Floor.setWeather(symbol)`), only while the
+   light is Auto; holding day or night shows the clock's sky. `lookOf` in
+   `src/lib/floor/sky.ts` reads the symbol: what falls (rain, sleet, snow),
+   how hard (light, steady, heavy), thunder, drifting clouds, fog. The
+   drawing is `src/lib/floor/weather-layer.ts`, over whatever floor is
+   loaded: outdoors is any cell in no indoor room or hall and no wall,
+   and the panes are the sprites tagged `window`.
+   - The window sky (`skyBand`) is the clock's, softened for partly cloudy,
+     grey at the hour's brightness under cloud, darker in rain or snow and
+     darkest in a storm. Overcast also stops the sun shafts and dims the
+     scene a little by day (`dimOf`).
+   - Partly cloudy: a small cloud crosses each pane, a pixel every two
+     seconds, all in step. Fog: a haze over the grounds that thins toward
+     the building, drawn once.
+   - Rain, sleet and snow fall over the grounds from one pool of `POOL`
+     sprites made once; `placeFall` wraps each mark into the view, so all
+     are on screen, and the field stays fixed to the world. Heavier symbols
+     fall thicker and faster. Rain slants, darker over pale stone, flecks
+     on hard ground, and at night catches the street lamps. Snow sways and
+     settles on the grounds over 15 minutes, fading over 30 after.
+   - Thunder: a soft flash over the grounds and the panes every 8 to 25
+     seconds (`flashStep`), fading over four ticks, and one flash in three
+     draws a pixel bolt over the grounds.
+   - Everything steps on the ambient clock (12 a second). A sky with nothing
+     moving (clear, cloudy, fog) asks for no draw, and partly cloudy only
+     when its clouds move. A hidden page stops it with the rest of the
+     floor. Under reduced motion nothing moves: the marks hold still, and
+     there is no flash or bolt.
 
 ## A New Altitude account
 

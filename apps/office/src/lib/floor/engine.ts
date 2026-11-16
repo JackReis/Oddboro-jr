@@ -35,7 +35,8 @@ import {
   type SpriteCatalog,
   type World
 } from '@oddboro/world';
-import { overcast, type Sky } from '../weather.ts';
+import { dimOf, lookOf, skyBand, type Look, type RGB } from './sky.ts';
+import { WeatherLayer } from './weather-layer.ts';
 
 export type Atlas = { sheet: Spritesheet; catalog: SpriteCatalog };
 
@@ -252,8 +253,11 @@ export class Floor {
   /** The night tint every shaded sprite and every staffer wears right now. */
   nightTint = 0xffffff;
   private hour = 12;
-  /** The sky outside, from the office's weather. Undefined: the clock's own sky. */
-  private weather: Sky | undefined;
+  /** The office's weather: MET Norway's symbol for now, and the look the floor draws for it. */
+  private symbol: string | undefined;
+  private look: Look | undefined;
+  /** Rain, snow, fog and lightning over the grounds and in the window panes. */
+  private weather = new WeatherLayer();
   private zoom = 3;
   /** The zoom the camera is gliding to, and the screen point that holds still meanwhile. */
   private zoomTo = 3;
@@ -356,13 +360,14 @@ export class Floor {
     this.stage.addChild(
       layers[0],
       this.sky,
+      this.weather.back,
       layers[1],
       this.shafts,
       this.shadows,
       this.objects,
       layers[3]
     );
-    this.stage.addChild(this.lightScene, this.glow, this.moteLayer);
+    this.stage.addChild(this.lightScene, this.glow, this.moteLayer, this.weather.front);
     this.app.stage.addChild(this.stage);
     // After the page's own ticker work, so a staffer's step draws the same frame.
     this.app.ticker.add(() => this.tick(), undefined, UPDATE_PRIORITY.LOW);
@@ -538,6 +543,8 @@ export class Floor {
           seed: Math.random() * 100
         });
       }
+
+    this.weather.setWorld(world, this.windows);
 
     // Lighting: every sprite wears a night tint by the hour (set in
     // setHour), emissive pixels stay bright on top of their sprite, and each
@@ -718,14 +725,25 @@ export class Floor {
 
   /** Whether a cloud layer hides the sun: the windows go grey and no shafts fall. */
   private overcast() {
-    return !!this.weather && overcast(this.weather);
+    return !!this.look?.overcast;
   }
 
-  /** Show the weather outside, or the clock's own sky with undefined. */
-  setWeather(sky: Sky | undefined) {
-    if (sky === this.weather) return;
-    this.weather = sky;
+  /**
+   * Show the weather for MET Norway's symbol (`lightrain`, `clearsky_night`),
+   * or the clock's own sky with undefined.
+   */
+  setWeather(symbol: string | undefined) {
+    if (symbol === this.symbol) return;
+    this.symbol = symbol;
+    this.look = lookOf(symbol);
     this.setHour(this.hour);
+  }
+
+  /** For screenshots: lightning now, and snow that has lain a while. */
+  weatherNow(opts: { flash?: boolean; settled?: number }) {
+    if (opts.flash) this.weather.flashNow(this.view());
+    if (opts.settled !== undefined) this.weather.settleFor(opts.settled);
+    this.dirty = true;
   }
 
   setHour(hour: number) {
@@ -735,8 +753,12 @@ export class Floor {
     for (const obj of this.switches.keys())
       if (byDaylight(obj)) this.light(obj, !this.daylit && !this.ownerOff.has(obj));
     const [top, bottom] = skyAt(hour);
-    // The night is a multiply by the ambient colour, done as a tint.
-    this.nightTint = toHex(nightTint(hour).map((v) => v * 255));
+    // The night is a multiply by the ambient colour, done as a tint. A grey
+    // day dims it a little more.
+    const dim = dimOf(this.look);
+    const tint = nightTint(hour).map((v) => v * dim) as RGB;
+    this.nightTint = toHex(tint.map((v) => v * 255));
+    this.weather.setLook(this.look, tint, !this.daylit, this.reduceMotion.matches);
     for (const sp of this.shaded) sp.tint = this.nightTint;
     // Sun shafts on the floor under each window, warmer as the day ends.
     const d = this.daylight();
@@ -766,9 +788,8 @@ export class Floor {
     for (const w of this.windows) {
       for (let b = 0; b < bands; b++) {
         const t = b / (bands - 1);
-        const c = top.map((v, i) => v + (bottom[i] - v) * t);
-        // Keep the time of day's brightness behind a solid cloud layer.
-        if (this.overcast()) c.fill((c[0] + c[1] + c[2]) / 3);
+        // The weather's sky: grey at the hour's brightness under cloud, darker in rain and storms.
+        const c = skyBand(top.map((v, i) => v + (bottom[i] - v) * t) as RGB, this.look);
         this.sky.rect(w.x, w.y + (w.h * b) / bands, w.w, Math.ceil(w.h / bands) + 1).fill(toHex(c));
       }
     }
@@ -868,6 +889,7 @@ export class Floor {
    */
   showWindows(on: boolean) {
     this.sky.renderable = on;
+    this.weather.back.renderable = on;
     this.shafts.renderable = on;
     this.moteLayer.renderable = on;
     this.dirty = true;
@@ -966,6 +988,7 @@ export class Floor {
       a.s.texture = tex;
       if (!this.dirty && seen(a.box)) this.dirty = true;
     }
+    if (this.weather.step(now, this.view())) this.dirty = true;
     if (!this.moteLayer.visible) return;
     const d = this.daylight();
     for (const m of this.motes) {
