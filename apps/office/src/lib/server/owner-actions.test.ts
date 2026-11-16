@@ -698,6 +698,7 @@ const QUIET: Partial<Record<Key, (send: Send) => Promise<void>>> = {
   'POST /api/account': (send) => send({}),
   'POST /api/client-log': (send) => send({ body: { kind: 'boot', message: '/ in a test' } }),
   'PUT /api/diagnostics': (send) => send({ body: { answer: 'no' } }),
+  'DELETE /api/weather': (send) => send({}),
   'POST /api/files/resolve': (send) =>
     send({ body: { files: [{ staff: 'sam', path: 'plan.md' }] } }),
   'POST /api/staff/[id]/description': (send) =>
@@ -720,6 +721,7 @@ const UNDRIVEN: Partial<Record<Key, string>> = {
     'A test office has no report address, so it drops the envelope and changes nothing; no driver is written yet.',
   'POST /api/files/open': 'Opens the system browser.',
   'POST /api/folders/pick': "Opens the system's folder picker.",
+  'PUT /api/weather': "Downloads a country's postal codes from GeoNames.",
   'POST /api/looks': AI,
   'POST /api/office/design': AI,
   'POST /api/staff/draft': AI,
