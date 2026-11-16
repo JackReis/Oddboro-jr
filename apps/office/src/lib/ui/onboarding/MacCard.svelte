@@ -5,6 +5,7 @@
   import { shownAddress, type Address } from '#lib/address.ts';
   import { call } from '../api.ts';
   import RestoreBackup from '../RestoreBackup.svelte';
+  import SearchDownload from '../SearchDownload.svelte';
   import NotifyHelp from './NotifyHelp.svelte';
   import { browserNeeds } from './notify-help.ts';
 
@@ -29,7 +30,7 @@
 
   // Docker, uv and the login service are for later; Node is right or setup would not have run.
   // Claude Code is on the Your AI card, beside the other tools the office can run on.
-  const SHOWN = ['mac', 'database', 'pgvector', 'notify', 'ollama'];
+  const SHOWN = ['mac', 'database', 'pgvector', 'notify', 'search'];
   let checks = $state<Check[] | undefined>();
   /** In the Mac app, which shows its own notifications and has no browser tab. */
   let app = $state(false);
@@ -142,7 +143,11 @@
         <span class="font-bold {TONE[c.state]}" aria-label={c.state}>{MARK[c.state]}</span>
         <span>{c.name}</span>
         <span class="min-w-0 text-muted">{c.found}</span>
-        {#if c.state !== 'ok' && c.fix}
+        {#if c.download}
+          <span class="col-start-2 col-end-4 text-xs">
+            <SearchDownload check={c} ondone={(done) => (checks = checks?.with(i, done))} />
+          </span>
+        {:else if c.state !== 'ok' && c.fix}
           <span class="col-start-2 col-end-4 text-xs text-faint">{c.fix.replaceAll('`', '')}</span>
         {/if}
       </li>
