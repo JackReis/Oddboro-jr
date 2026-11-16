@@ -8,8 +8,6 @@ import { ledger, staff } from '../src/schema.ts';
 import type { Tx } from '../src/threads.ts';
 import { db } from './pglite.ts';
 
-// Nothing answers here, so a ledger line is written with no embedding.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { LOCK_ORDER, lockRows, runAfters, transition } = await import('../src/transition.ts');
 // The office's own handle, which is PGlite's here: a transaction opened on it
 // has the type the shell takes from a caller.

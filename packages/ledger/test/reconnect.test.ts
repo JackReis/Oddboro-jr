@@ -9,8 +9,6 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { connectors, staff, tasks, threads } from '../src/schema.ts';
 import { db, sql } from './pglite.ts';
 
-// The ledger rows a grant writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { finishTask, grantAccess, reconnectTask, revoke } = await import('../src/office.ts');
 const { parkOnTask } = await import('../src/task-parking.ts');
 

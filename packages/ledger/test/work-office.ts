@@ -25,8 +25,6 @@ import type { Change, Odd, WorkRows } from '../src/work/snapshot.ts';
 import { parseAsk, parseFollowUp, parseTask, parseThread } from '../src/work/state.ts';
 import { db } from './pglite.ts';
 
-// Nothing answers here, so a ledger line is written with no embedding.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { transition } = await import('../src/transition.ts');
 const { loadWork } = await import('../src/work/load.ts');
 const { applyWork } = await import('../src/work/apply.ts');

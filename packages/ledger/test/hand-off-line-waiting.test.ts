@@ -7,7 +7,6 @@ import { eq } from 'drizzle-orm';
 import { asks, followUps, staff, tasks } from '../src/schema.ts';
 import { db } from './pglite.ts';
 
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const H = await import('../src/hand-offs.ts');
 const O = await import('../src/office.ts');
 

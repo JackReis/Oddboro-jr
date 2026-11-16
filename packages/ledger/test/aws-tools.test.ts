@@ -23,8 +23,6 @@ mock.module(new URL('../src/secrets.ts', import.meta.url).href, {
   }
 });
 
-// The ledger rows a grant writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const {
   AWS_BUILD_ID,
   AWS_READ_ID,

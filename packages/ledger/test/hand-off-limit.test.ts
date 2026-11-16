@@ -14,8 +14,6 @@ import type { ThreadFor } from '../src/threads.ts';
 import { db } from './pglite.ts';
 import { ownerWords } from './owner-words.ts';
 
-// The ledger rows a decision writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 // Every ledger line goes through `record` below, before any module that writes
 // one loads: a test sets `onLine` to act while a decision's line is written.
 let onLine: ((askId: number | undefined) => Promise<void>) | undefined;
@@ -27,7 +25,8 @@ mock.module(ledgerUrl, {
       return real.record(...a);
     },
     searchLedger: (...a: Parameters<typeof real.searchLedger>) => real.searchLedger(...a),
-    precedent: (...a: Parameters<typeof real.precedent>) => real.precedent(...a)
+    precedent: (...a: Parameters<typeof real.precedent>) => real.precedent(...a),
+    reindexLedger: () => real.reindexLedger()
   }
 });
 // The query loads the real module apart from the mock, whose type is the module's own.
