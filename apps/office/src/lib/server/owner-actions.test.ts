@@ -700,6 +700,8 @@ const QUIET: Partial<Record<Key, (send: Send) => Promise<void>>> = {
   'PUT /api/diagnostics': (send) => send({ body: { answer: 'no' } }),
   'POST /api/files/resolve': (send) =>
     send({ body: { files: [{ staff: 'sam', path: 'plan.md' }] } }),
+  'POST /api/staff/[id]/description': (send) =>
+    send({ params: { id: 'sam' }, body: { servers: [] } }),
   'POST /api/looks/parts': (send) => send({ body: { look: L.MANAGERS.find((m) => m.look)!.look } }),
   // The owner's page has no run's token, so the gateway turns it away.
   'POST /api/gateway/[connector]': (send) => send({ params: { connector: 'gmail' } }),
