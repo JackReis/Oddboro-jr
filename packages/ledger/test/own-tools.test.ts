@@ -315,8 +315,9 @@ test(
       home: 'Pick a folder inside your home, not the whole home.',
       secrets: 'That folder holds your keys or sign-ins.',
       code: "That folder holds Oddboro's own code.",
-      nested: 'That folder is inside one this Odd already has, or holds one.',
-      readInsideChange: 'A folder this Odd may only read cannot sit inside one it can change.',
+      nested: "That folder holds one of this Odd's folders that has your keys or sign-ins.",
+      readInsideChange:
+        "A folder on Can read can't sit inside one on Can write. This Odd can already change everything in it.",
       broad: 'That folder is a whole drive or holds system files. Ask for a narrower one.'
     });
     const refused = (path: string) => O.checkFolder(path);

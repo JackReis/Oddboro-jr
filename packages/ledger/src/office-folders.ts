@@ -234,8 +234,9 @@ export const FOLDER_REFUSED = {
   home: 'Pick a folder inside your home, not the whole home.',
   secrets: 'That folder holds your keys or sign-ins.',
   code: "That folder holds Oddboro's own code.",
-  nested: 'That folder is inside one this Odd already has, or holds one.',
-  readInsideChange: 'A folder this Odd may only read cannot sit inside one it can change.',
+  nested: "That folder holds one of this Odd's folders that has your keys or sign-ins.",
+  readInsideChange:
+    "A folder on Can read can't sit inside one on Can write. This Odd can already change everything in it.",
   /** What an Odd reads when it asks for a whole drive or system files: only the owner may give one. */
   broad: 'That folder is a whole drive or holds system files. Ask for a narrower one.',
   glob: (char: string) => `That folder's path has a character an Odd's tool can't take: ${char}`
