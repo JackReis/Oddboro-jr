@@ -329,10 +329,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    when lessons change (`version`).
 9. The Odd's panel has three groups, each an icon and a word (the icon
    alone when the bar is under 18rem): **Chat** (the chat alone, with no
-   row of tabs), **Data** (a files icon: Lessons and Storage) and
-   **Settings** (its own four tabs, below). A group opens on the tab it was
-   last on; the Lessons tab counts its guesses, and the Data group itself
-   shows no count. It opens on Chat. Storage
+   row of tabs), **Knowledge** (a book icon: Skills, Lessons and Storage;
+   a persona Odd has no Skills) and **Settings** (its own four tabs,
+   below). A group opens on the tab it was last on; the Lessons tab counts
+   its guesses, and the Knowledge group itself shows no count. It opens on Chat. Storage
    (`StorageTab.svelte`, what a row lists and says in `storage-list.ts`) is a tree of everything the Odd kept in its own
    folder, then, under Shared work, its part of each thread it is on (by the
    test `workFile` uses, `workTitles` in the ledger), one folder per piece of
@@ -1190,7 +1190,17 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     less any tool the Odd already holds or has asked for (`sortFor`). Save
     updates the same Odd through the description route, then raises those
     access asks at read, as a hire does; a refused save raises none. The file's
-    tools and permission mode are never taken. While an
+    tools and permission mode are never taken. A local Odd's Skills tab, under
+    Knowledge, lists the SKILL.md files the owner attached, each by name with
+    when to use it and Remove (`src/lib/ui/StaffSkills.svelte`, the ledger's
+    `staff_skills`). Add a skill reads the name and when to use it from the
+    file's front matter (`src/lib/staff/skill.ts`); the owner writes what is
+    missing, can change either, and reads the text before Save. A name already
+    saved shows the saved copy beside the new one. A save or a Remove applies
+    only while the saved copy is the one the owner saw. Every run lists each
+    skill's name and when to use it under "Your skills" (`skillsSection` in
+    `house.ts`), never its text, and the Odd reads one with the office tool
+    `read_skill`. A skill grants no tool, folder or permission. While an
     update is about to install it starts no scheduled job (item 17).
     Every job run is told the time it is for and the time it is now
     (`src/lib/server/job-brief.ts`); Run now is for the moment it is pressed. A
