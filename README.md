@@ -56,9 +56,10 @@ Use [project sessions](docs/project-sessions.md) to open a native Codex or Claud
   Postgres 15 or later with pgvector (in Docker with `npm run db:up`, or hosted,
   with the direct connection string, not a pooled one), put it in `.env` as
   `DATABASE_URL`.
-- [Ollama](https://ollama.com) with `nomic-embed-text` lets your Odds search the
-  ledger by meaning, and `uv` runs the tools that come from PyPI. The office
-  says when either is missing.
+- Ledger search by meaning needs the search model, a 140 MB download from
+  Setup. The office runs it itself, so nothing you search leaves your
+  computer. Until then the ledger is searched by its words.
+- `uv` runs the tools that come from PyPI. The office says when it is missing.
 
 ## Work on it
 

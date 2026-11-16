@@ -169,6 +169,7 @@ export const OWNER_ACTIONS = {
   'POST /api/setup/claude': { notAnAction: SETUP },
   'DELETE /api/setup/claude': { notAnAction: SETUP },
   'POST /api/setup/notify': { notAnAction: SETUP },
+  'POST /api/setup/search': { notAnAction: SETUP },
   // The owner's yes to Advanced mode's warning, and turning it off again.
   'PUT /api/setup/advanced': { records: 'decision' },
   // The owner's answers to the Act check (`passActCheck`).

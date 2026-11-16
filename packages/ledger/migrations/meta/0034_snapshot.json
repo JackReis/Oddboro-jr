@@ -1,5 +1,5 @@
 {
-  "id": "68534d67-0c6b-428d-8dee-2cc23d338203",
+  "id": "4ee8935a-9252-44e0-8891-1adc00caa8dc",
   "prevId": "f363a4c0-229b-4658-8293-37bcc6b541b9",
   "version": "7",
   "dialect": "postgresql",
@@ -1353,6 +1353,12 @@
           "type": "vector(768)",
           "primaryKey": false,
           "notNull": false
+        },
+        "embedding_model": {
+          "name": "embedding_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -2529,12 +2535,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "skill": {
-          "name": "skill",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "look": {
           "name": "look",

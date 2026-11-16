@@ -7,8 +7,6 @@ import { eq } from 'drizzle-orm';
 import { db } from './pglite.ts';
 import { ownerWords } from './owner-words.ts';
 
-// The ledger rows a finished run writes embed nothing: no Ollama answers here.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const { CUT_OFF_WORK, OUTCOME_TITLE, closeStaleFollowUps, workTitle } =
   await import('../src/office.ts');
 const { HEALTH_WORDS, STATUS_WORDS } = await import('../src/goal-words.ts');

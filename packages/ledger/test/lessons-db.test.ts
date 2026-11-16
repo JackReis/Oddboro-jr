@@ -10,8 +10,6 @@ import { followUps, staff, threads } from '../src/schema.ts';
 import type { LessonRow } from '../src/lessons.ts';
 import { db, sql } from './pglite.ts';
 
-// Embedding a ledger row reaches no Ollama.
-process.env.OLLAMA_URL = 'http://127.0.0.1:9';
 const L = await import('../src/lessons.ts');
 const O = await import('../src/office.ts');
 const H = await import('../src/hand-offs.ts');

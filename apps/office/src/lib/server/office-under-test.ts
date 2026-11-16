@@ -656,7 +656,6 @@ Object.assign(process.env, {
   // No tool's maker is asked for its newest version (versions.ts).
   ODDBORO_NO_LATEST: '1',
   ODDBORO_LOCAL_DB: '1',
-  OLLAMA_URL: 'http://127.0.0.1:9',
   // The stand-ins, node for them, and the system's own tools: never the Mac's
   // own claude, grok, codex, gemini, xcode-select or security.
   PATH: `${bin}:${rgBin}:${installers}:${nodeBin}:/usr/bin:/bin`,

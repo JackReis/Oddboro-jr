@@ -633,7 +633,9 @@ export const ledger = pgTable(
     taskId: integer().references(() => tasks.id),
     runId: integer(),
     createdAt: created(),
-    embedding: vector({ dimensions: 768 })
+    embedding: vector({ dimensions: 768 }),
+    /** Which model made `embedding` (`EMBED_MODEL`). Null for a vector from before the office ran its own. */
+    embeddingModel: text()
   },
   (t) => [
     index('ledger_embedding').using('hnsw', t.embedding.op('vector_cosine_ops')),

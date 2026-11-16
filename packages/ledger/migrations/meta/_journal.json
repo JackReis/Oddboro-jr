@@ -243,8 +243,8 @@
     {
       "idx": 34,
       "version": "7",
-      "when": 1794774794443,
-      "tag": "0034_staff_skill",
+      "when": 1794771998985,
+      "tag": "0034_embedding_model",
       "breakpoints": true
     }
   ]
