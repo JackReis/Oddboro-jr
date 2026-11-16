@@ -69,6 +69,9 @@ export const OWNER_ACTIONS = {
     notAnAction: "Writes the page's boot or error to the log on this computer; no record changes."
   },
   'PUT /api/diagnostics': { notAnAction: SETUP },
+  // The weather place and unit, kept in .env with the office settings.
+  'PUT /api/weather': { notAnAction: SETUP },
+  'DELETE /api/weather': { notAnAction: SETUP },
   'POST /api/diagnostics/envelope': {
     notAnAction: "Passes the page's error report through the office's filter; nothing is kept."
   },
