@@ -72,8 +72,6 @@ export const staff = pgTable('staff', {
   remit: text().notNull(),
   /** The job description its Claude session runs with. */
   desk: text().notNull(),
-  /** A copy of the instruction skill the owner attached. */
-  skill: text(),
   /** A generated look. Null keeps the hand-drawn art named by sprite and variant. */
   look: jsonb().$type<LookSpec>(),
   /** The drawn portrait for a generated look, as .px text. */
@@ -89,6 +87,29 @@ export const staff = pgTable('staff', {
   /** The jobs that were on when it left, which bringing it back turns on again. */
   jobsOff: integer().array()
 });
+
+/**
+ * The instruction skills the owner attached to a local Odd, one SKILL.md each,
+ * by name. A run's prompt lists each name and description, and the Odd reads
+ * the text with read_skill. A skill is text only: it grants no tool, folder or
+ * permission.
+ */
+export const staffSkills = pgTable(
+  'staff_skills',
+  {
+    staffId: text()
+      .notNull()
+      .references(() => staff.id),
+    name: text().notNull(),
+    /** When to use it, in one line: the file's own, or the owner's. */
+    description: text().notNull(),
+    /** The whole SKILL.md as the owner reviewed it. */
+    text: text().notNull(),
+    createdAt: created(),
+    updatedAt: at('updated_at').notNull().defaultNow()
+  },
+  (t) => [primaryKey({ columns: [t.staffId, t.name] })]
+);
 
 /**
  * The accounts the owner added beyond each tool's Office account, which has

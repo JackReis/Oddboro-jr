@@ -89,6 +89,7 @@ import {
   setPlanLimits,
   settingsTab,
   STAFF_SERVER,
+  skillsOf,
   staffer,
   stageOf,
   standsFor,
@@ -158,7 +159,14 @@ import { firstDayOf } from './first-day.ts';
 import { followUpBrief, waitEnded } from './follow-up-brief.ts';
 import { closeGateway, openGateway } from './gateway.ts';
 import { runEndLine } from './health.ts';
-import { ACT_WRITE, house, managerWork, stillOnDeskSection, whoIsHereSection } from './house.ts';
+import {
+  ACT_WRITE,
+  house,
+  managerWork,
+  skillsSection,
+  stillOnDeskSection,
+  whoIsHereSection
+} from './house.ts';
 import { NOT_SIGNED_IN, SIGN_IN_WHERE, type McpServer, type RunImage } from './launch.ts';
 import { notifyMac } from './notify.ts';
 import { OUTCOME_LINE, personaRun, voiced } from './persona-run.ts';
@@ -442,11 +450,6 @@ function canDo(
   ].join('\n');
 }
 
-/** Keep headings inside the skill with the job description when a chat resumes. */
-function instructionsFor(who: StaffRow): string {
-  return who.skill ? `${who.desk}\n\n## Skill from the owner\n${who.skill}` : who.desk;
-}
-
 /**
  * The system prompt. A run on no thread, such as a chat or a job, lists the
  * threads the staffer leads, so it can continue one rather than open another;
@@ -496,8 +499,9 @@ async function prompt(
     .sort((a, b) => b.thread.id - a.thread.id)
     .map(listedLine);
   return (
-    instructionsFor(who) +
+    who.desk +
     '\n' +
+    skillsSection(await skillsOf(who.id)) +
     (await whoFor(who, dir)) +
     (hasTool(who.tools, 'see_office')
       ? whoIsHereSection(
@@ -966,7 +970,7 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
       hands
     })) + (opts.extra ?? '')
   );
-  const sections = sectionsOf(system, say(instructionsFor(who)));
+  const sections = sectionsOf(system, say(who.desk));
   const preface = prior ? catchUp(saved?.seen, sections, time) : '';
   // In a chat, the office tools get the owner's own words, so a change the owner asks for
   // there is recorded as their decision without an ask.
