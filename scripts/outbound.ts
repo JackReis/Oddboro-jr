@@ -17,11 +17,20 @@ export type Outbound = {
 
 export const OUTBOUND: readonly Outbound[] = [
   {
-    file: 'apps/office/src/routes/api/weather/[station]/+server.ts',
+    file: 'apps/office/src/lib/server/postal-codes.ts',
     calls: 1,
-    to: 'The U.S. Aviation Weather Center.',
-    sends: 'The airport station code the owner entered.',
-    yes: 'The owner choosing Show weather. The office checks while it is open until the owner turns weather off.'
+    to: 'GeoNames (download.geonames.org), for its postal code file for one country.',
+    sends:
+      'The country the owner picked, in the file name. Never the postal code: the office looks it up in the file on this computer.',
+    yes: 'The owner pressing Show weather in Setup with a new country or postal code.'
+  },
+  {
+    file: 'apps/office/src/lib/server/weather.ts',
+    calls: 1,
+    to: "MET Norway's forecast service (api.met.no).",
+    sends:
+      "The place's latitude and longitude rounded to one decimal (about 11 km), and Oddboro's name and version.",
+    yes: 'The owner turning weather on in Setup. The office asks only while a page of it is open and seen, and not before the last answer expires; Turn off stops it.'
   },
   {
     file: 'apps/office/src/lib/server/project-sessions/codex-rpc.ts',
