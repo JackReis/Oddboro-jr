@@ -37,6 +37,6 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     if (wrong) error(400, wrong);
   }
   if (!(await setSkill(params.id, name, was, next)))
-    error(409, 'This skill changed in another window. Close Skills and open them again.');
+    error(409, 'This skill changed in another window. Open the Skills tab again.');
   return json({ ok: true });
 };

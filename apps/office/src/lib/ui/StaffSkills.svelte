@@ -8,11 +8,13 @@
     skillProblem,
     skillSizeProblem
   } from '../staff/skill.ts';
+  import { onMount } from 'svelte';
   import { call } from './api.ts';
 
-  // The skills the owner attached to a local Odd: each one's name and when to
-  // use it, which every run lists, with Remove. Add a skill reads a SKILL.md
-  // here, shows its text, and saves it once the owner says when to use it.
+  // Skills, under a local Odd's Knowledge: each skill the owner attached, by
+  // name and when to use it, which every run lists, with Remove. Add a skill
+  // reads a SKILL.md here, shows its text, and saves it once the owner says
+  // when to use it. Read when the tab opens.
   type Skill = { name: string; description: string; text: string };
   type Draft = {
     name: string;
@@ -24,7 +26,6 @@
     noDescription: boolean;
   };
   let { staff, name: odd }: { staff: string; name: string } = $props();
-  let shown = $state(false);
   let skills = $state<Skill[]>();
   let draft = $state<Draft | null>(null);
   let removing = $state<string | null>(null);
@@ -53,10 +54,7 @@
       skills = (await call<{ skills: Skill[] }>(`/api/staff/${staff}/skills`)).skills;
     });
 
-  function toggle() {
-    shown = !shown;
-    if (shown) void load();
-  }
+  onMount(() => void load());
 
   const choose = (input: HTMLInputElement) =>
     act(async () => {
@@ -98,115 +96,110 @@
     });
 </script>
 
-<section class="rounded-xl bg-raise p-3" aria-label="Skills">
-  <button class="w-full text-start text-sm font-medium" aria-expanded={shown} onclick={toggle}>
-    {shown ? '▾' : '▸'} Skills{skills?.length ? ` (${skills.length})` : ''}
-  </button>
-  {#if shown}
-    <p class="mt-1 text-[11px] text-faint">
-      Instructions {odd} follows when a job calls for one. Every run lists each skill's name and when
-      to use it, and {odd} reads the rest only when it needs it. A skill gives no tools, folders or permissions.
-    </p>
-    {#if problem}<p role="alert" class="mt-2 text-xs text-coral">{problem}</p>{/if}
-    {#if skills}
-      {#if skills.length}
-        <ul class="mt-2 flex flex-col gap-1.5">
-          {#each skills as skill (skill.name)}
-            <li class="rounded-lg bg-night/60 px-3 py-2 text-xs">
-              <div class="flex items-center gap-2">
-                <span class="flex-1 truncate font-medium text-ink">{skill.name}</span>
-                {#if removing === skill.name}
-                  <button
-                    class="text-coral"
-                    disabled={busy}
-                    onclick={() => change(skill.name, skill, null)}>Remove</button
-                  >
-                  <button disabled={busy} onclick={() => (removing = null)}>Keep</button>
-                {:else}
-                  <button class="text-muted" disabled={busy} onclick={() => (removing = skill.name)}
-                    >Remove</button
-                  >
-                {/if}
-              </div>
-              <p class="mt-0.5 text-muted">{skill.description}</p>
-            </li>
-          {/each}
-        </ul>
-      {:else if !draft}
-        <p class="mt-2 text-xs text-muted">No skills yet.</p>
-      {/if}
+<section class="h-full overflow-y-auto p-3" aria-label="Skills">
+  <p class="text-[11px] text-faint">
+    Instructions {odd} follows when a job calls for one. Every run lists each skill's name and when to
+    use it, and {odd} reads the rest only when it needs it. A skill gives no tools, folders or permissions.
+  </p>
+  {#if problem}<p role="alert" class="mt-2 text-xs text-coral">{problem}</p>{/if}
+  {#if skills}
+    {#if skills.length}
+      <ul class="mt-2 flex flex-col gap-1.5">
+        {#each skills as skill (skill.name)}
+          <li class="rounded-lg bg-raise px-3 py-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="flex-1 truncate font-medium text-ink">{skill.name}</span>
+              {#if removing === skill.name}
+                <button
+                  class="text-coral"
+                  disabled={busy}
+                  onclick={() => change(skill.name, skill, null)}>Remove</button
+                >
+                <button disabled={busy} onclick={() => (removing = null)}>Keep</button>
+              {:else}
+                <button class="text-muted" disabled={busy} onclick={() => (removing = skill.name)}
+                  >Remove</button
+                >
+              {/if}
+            </div>
+            <p class="mt-0.5 text-muted">{skill.description}</p>
+          </li>
+        {/each}
+      </ul>
+    {:else if !draft}
+      <p class="mt-2 text-xs text-muted">No skills yet.</p>
+    {/if}
 
-      {#if draft}
-        <div class="mt-3 flex flex-col gap-2 text-xs" aria-label="Add a skill">
-          <label class="flex flex-col gap-1">
-            <span class="text-muted">Name</span>
-            <input
-              class="rounded-lg bg-night/60 px-3 py-2 text-sm outline-none placeholder:text-faint"
-              placeholder="e.g. invoice-check"
-              bind:value={draft.name}
-            />
-          </label>
-          <label class="flex flex-col gap-1">
-            <span class="text-muted">When to use it</span>
-            <textarea
-              rows="2"
-              class="resize-none rounded-lg bg-night/60 px-3 py-2 text-sm outline-none placeholder:text-faint"
-              placeholder="One line, e.g. Use when an invoice arrives."
-              bind:value={draft.description}></textarea>
-            {#if draft.noDescription}
-              <span class="text-ember"
-                >This SKILL.md does not say when to use it. Write one line, so {odd} knows when to read
-                it.</span
-              >
-            {/if}
-          </label>
-          {#if draft.asksForTools}
-            <p class="text-ember">
-              This skill asks for tools. Odds get tools only from their Settings tab.
-            </p>
-          {/if}
-          {#if draft.mentionsFiles}
-            <p class="text-muted">
-              This skill mentions other files. Only this SKILL.md is saved, so {odd} cannot use them.
-            </p>
-          {/if}
-          {#if saved}
-            <p class="text-muted">{odd} has a skill with this name. Saving replaces it.</p>
-            <details>
-              <summary class="text-muted">Saved copy</summary>
-              <pre
-                class="mt-1 max-h-48 overflow-auto rounded-lg bg-night/60 p-2 whitespace-pre-wrap">{saved.text}</pre>
-            </details>
-          {/if}
-          <pre
-            aria-label="Skill instructions"
-            class="max-h-48 overflow-auto rounded-lg bg-night/60 p-2 whitespace-pre-wrap">{draft.text}</pre>
-          <div class="flex items-center gap-2">
-            <button
-              disabled={busy || !!wrong}
-              class="rounded-lg bg-sea px-3 py-1 font-medium text-night disabled:opacity-40"
-              onclick={() => draft && change(oneLine(draft.name), saved, draft)}
-              >{saved ? 'Save update' : 'Save skill'}</button
-            >
-            <button disabled={busy} onclick={() => (draft = null)}>Cancel</button>
-            {#if wrong}<span class="text-faint">{wrong}</span>{/if}
-          </div>
-        </div>
-      {:else}
-        <label
-          class="mt-2 inline-block cursor-pointer rounded-lg bg-night/60 px-3 py-1 text-xs font-medium text-sea"
-        >
-          Add a skill
+    {#if draft}
+      <div class="mt-3 flex flex-col gap-2 text-xs" aria-label="Add a skill">
+        <label class="flex flex-col gap-1">
+          <span class="text-muted">Name</span>
           <input
-            aria-label="Choose a SKILL.md"
-            type="file"
-            accept=".md"
-            class="sr-only"
-            disabled={busy}
-            onchange={(event) => choose(event.currentTarget)}
+            class="rounded-lg bg-raise px-3 py-2 text-sm outline-none placeholder:text-faint"
+            placeholder="e.g. invoice-check"
+            bind:value={draft.name}
           />
         </label>
-      {/if}
+        <label class="flex flex-col gap-1">
+          <span class="text-muted">When to use it</span>
+          <textarea
+            rows="2"
+            class="resize-none rounded-lg bg-raise px-3 py-2 text-sm outline-none placeholder:text-faint"
+            placeholder="One line, e.g. Use when an invoice arrives."
+            bind:value={draft.description}></textarea>
+          {#if draft.noDescription}
+            <span class="text-ember"
+              >This SKILL.md does not say when to use it. Write one line, so {odd} knows when to read
+              it.</span
+            >
+          {/if}
+        </label>
+        {#if draft.asksForTools}
+          <p class="text-ember">
+            This skill asks for tools. Odds get tools only from their Settings tab.
+          </p>
+        {/if}
+        {#if draft.mentionsFiles}
+          <p class="text-muted">
+            This skill mentions other files. Only this SKILL.md is saved, so {odd} cannot use them.
+          </p>
+        {/if}
+        {#if saved}
+          <p class="text-muted">{odd} has a skill with this name. Saving replaces it.</p>
+          <details>
+            <summary class="text-muted">Saved copy</summary>
+            <pre
+              class="mt-1 max-h-48 overflow-auto rounded-lg bg-raise p-2 whitespace-pre-wrap">{saved.text}</pre>
+          </details>
+        {/if}
+        <pre
+          aria-label="Skill instructions"
+          class="max-h-48 overflow-auto rounded-lg bg-raise p-2 whitespace-pre-wrap">{draft.text}</pre>
+        <div class="flex items-center gap-2">
+          <button
+            disabled={busy || !!wrong}
+            class="rounded-lg bg-sea px-3 py-1 font-medium text-night disabled:opacity-40"
+            onclick={() => draft && change(oneLine(draft.name), saved, draft)}
+            >{saved ? 'Save update' : 'Save skill'}</button
+          >
+          <button disabled={busy} onclick={() => (draft = null)}>Cancel</button>
+          {#if wrong}<span class="text-faint">{wrong}</span>{/if}
+        </div>
+      </div>
+    {:else}
+      <label
+        class="mt-2 inline-block cursor-pointer rounded-lg bg-raise px-3 py-1 text-xs font-medium text-sea"
+      >
+        Add a skill
+        <input
+          aria-label="Choose a SKILL.md"
+          type="file"
+          accept=".md"
+          class="sr-only"
+          disabled={busy}
+          onchange={(event) => choose(event.currentTarget)}
+        />
+      </label>
     {/if}
   {/if}
 </section>

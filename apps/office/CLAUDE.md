@@ -329,10 +329,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    when lessons change (`version`).
 9. The Odd's panel has three groups, each an icon and a word (the icon
    alone when the bar is under 18rem): **Chat** (the chat alone, with no
-   row of tabs), **Data** (a files icon: Lessons and Storage) and
-   **Settings** (its own four tabs, below). A group opens on the tab it was
-   last on; the Lessons tab counts its guesses, and the Data group itself
-   shows no count. It opens on Chat. Storage
+   row of tabs), **Knowledge** (a book icon: Skills, Lessons and Storage;
+   a persona Odd has no Skills) and **Settings** (its own four tabs,
+   below). A group opens on the tab it was last on; the Lessons tab counts
+   its guesses, and the Knowledge group itself shows no count. It opens on Chat. Storage
    (`StorageTab.svelte`, what a row lists and says in `storage-list.ts`) is a tree of everything the Odd kept in its own
    folder, then, under Shared work, its part of each thread it is on (by the
    test `workFile` uses, `workTitles` in the ledger), one folder per piece of
@@ -1183,8 +1183,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     A manual run leaves the schedule where it was, and the Office Manager's report data
     (office times) tells the two apart. The Jobs tab edits a job in place, and opens the Odd's job description
     in the document editor (`src/lib/ui/JobDescription.svelte`); a save
-    refuses if the description changed since the owner opened it. On a local Odd's
-    info page, Skills lists the SKILL.md files the owner attached, each by name with when
+    refuses if the description changed since the owner opened it. A local Odd's
+    Skills tab, under Knowledge, lists the SKILL.md files the owner attached, each by name with when
     to use it and Remove (`src/lib/ui/StaffSkills.svelte`, the ledger's `staff_skills`).
     Add a skill reads the name and when to use it from the file's front matter
     (`src/lib/staff/skill.ts`); the owner writes what is missing, can change either, and
