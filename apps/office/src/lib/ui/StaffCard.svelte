@@ -5,10 +5,7 @@
   import ChatPanel from './ChatPanel.svelte';
   import { chatRequest, type Delivered } from './chat-about.svelte.ts';
   import AccessTab from './AccessTab.svelte';
-  import LessonsTab from './LessonsTab.svelte';
   import OddInfo from './OddInfo.svelte';
-  import StaffSkills from './StaffSkills.svelte';
-  import StorageTab from './StorageTab.svelte';
   import { lineWords, railCount, type ReaderProps } from '../staff/odd-now.ts';
   import { ACTIVITY_LABEL, type Activity, type StaffProfile } from '../staff/roster.ts';
   import type { Place, PlaceGroup } from '../staff/places.ts';
@@ -320,11 +317,18 @@
         </div>
       </div>
     {:else if tab === 'skills'}
-      <StaffSkills staff={id} name={profile.name} />
+      <!-- The Knowledge tabs load when opened, so they stay out of the first page. -->
+      {#await import('./StaffSkills.svelte') then { default: StaffSkills }}
+        <StaffSkills staff={id} name={profile.name} />
+      {/await}
     {:else if tab === 'lessons'}
-      <LessonsTab {profile} {version} />
+      {#await import('./LessonsTab.svelte') then { default: LessonsTab }}
+        <LessonsTab {profile} {version} />
+      {/await}
     {:else if tab === 'storage'}
-      <StorageTab {profile} {version} />
+      {#await import('./StorageTab.svelte') then { default: StorageTab }}
+        <StorageTab {profile} {version} />
+      {/await}
     {:else if tab === 'access'}
       <AccessTab {profile} {version} />
     {/if}
