@@ -33,7 +33,7 @@ an app; `ledger` imports `world` and `sprites`, and `world` imports `sprites`.
 - `.github/workflows`. `ci.yml` runs the checks on every pull request, on a
   Mac, Linux and Windows, unless it changes only the site or the docs;
   `site.yml` checks those; `app-smoke.yml` installs and smoke-tests the app
-  on pull requests that change it, and nightly; `release.yml` builds the app;
+  on pull requests that change it, and by hand; `release.yml` builds the app;
   `codeql.yml` scans.
 
 ## One function per job

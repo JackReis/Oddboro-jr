@@ -1,7 +1,7 @@
 # The installed-app smoke test (apps/desktop/CLAUDE.md, "Smoke tests") before
 # a release: on each pull request that changes what goes into the app, an
 # unsigned build on Windows, the Mac and Ubuntu, installed and run as an owner
-# would; and nightly on main, every machine the release builds and tests on.
+# would; and by hand (Run workflow), every machine the release builds and tests on.
 # It does not block a merge yet (docs/decisions, the smoke-tests ruling).
 name: App smoke
 
@@ -16,8 +16,6 @@ on:
       - .nvmrc
       - .github/workflows/app-smoke.yml
       - '!**/CLAUDE.md'
-  schedule:
-    - cron: '17 10 * * *'
   workflow_dispatch:
 
 permissions:
@@ -42,17 +40,17 @@ jobs:
           ALL: ${{ github.event_name != 'pull_request' }}
         run: |
           builds='[
-            {"build":"windows-x64","runner":"windows-latest","arch":"x64","target":"x86_64-pc-windows-msvc","bundle":"nsis","file":"*-setup.exe"},
-            {"build":"mac","runner":"macos-15","arch":"aarch64","bundle":"dmg","file":"*.dmg"},
-            {"build":"linux-x86_64","runner":"ubuntu-22.04","arch":"x86_64","bundle":"appimage","file":"*.AppImage"}'
+            {"build":"windows-x64","runner":"windows-latest","arch":"x64","cache":"cargo-v2-Windows-x64","target":"x86_64-pc-windows-msvc","bundle":"nsis","file":"*-setup.exe"},
+            {"build":"mac","runner":"macos-15","arch":"aarch64","cache":"cargo-v2-macOS","bundle":"dmg","file":"*.dmg"},
+            {"build":"linux-x86_64","runner":"ubuntu-22.04","arch":"x86_64","cache":"cargo-v2-Linux-x86_64","bundle":"appimage","file":"*.AppImage"}'
           smokes='[
             {"build":"windows-x64","runner":"windows-latest"},
             {"build":"mac","runner":"macos-15"},
             {"build":"linux-x86_64","runner":"ubuntu-22.04"}'
           if [ "$ALL" = true ]; then
             builds="$builds"',
-            {"build":"windows-arm64","runner":"windows-11-arm","arch":"arm64","target":"aarch64-pc-windows-msvc","bundle":"nsis","file":"*-setup.exe"},
-            {"build":"linux-aarch64","runner":"ubuntu-22.04-arm","arch":"aarch64","bundle":"appimage","file":"*.AppImage"}'
+            {"build":"windows-arm64","runner":"windows-11-arm","arch":"arm64","cache":"cargo-v2-Windows-arm64","target":"aarch64-pc-windows-msvc","bundle":"nsis","file":"*-setup.exe"},
+            {"build":"linux-aarch64","runner":"ubuntu-22.04-arm","arch":"aarch64","cache":"cargo-v2-Linux-aarch64","bundle":"appimage","file":"*.AppImage"}'
             smokes="$smokes"',
             {"build":"windows-arm64","runner":"windows-11-arm"},
             {"build":"linux-aarch64","runner":"ubuntu-22.04-arm"},
@@ -104,15 +102,17 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup default stable
 
-      - uses: actions/cache@v5
+      # Release's compiled Rust, read and never saved: the repo's cache is
+      # full, and a second copy per machine would push Release's out.
+      - uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             apps/desktop/src-tauri/target
             !apps/desktop/src-tauri/target/**/bundle
-          key: app-smoke-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
-          restore-keys: app-smoke-${{ runner.os }}-${{ matrix.arch }}-
+          key: ${{ matrix.cache }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: ${{ matrix.cache }}-
 
       # Tauri's bundlers download NSIS (Windows) and linuxdeploy (Linux) from
       # GitHub's release downloads on every build, which can answer 504 for
