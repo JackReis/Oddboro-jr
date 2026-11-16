@@ -222,6 +222,9 @@ export const OWNER_ACTIONS = {
     notAnAction:
       "The chat's own log keeps it; a decision in it is recorded by the tool the Odd calls."
   },
+  'POST /api/staff/[id]/description': {
+    notAnAction: 'A read through POST: what saving a changed agent file would ask for.'
+  },
   'PUT /api/staff/[id]/description': { records: 'work' },
   'POST /api/staff/[id]/jobs': { none: NO_ROW },
   'PUT /api/staff/[id]/look': { records: 'work' },
