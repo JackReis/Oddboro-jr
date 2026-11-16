@@ -56,7 +56,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 2. `/atlas/atlas.png` and `/atlas/atlas.json` serve the compiled atlas from
    `packages/sprites/dist/`.
 3. The page builds a `Floor` (`src/lib/floor/engine.ts`): sprites by draw
-   pass, sky behind windows, and sun shafts and dust by day. At night every
+   pass, sky behind windows, and sun shafts and dust by day, unless the
+   office's weather is overcast (see "Weather"). At night every
    sprite wears a tint by the hour, emissive pixels ride on top of their own
    sprite at full brightness, and each lamp adds a glow cut to its room.
    Doors open only for an Odd stepping through them. The hour is always
@@ -1781,6 +1782,60 @@ account.
    `src/lib/server/diagnostics.ts` and `src/lib/server/hosts.ts` import
    nothing that brings in Postgres.
 
+## Weather
+
+The weather where the owner is, as a pill beside the desk count. Off until
+the owner turns it on in Setup. The decision is in `docs/decisions/`
+(grep `weather`).
+
+1. Setup's Weather section (`WeatherSection.svelte`) takes a country (the
+   ones GeoNames covers, `POSTAL_COUNTRIES` in `src/lib/weather.ts`, starting
+   at the browser's region), a postal code and °C or °F (°F for the US,
+   Liberia and Myanmar until the owner picks). Show weather is
+   `PUT /api/weather`.
+2. The lookup (`src/lib/server/postal-codes.ts`) downloads
+   `download.geonames.org/export/zip/<CC>.zip`, reads `<CC>.txt` out of it
+   with Node's zlib (`zip.ts`), and finds the code: whole, then the part the
+   file lists (GB, GG, JE and IM drop the last three characters, CA keeps three,
+   NL four), then the longest listed start (a coarse area, a ZIP+4). In IE,
+   MT, CL, CN, AR and BR, whose files hold coarse areas, it takes the listed
+   code sharing the most of its start. Anything else not found answers
+   `missing` with the closest code, which Setup offers as Use. Nothing of the
+   file is kept.
+3. The setting is `OFFICE_WEATHER` in `.env`, as JSON: country, the code as
+   typed, the place ("Seattle, WA 98101", which Setup shows as Matched),
+   latitude and longitude to one decimal, and the unit. Every window and the
+   app share it. The same country and code again change only the unit, with
+   no lookup. Turn off (`DELETE`) clears it. Each change sends
+   `{ type: 'weather' }` on the live line, and every page asks again.
+4. The forecast (`src/lib/server/weather.ts`) is MET Norway's
+   `locationforecast/2.0/compact`, asked by the server alone, with
+   `Oddboro/<version> https://oddboro.com` as the User-Agent and gzip. One
+   cache serves every window: it asks only when a page asks after the last
+   answer's Expires (read against MET Norway's Date), sends
+   `If-Modified-Since` with the last `Last-Modified`, and shares one request
+   among pages asking at once. A failure keeps the last series and its
+   reason: 10 minutes, doubling to 6 hours, or an hour, doubling, after a 429
+   or 403. Each answer serves the hour that has started from the kept series
+   (`currentHour`): temperature, cloud and the raw `symbol_code`.
+5. `GET /api/weather` answers the setting, that hour, the reason a check
+   failed, and `next`: the series' next hour or the expiry, whichever is
+   first. The page (`weather.svelte.ts`) asks as it opens, then on the page's
+   15 s clock only once `next` has passed, and only while
+   `document.visibilityState` is visible (`askNow`); `visibilitychange`
+   catches up. Off, `next` is null and the page asks nothing until the live
+   line says the setting changed.
+6. The pill (`WeatherPill.svelte`) sits in the desk pill's row with the same
+   classes: an icon for the sky (`WeatherIcon.svelte`, one per family in
+   `SKIES`: `skyOf` maps every MET Norway symbol to one) and the temperature.
+   A click opens the place, the sky in words (`conditionWords`), the time of
+   the last answer, why the last check failed, Change in Setup, and the
+   credit to MET Norway and GeoNames. A failed check greys the pill and adds a
+   coral dot; the last report stays.
+7. The floor (`Floor.setWeather`) goes overcast for cloud, fog and anything
+   falling (`overcast`): grey windows and no sun shafts. Only while the light
+   is Auto; holding day or night shows the clock's sky.
+
 ## A New Altitude account
 
 An owner who already has a New Altitude account can sign in to it in Setup
@@ -1982,6 +2037,9 @@ the persona's voice.
 | `src/lib/server/design-job.ts`        | The drawing as a job on the server, which pages follow                                                                                                                       |
 | `src/lib/ui/onboarding/`              | A new owner's first visit: the cards, the reveal's story, the music                                                                                                          |
 | `src/lib/floor/reveal.ts`             | The office going up beat by beat, and the bus                                                                                                                                |
+| `src/lib/weather.ts`                  | The weather's setting, report, skies, words and units, shared by the server and the page                                                                                     |
+| `src/lib/server/weather.ts`           | The weather setting in `.env`, and the one MET Norway cache that honours Expires                                                                                             |
+| `src/lib/server/postal-codes.ts`      | A postal code looked up in its country's GeoNames file, on this computer                                                                                                     |
 | `src/lib/diagnostics.ts`              | What a report may carry, and when a trace is taken: the server's, the relay's and the page's one rule                                                                        |
 | `src/lib/server/diagnostics.ts`       | The SDK's options and the gate every report passes, with the owner's answer                                                                                                  |
 | `src/lib/server/account.ts`           | The New Altitude sign-in: start, callback, refresh, sign out                                                                                                                 |

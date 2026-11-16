@@ -7,8 +7,9 @@
   import type { StaffActor, Pop } from '#lib/floor/staff.ts';
   import type { Beat } from '#lib/floor/reveal.ts';
   import Onboarding, { type Stage } from '#lib/ui/onboarding/Onboarding.svelte';
-  import FloorWeather from '#lib/ui/FloorWeather.svelte';
-  import { checkWeatherIfDue, restoreWeather, weather } from '#lib/ui/weather.svelte.ts';
+  import WeatherPill from '#lib/ui/WeatherPill.svelte';
+  import { askWeather, weather } from '#lib/ui/weather.svelte.ts';
+  import { skyOf } from '#lib/weather.ts';
   import FloorControls, { type Light } from '#lib/ui/FloorControls.svelte';
   import { music, musicEnded, startMusic } from '#lib/ui/music.svelte.ts';
   import { chatAbout } from '#lib/ui/chat-about.svelte.ts';
@@ -276,7 +277,10 @@
   });
   // The first run shows the lot, then the office as it goes up on it.
   let liveWorld = $state<World | undefined>();
-  const overcast = $derived(light === 'auto' && !!weather.report?.overcast);
+  /** The sky outside: the office's weather, unless the viewer holds the floor at day or night. */
+  const sky = $derived(
+    light === 'auto' && weather.setting && weather.report ? skyOf(weather.report.symbol) : undefined
+  );
   /** The hour the floor shows: the office's own, unless the viewer holds it at day or night. */
   const shownHour = $derived(light === 'day' ? 13 : light === 'night' ? 22 : hour);
   const office = $derived(liveWorld ? { ...data.office, world: liveWorld } : data.office);
@@ -725,11 +729,14 @@
     } catch {
       // No storage: notifications stay off.
     }
-    restoreWeather();
+    // The page's one clock. The weather rides on it: asked only when due and only while seen.
+    void askWeather();
     const timer = setInterval(() => {
       now = new Date();
-      checkWeatherIfDue();
+      void askWeather();
     }, 15_000);
+    const catchUp = () => void askWeather();
+    document.addEventListener('visibilitychange', catchUp);
 
     // One live line from the server. Changes arrive as they happen.
     const events = new EventSource('/api/events' satisfies ApiUrl);
@@ -739,6 +746,7 @@
         account.status = e.status;
         return;
       }
+      if (e.type === 'weather') return void askWeather(true);
       if (e.type === 'working') {
         // Every tool call a staffer makes updates its work in progress; only
         // a run starting or ending reloads the card's tabs.
@@ -779,7 +787,8 @@
         if (disposed || !host) return;
         atlasCatalog = atlas.catalog;
         floor = await F.Floor.create(host, office.world, atlas);
-        floor.setHour(shownHour, overcast);
+        floor.setHour(shownHour);
+        floor.setWeather(sky);
         // Dev only: lets a browser console poke at the floor.
         if (import.meta.env.DEV) (window as unknown as { floor: Floor }).floor = floor;
         start = arrival(office.world);
@@ -894,6 +903,7 @@
     return () => {
       disposed = true;
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', catchUp);
       events.close();
       for (const a of actors) a.destroy();
       floor?.destroy();
@@ -1098,7 +1108,12 @@
 
   $effect(() => {
     const h = shownHour;
-    if (floorReady) floor?.setHour(h, overcast);
+    if (floorReady) floor?.setHour(h);
+  });
+
+  $effect(() => {
+    const s = sky;
+    if (floorReady) floor?.setWeather(s);
   });
 
   $effect(() => {
@@ -1215,7 +1230,6 @@
             >Setup</button
           >
         </div>
-        {#if !firstRun}<FloorWeather />{/if}
         {#if data.restored && !firstRun}
           <RestoredNote restored={data.restored} />
         {/if}
@@ -1433,29 +1447,36 @@
     </header>
   {/if}
 
-  <!-- The desk pill, centred on the floor between the two panels. Projects
-       covers the floor, and the plate's Desk button carries the count. -->
+  <!-- The desk pill, centred on the floor between the two panels, and the
+       weather at its end once the owner turns weather on. Projects covers the
+       floor, and the plate's Desk button carries the count. -->
   <div
     class="pointer-events-none absolute top-4 flex justify-center max-sm:top-24"
     class:hidden={firstRun || projectsReach !== undefined}
     style="inset-inline: {leftSpace}px {rightSpace}px"
   >
-    <button
-      class="glass pointer-events-auto flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm"
-      class:desk-due={deskCount > 0}
-      onclick={() => toggle('desk')}
-      aria-keyshortcuts="D"
-    >
-      {#if deskCount}
-        <span
-          class="flex size-5 items-center justify-center rounded-full bg-ember font-pixel text-xs text-night"
-          >{deskCount}</span
-        >
-        <span class="text-ink">waiting on you</span>
-      {:else}
-        <span class="text-muted">Desk clear</span>
-      {/if}
-    </button>
+    <!-- The weather hangs off the desk pill's end, so the desk pill keeps its centre. -->
+    <div class="relative">
+      <button
+        class="glass pointer-events-auto flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm"
+        class:desk-due={deskCount > 0}
+        onclick={() => toggle('desk')}
+        aria-keyshortcuts="D"
+      >
+        {#if deskCount}
+          <span
+            class="flex size-5 items-center justify-center rounded-full bg-ember font-pixel text-xs text-night"
+            >{deskCount}</span
+          >
+          <span class="text-ink">waiting on you</span>
+        {:else}
+          <span class="text-muted">Desk clear</span>
+        {/if}
+      </button>
+      <div class="absolute start-full top-0 ms-2">
+        <WeatherPill onsetup={openSetup} />
+      </div>
+    </div>
   </div>
 
   <!-- The end side: every Odd on the rail, and the picked one's panel beside it.

@@ -1,73 +1,56 @@
+// The page's weather: what the office served last, shared by the pill and
+// Setup. The page asks the office only while it is seen, and only once the
+// office's answer says the next is due (`next`); the office answers from its
+// own cache until MET Norway's answer expires. A hidden page asks nothing and
+// catches up when it is seen again. The page's own clock and its
+// visibilitychange call `askWeather`; a change in Setup, here or in another
+// window, comes on the live line and asks at once.
+import { askNow, type WeatherChange, type WeatherSetting, type WeatherView } from '#lib/weather.ts';
 import { call } from './api.ts';
 
-type Observation = {
-  station: string;
-  name: string;
-  at: number;
-  temperature: number | null;
-  sky: string;
-  overcast: boolean;
-};
-
-export const weather = $state({
-  station: '',
-  report: null as Observation | null,
+export const weather = $state<WeatherView>({
+  setting: null,
+  report: null,
   problem: '',
-  checking: false
+  // Ask once as the page opens.
+  next: 0
 });
 
-let current: AbortController | undefined;
-let nextCheck = 0;
+let asking = false;
 
-export function chooseStation(value: string) {
-  const station = value.trim().toUpperCase();
+/** Ask the office when the answer is due and the page is seen. `soon` makes it due now. */
+export async function askWeather(soon = false): Promise<void> {
+  if (soon) weather.next = 0;
+  if (asking || !askNow(document.visibilityState === 'visible', Date.now(), weather.next)) return;
+  asking = true;
   try {
-    if (station) localStorage.setItem('oddboro.weather', station);
-    else localStorage.removeItem('oddboro.weather');
-  } catch {
-    // The selection still works for this visit.
-  }
-  weather.station = station;
-  void readWeather();
-}
-
-export function restoreWeather() {
-  try {
-    const station = localStorage.getItem('oddboro.weather');
-    if (station) chooseStation(station);
-  } catch {
-    // No stored station: the office clock lights the windows.
-  }
-}
-
-/** Called by the office's existing clock. Most stations report once an hour. */
-export function checkWeatherIfDue() {
-  if (weather.station && Date.now() >= nextCheck) void readWeather();
-}
-
-export async function readWeather() {
-  current?.abort();
-  const station = weather.station;
-  weather.problem = '';
-  if (weather.report?.station !== station) weather.report = null;
-  weather.checking = !!station;
-  if (!station) return;
-  nextCheck = Date.now() + 60 * 60_000;
-  const request = new AbortController();
-  current = request;
-  try {
-    const report = await call<Observation>(
-      `/api/weather/${encodeURIComponent(station)}`,
-      undefined,
-      'GET',
-      request.signal
-    );
-    if (!request.signal.aborted) weather.report = report;
+    Object.assign(weather, await call<WeatherView>('/api/weather'));
   } catch (e) {
-    if (request.signal.aborted) return;
-    weather.report = null;
+    // The office itself did not answer: keep what is shown, and try again in five minutes.
     weather.problem = e instanceof Error ? e.message : String(e);
+    weather.next = Date.now() + 5 * 60_000;
   } finally {
-    if (!request.signal.aborted) weather.checking = false;
+    asking = false;
   }
+}
+
+/** Turn weather on, or change its place or unit. Throws with the office's message. */
+export async function setWeather(
+  country: string,
+  postal: string,
+  unit: WeatherSetting['unit']
+): Promise<WeatherChange> {
+  const change = await call<WeatherChange>('/api/weather', { country, postal, unit }, 'PUT');
+  if ('setting' in change) {
+    // A new place shows nothing of the old one's weather.
+    if (change.setting.place !== weather.setting?.place) weather.report = null;
+    weather.setting = change.setting;
+    void askWeather(true);
+  }
+  return change;
+}
+
+export async function weatherOff(): Promise<void> {
+  await call('/api/weather', undefined, 'DELETE');
+  Object.assign(weather, { setting: null, report: null, problem: '', next: null });
 }
