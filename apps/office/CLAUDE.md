@@ -2117,6 +2117,12 @@ the persona's voice.
   first text it shows (plain text until then), so the first page carries
   none of PixiJS, layerchart or markdown-it. Import a floor module's values only through `index.ts`; a
   type import is free.
+- Panels and dialogs that open on a click load when they open, with
+  `{#await import('…') then { default: X }}` at the render site in
+  `src/routes/+page.svelte`. Only what shows at start (the plate, the top bar,
+  the floor controls, the Odds rail, the side panel frame) is imported at the
+  top. The first run's guide loads beside the floor, and the Odd's card and the
+  Desk are fetched once after the floor draws, so they open at once.
 - Third-party packages go under `devDependencies` in `package.json`, even
   the ones the office runs: the build bundles those, and the app ships only
   what the workspace packages load (`apps/desktop/scripts/stage.ts`).
