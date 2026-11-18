@@ -351,6 +351,9 @@ fn open_main(app: &AppHandle, url: &Url, key: Option<&Arc<Key>>) {
     if let Some(loading) = app.get_webview_window(LOADING) {
         let _ = loading.close();
     }
+    if let Ok(window) = &built {
+        open_windows_after_a_wait(window);
+    }
     match (built, key) {
         (Ok(window), Some(key)) => open_with_key(&window, key, url),
         (Ok(_), None) => {}
@@ -408,6 +411,24 @@ fn open_new_window(office: &Url, keyed: bool, to: &Url) {
         ),
     });
 }
+
+/// Lets the page open a window after it waits on the office, as a Sign in
+/// button does: it asks the office for the sign-in page, then opens it. The
+/// Mac's webview allows that. Linux's blocks a window that no click opened in
+/// that same moment, and says nothing, so Sign in did nothing (#204). Every
+/// new window still goes to `open_new_window`, which opens the default browser.
+#[cfg(target_os = "linux")]
+fn open_windows_after_a_wait(window: &WebviewWindow) {
+    use webkit2gtk::{SettingsExt, WebViewExt};
+    let _ = window.with_webview(|webview| {
+        if let Some(settings) = WebViewExt::settings(&webview.inner()) {
+            settings.set_javascript_can_open_windows_automatically(true);
+        }
+    });
+}
+
+#[cfg(not(target_os = "linux"))]
+fn open_windows_after_a_wait(_window: &WebviewWindow) {}
 
 /// `to` with the office's one-time code for its path added.
 fn browser_link(office: &Url, to: &Url) -> Option<Url> {
