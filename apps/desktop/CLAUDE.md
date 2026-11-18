@@ -194,14 +194,14 @@ Saving a report works with online diagnostics off.
   `tauri-winrt-notification` on Windows, under the app's identifier, which
   the installer gives its Start menu shortcut. On Linux the shell calls
   `org.freedesktop.Notifications.Notify` on the session bus, with app name
-  Oddboro and the hint `desktop-entry=oddboro`. When that call fails it runs
-  `notify-send --app-name=Oddboro --hint=string:desktop-entry:oddboro`. If
-  both fail, the office log gets one line with the exit code and stderr.
+  Oddboro and the hint `desktop-entry=oddboro`. If that call fails, the
+  office log gets one line with the error. There is no `notify-send` second
+  try: it goes through the same bus, so it fails when the bus call does.
   A line `oddboro:update-check` is the owner's Check now. A line
   `oddboro:secret <json>` asks for the Keychain (below). Every other line goes
   to the log.
 - A host program the shell starts on Linux (`systemd-inhibit`, `xdg-open`,
-  `secret-tool`, and `notify-send`) gets the host's library path from
+  and `secret-tool`) gets the host's library path from
   `src-tauri/src/host.rs`. Inside an AppImage `LD_LIBRARY_PATH` points at the
   glib the bundle carries, which is older than the host's libnotify, so those
   programs fail to start. `host.rs` drops that path, or puts back the values

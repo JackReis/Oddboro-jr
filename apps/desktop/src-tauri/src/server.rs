@@ -672,28 +672,20 @@ fn notify(title: &str, text: &str) {
 }
 
 /// Show a notification as Oddboro's. The desktop's notification service gets
-/// it on the session bus, filed under the `oddboro` desktop entry. When that
-/// call fails, `notify-send` does the same job. A failure of both is one line
-/// in the office log. Neither call blocks the log relay.
+/// it on the session bus, filed under the `oddboro` desktop entry. A failure
+/// is one line in the office log. The call never blocks the log relay.
 #[cfg(target_os = "linux")]
 fn notify(title: &str, text: &str) {
     let title = title.to_string();
     let text = text.to_string();
     thread::spawn(move || {
-        if let Err(line) = deliver(&title, &text) {
-            note(&crate::env::log_file(), &line);
+        if let Err(service) = session_notify(&title, &text) {
+            note(
+                &crate::env::log_file(),
+                &format!("notify failed: notification service: {service}"),
+            );
         }
     });
-}
-
-/// The bus, then `notify-send`. `Ok` means one of them showed it.
-#[cfg(target_os = "linux")]
-fn deliver(title: &str, text: &str) -> Result<(), String> {
-    if let Err(service) = session_notify(title, text) {
-        command_notify(title, text)
-            .map_err(|send| format!("notify failed: {send}; notification service: {service}"))?;
-    }
-    Ok(())
 }
 
 /// `org.freedesktop.Notifications.Notify` on the session bus. zbus speaks the
@@ -721,49 +713,6 @@ fn session_notify(title: &str, text: &str) -> Result<(), String> {
     )
     .map(|_| ())
     .map_err(|error| one_line(&error.to_string()))
-}
-
-/// `notify-send` with the host's own libraries (`host.rs`), the same hint the
-/// bus call sends. The dynamic linker writes a symbol error to stderr.
-#[cfg(target_os = "linux")]
-fn command_notify(title: &str, text: &str) -> Result<(), String> {
-    let output = crate::host::host_command("notify-send")
-        .args([
-            "--app-name=Oddboro",
-            "--hint=string:desktop-entry:oddboro",
-            "--",
-            title,
-            text,
-        ])
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("notify-send could not start: {error}"))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(send_failure(
-            output.status.code(),
-            &String::from_utf8_lossy(&output.stderr),
-        ))
-    }
-}
-
-/// One log line's worth of what `notify-send` did: the exit code, then stderr
-/// with the line breaks taken out.
-#[cfg(target_os = "linux")]
-fn send_failure(code: Option<i32>, stderr: &str) -> String {
-    let how = match code {
-        Some(code) => format!("exited {code}"),
-        None => "signaled".to_string(),
-    };
-    let said = one_line(stderr);
-    if said.is_empty() {
-        format!("notify-send {how}")
-    } else {
-        format!("notify-send {how}: {said}")
-    }
 }
 
 /// Spaces for line breaks, and cut so one log line stays one line.
@@ -971,26 +920,6 @@ mod tests {
             Route::Notify("Rowan", "The report is ready")
         );
         assert_eq!(route("listening on 127.0.0.1:4500"), Route::Log);
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn a_failed_notify_send_keeps_its_exit_code_and_one_line_of_stderr() {
-        let symbol = "symbol lookup error: /lib/libnotify.so.4: undefined symbol: g_once_init_leave_pointer\n";
-        assert_eq!(
-            send_failure(Some(127), symbol),
-            "notify-send exited 127: symbol lookup error: /lib/libnotify.so.4: undefined symbol: g_once_init_leave_pointer"
-        );
-        assert_eq!(send_failure(Some(1), "  \n"), "notify-send exited 1");
-        assert_eq!(
-            send_failure(None, "killed\n"),
-            "notify-send signaled: killed"
-        );
-        let long = "x".repeat(400);
-        assert_eq!(
-            send_failure(Some(1), &long).len(),
-            "notify-send exited 1: ".len() + 300
-        );
     }
 
     #[test]

@@ -17,12 +17,18 @@ mock.module('node:child_process', {
   namedExports: {
     execFile: (cmd: string, args: string[], options: { env?: NodeJS.ProcessEnv }, done: Done) => {
       calls.push({ cmd, args, env: options.env, done });
+      // probe reads the child's stdin.
+      return {};
     },
     execFileSync: () => {
       throw new Error('notify does not use execFileSync');
     },
     spawn: () => {
       throw new Error('notify does not use spawn');
+    },
+    // The ledger's index loads secrets.ts, which imports it.
+    spawnSync: () => {
+      throw new Error('notify does not use spawnSync');
     }
   }
 });
