@@ -946,6 +946,11 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   serves or whose thread it leads (`logProgress`), so the lead planning a goal
   logs before any plan is approved, and refuses every other goal. `list_goals`
   is the Office Manager's.
+- One Odd never has two jobs of one name, whatever their case or spaces:
+  `addJob` and a rename refuse it (`refuseSameName`), and `propose_goal_plan`
+  refuses a new job whose name its Odd already uses. `my_jobs` lists each
+  job's id, and `edit_my_job` names a job by its id or its exact name, so a
+  pair from before the rule is told apart. It also pauses or resumes a job.
 - A job may name files on one piece of work. A plan binds them to its goal's
   thread. `edit_my_job` can attach an existing job to work the Odd serves or
   rename it in place. Sharing applies to the listed sources in that output.

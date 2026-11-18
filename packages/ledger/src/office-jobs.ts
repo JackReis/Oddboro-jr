@@ -48,6 +48,25 @@ export async function jobsFor(staffId: string): Promise<(JobRow & { lastRun?: Ru
   );
 }
 
+/** Two job names are one when they differ only in case or the spaces around them. */
+const nameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * Refuse a job name the Odd already gives another of its jobs. Two jobs of one
+ * name ran twice and could not be told apart: the Odd's own edits name a job
+ * by its name (#306). `except` is the job being renamed.
+ */
+async function refuseSameName(staffId: string, name: string, q: Db, except?: number) {
+  const mine = await q
+    .select({ id: jobs.id, name: jobs.name })
+    .from(jobs)
+    .where(eq(jobs.staffId, staffId));
+  if (mine.some((j) => j.id !== except && nameKey(j.name) === nameKey(name)))
+    throw fixedError(
+      'This Odd already has a job with that name. Change that job instead, or give this one another name.'
+    );
+}
+
 export async function addJob(
   j: {
     staffId: string;
@@ -61,6 +80,7 @@ export async function addJob(
   q: Db = db
 ): Promise<JobRow> {
   if (j.files) refuseFileCycle([...(await fileJobs(q)), { ...j, id: 0, files: j.files }]);
+  await refuseSameName(j.staffId, j.name, q);
   const [row] = await q
     .insert(jobs)
     .values({ ...j, nextRunAt: nextRun(j.schedule, new Date()) })
@@ -119,6 +139,10 @@ export async function updateJob(
   expectedFiles?: JobFiles,
   q: Db = db
 ): Promise<void> {
+  if (patch.name) {
+    const was = await job(id, q);
+    if (was) await refuseSameName(was.staffId, patch.name, q, id);
+  }
   if (patch.files)
     refuseFileCycle(
       (await fileJobs(q)).map((j) =>
@@ -138,7 +162,6 @@ export async function updateJob(
   if (!rows.length) throw new Error('This job changed. Reopen it to see its files.');
 }
 
-/** A staffer changes one of its own jobs, carrying out a change the owner approved. */
 /**
  * The owner's go-ahead for a staffer to change itself: their own words in a chat,
  * which the office hands the staffer's tools, or an ask the owner approved.
@@ -159,23 +182,39 @@ async function recordGoAhead(who: StaffRow, go: GoAhead, what: string, q: Db = d
     );
 }
 
+/**
+ * A staffer changes one of its own jobs, named by its id or its exact name,
+ * carrying out a change the owner approved. A name two of its jobs share,
+ * from before names had to differ, is refused with both ids, so the Odd
+ * names the one it means.
+ */
 export async function editOwnJob(
   staffId: string,
-  name: string,
+  which: number | string,
   patch: Partial<
-    Pick<JobRow, 'name' | 'instructions' | 'schedule' | 'report' | 'missed' | 'files'>
+    Pick<JobRow, 'name' | 'instructions' | 'schedule' | 'enabled' | 'report' | 'missed' | 'files'>
   >,
   go: GoAhead,
   q: Db = db
 ): Promise<JobRow | undefined> {
   const who = await staffer(staffId, q);
-  const [j, other] = await q
+  const found = await q
     .select()
     .from(jobs)
-    .where(and(eq(jobs.staffId, staffId), eq(jobs.name, name)))
-    .limit(2);
-  if (other) throw new Error('Two jobs have that name. Rename one on the Odd’s card first.');
+    .where(
+      and(
+        eq(jobs.staffId, staffId),
+        typeof which === 'number' ? eq(jobs.id, which) : eq(jobs.name, which)
+      )
+    )
+    .orderBy(asc(jobs.id));
+  if (found.length > 1)
+    throw new Error(
+      `${found.length} of your jobs are named "${which}": ids ${found.map((j) => j.id).join(' and ')}. Name the one to change by its id.`
+    );
+  const [j] = found;
   if (!who || !j) return undefined;
+  const name = j.name;
   if (patch.files && !(await isOnThread(staffId, patch.files.thread, q)))
     throw new Error('This Odd has no assignment on that work.');
   await updateJob(j.id, patch, undefined, q);
@@ -192,7 +231,8 @@ export async function editOwnJob(
         patch.schedule && `Schedule: ${JSON.stringify(patch.schedule)}`,
         patch.report !== undefined &&
           `Reports to ${await ownerName(q)}: ${patch.report ? 'yes' : 'no'}`,
-        patch.missed && `Missed runs: ${MISSED_WORDS[patch.missed]}`
+        patch.missed && `Missed runs: ${MISSED_WORDS[patch.missed]}`,
+        patch.enabled !== undefined && (patch.enabled ? 'Resumed' : 'Paused')
       ]
         .filter(Boolean)
         .join('\n\n'),
