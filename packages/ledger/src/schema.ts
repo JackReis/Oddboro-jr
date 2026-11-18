@@ -816,6 +816,11 @@ export const jobs = pgTable('jobs', {
   owed: jsonb().$type<string[]>(),
   /** The run a `latest` job skipped, while it waits on the desk's While you were away card. */
   skippedAt: at('skipped_at'),
+  /**
+   * When the owner removed a job that had run. It never runs or lists again,
+   * and its runs keep their record (`deleteJob`).
+   */
+  removedAt: at('removed_at'),
   createdAt: created()
 });
 

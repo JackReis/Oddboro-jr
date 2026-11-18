@@ -951,6 +951,10 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   refuses a new job whose name its Odd already uses. `my_jobs` lists each
   job's id, and `edit_my_job` names a job by its id or its exact name, so a
   pair from before the rule is told apart. It also pauses or resumes a job.
+  The owner removes any paused job (`deleteJob`): one that never ran goes,
+  and one that ran gets `removed_at` (migration `0038_job_removed`), so it
+  leaves every list, never runs, frees its name, and its runs keep their
+  record.
 - A job may name files on one piece of work. A plan binds them to its goal's
   thread. `edit_my_job` can attach an existing job to work the Odd serves or
   rename it in place. Sharing applies to the listed sources in that output.

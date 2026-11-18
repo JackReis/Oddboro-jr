@@ -1,5 +1,6 @@
-// One Odd never has two jobs of one name, and an Odd fixes a pair from before
-// that rule by naming a job by its id: in an office under test
+// One Odd never has two jobs of one name, an Odd fixes a pair from before
+// that rule by naming a job by its id, and the owner removes any paused job,
+// one that ran included, keeping its runs: in an office under test
 // (office-under-test.ts), through the ledger and through the Odd's own
 // `edit_my_job` on the real staff tool server (#306). Run with
 // `npm test -w @oddboro/office`.
@@ -32,10 +33,36 @@ test('a second job of the same name is refused when it is added or renamed, what
     // A job keeps its own name, and another Odd may use it.
     await L.updateJob(first.id, { name: 'Daily Calendar Brief' });
     const other = await L.addJob({ ...job('Daily calendar brief'), staffId: 'lead' });
-    await L.deleteJob(other.id);
-    await L.deleteJob(second.id);
+    await L.pg`delete from jobs where id in (${other.id}, ${second.id})`;
   } finally {
-    await L.deleteJob(first.id);
+    await L.pg`delete from jobs where id = ${first.id}`;
+  }
+});
+
+test('the owner removes a paused job that ran: it leaves the list and the clock, its runs stay, and its name is free again', async () => {
+  const kept = await L.addJob(job('Morning brief'));
+  const extra = await L.addJob(job('Evening brief'));
+  const [run] = await L.pg<{ id: number }[]>`
+    insert into runs (job_id, staff_id, status) values (${extra.id}, 'sam', 'done') returning id`;
+  try {
+    await assert.rejects(L.deleteJob(extra.id), /Pause this job before you remove it/);
+    await L.updateJob(extra.id, { enabled: false });
+    await L.deleteJob(extra.id);
+    assert.deepEqual(
+      (await L.jobsFor('sam')).map((j) => j.id).filter((id) => id === kept.id || id === extra.id),
+      [kept.id]
+    );
+    assert.ok((await L.job(extra.id))?.removedAt, 'it stays in the table, removed');
+    assert.equal((await L.pg`select id from runs where id = ${run.id}`).length, 1);
+    assert.ok(!(await L.enabledJobs()).some((j) => j.id === extra.id));
+    // Its name is free for a new job, and a paused job that never ran simply goes.
+    const again = await L.addJob(job('Evening brief'));
+    await L.updateJob(again.id, { enabled: false });
+    await L.deleteJob(again.id);
+    assert.equal(await L.job(again.id), undefined);
+  } finally {
+    await L.pg`delete from runs where id = ${run.id}`;
+    await L.pg`delete from jobs where id in (${kept.id}, ${extra.id})`;
   }
 });
 

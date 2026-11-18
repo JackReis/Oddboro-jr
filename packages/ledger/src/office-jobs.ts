@@ -33,7 +33,7 @@ export async function jobsFor(staffId: string): Promise<(JobRow & { lastRun?: Ru
   const list = await db
     .select()
     .from(jobs)
-    .where(eq(jobs.staffId, staffId))
+    .where(and(eq(jobs.staffId, staffId), isNull(jobs.removedAt)))
     .orderBy(asc(jobs.createdAt));
   return Promise.all(
     list.map(async (j) => {
@@ -60,7 +60,7 @@ async function refuseSameName(staffId: string, name: string, q: Db, except?: num
   const mine = await q
     .select({ id: jobs.id, name: jobs.name })
     .from(jobs)
-    .where(eq(jobs.staffId, staffId));
+    .where(and(eq(jobs.staffId, staffId), isNull(jobs.removedAt)));
   if (mine.some((j) => j.id !== except && nameKey(j.name) === nameKey(name)))
     throw fixedError(
       'This Odd already has a job with that name. Change that job instead, or give this one another name.'
@@ -95,7 +95,8 @@ export type FileJob = Pick<JobRow, 'id' | 'name' | 'staffId' | 'files'>;
 export function fileJobs(q: Db = db): Promise<FileJob[]> {
   return q
     .select({ id: jobs.id, name: jobs.name, staffId: jobs.staffId, files: jobs.files })
-    .from(jobs);
+    .from(jobs)
+    .where(isNull(jobs.removedAt));
 }
 
 /**
@@ -207,6 +208,7 @@ export async function editOwnJob(
     .where(
       and(
         eq(jobs.staffId, staffId),
+        isNull(jobs.removedAt),
         typeof which === 'number' ? eq(jobs.id, which) : eq(jobs.name, which)
       )
     )
@@ -305,11 +307,18 @@ export async function setDescription(
   });
 }
 
-/** Remove a job that never ran. One that ran stays, paused, so its runs keep their record. */
+/**
+ * Remove a paused job. One that never ran goes. One that ran leaves the
+ * Odd's jobs and never runs again (`removedAt`), so its runs keep their
+ * record and a duplicate can still be removed (#306).
+ */
 export async function deleteJob(id: number): Promise<void> {
+  const j = await job(id);
+  if (!j || j.removedAt) return;
+  if (j.enabled) throw fixedError('Pause this job before you remove it.');
   const [ran] = await db.select({ id: runs.id }).from(runs).where(eq(runs.jobId, id)).limit(1);
-  if (ran) throw fixedError('This job has run before, so it stays paused to keep its record.');
-  await db.delete(jobs).where(eq(jobs.id, id));
+  if (ran) await db.update(jobs).set({ removedAt: new Date() }).where(eq(jobs.id, id));
+  else await db.delete(jobs).where(eq(jobs.id, id));
 }
 
 export async function enabledJobs(): Promise<JobRow[]> {
