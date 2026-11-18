@@ -17,5 +17,11 @@ export const POST: RequestHandler = async ({ params }) => {
   if (!now) error(400, 'There is no change to undo');
   const { catalog } = await officeLibrary();
   const world = composeWorld(now.plan, now.templates, catalog, { actors: false });
-  return json(await moveIn(from, destination(now.id, now.name, world, now.kinds)));
+  return json(
+    await moveIn(
+      from,
+      destination(now.id, now.name, world, now.kinds),
+      `Undid the last change to ${now.name}`
+    )
+  );
 };

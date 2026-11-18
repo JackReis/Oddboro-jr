@@ -178,13 +178,15 @@ export type Destination = {
 };
 
 /**
- * Make a layout the office, or go back to the sample. Staff whose room is not
+ * Make a layout the office, or go back to the sample. `title` is the ledger's
+ * line for it when moving in is not the news, like a change or an undo. Staff whose room is not
  * in it, or has no seat left, move to the work room with the most free seats.
  * Returns who moved where.
  */
 export async function moveIn(
   from: string,
-  to: Destination
+  to: Destination,
+  title = `Moved the office into ${to.name}`
 ): Promise<{ moved: { name: string; room: string }[] }> {
   const { seats } = to;
   const moved: { name: string; room: string }[] = [];
@@ -241,7 +243,7 @@ export async function moveIn(
   await record({
     kind: 'work',
     actor: 'owner',
-    title: `Moved the office into ${to.name}`,
+    title,
     ...(moved.length
       ? { body: moved.map((m) => `${m.name} now works in ${m.room}.`).join('\n') }
       : {})
