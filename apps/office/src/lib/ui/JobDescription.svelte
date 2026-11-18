@@ -17,8 +17,17 @@
     saving?: boolean;
     /** Saved: a roster of agent files goes on to the next file. */
     onupdated?: () => void;
+    /** The saved instructions already match the agent file under review. */
+    oncurrent?: () => void;
   };
-  let { profile, version, proposal, saving = $bindable(false), onupdated }: Props = $props();
+  let {
+    profile,
+    version,
+    proposal,
+    saving = $bindable(false),
+    onupdated,
+    oncurrent
+  }: Props = $props();
 
   let shown = $state(untrack(() => proposal !== undefined));
   let text = $state<string | undefined>();
@@ -84,6 +93,7 @@
     try {
       if (agent.desk === text) {
         fileMessage = 'The saved instructions match this file.';
+        oncurrent?.();
         return;
       }
       const sorted = agent.servers.length

@@ -44,10 +44,12 @@
     version: number;
     /** One file of several the owner chose at once (`HireRoster.svelte`). */
     file?: File;
+    /** Where that file sits among them, such as "File 2 of 4". */
+    place?: string;
     /** The owner chose several agent files: the roster opens each in turn. */
     onfiles: (files: File[]) => void;
-    /** Leave this file out of the roster and go to the next. */
-    onskip: () => void;
+    /** Go on to the next file: left out, or true when its Odd already had these instructions. */
+    onskip: (upToDate?: boolean) => void;
     /** In a roster, an Odd's instructions were updated from this file. */
     onupdated?: () => void;
     /** Rooms on the floor a staffer can work in: template id and name. */
@@ -64,6 +66,7 @@
     staff,
     version,
     file,
+    place,
     onfiles,
     onskip,
     onupdated,
@@ -217,6 +220,8 @@
   let sourceName = $state<string>();
   /** The Odd whose instructions the owner is reviewing against the file. */
   let updating = $state<StaffProfile>();
+  /** That Odd's saved instructions already match the file: nothing to save. */
+  let upToDate = $state(false);
   // Odds hired from this agent before. One hired before the office kept the
   // agent's name is matched by its own name instead.
   const matches = $derived(
@@ -228,13 +233,13 @@
     )
   );
 
-  async function importAgent(file: File) {
+  async function importAgent(agentFile: File) {
     busy = true;
     problem = '';
     try {
       const { readClaudeAgentFile, skippedSaid, sortServers } =
         await import('../staff/claude-agent.ts');
-      const draft = await readClaudeAgentFile(file);
+      const draft = await readClaudeAgentFile(agentFile);
       // A server named only by a name asks when the office's tools have it.
       const known = draft.servers.some((s) => s.url === undefined && s.command === undefined)
         ? (await call<{ known: { id: string; name: string }[] }>('/api/connectors')).known
@@ -254,7 +259,12 @@
       step = 0;
       path = matches.length ? 'matches' : 'odd';
     } catch (e) {
-      problem = e instanceof Error ? e.message : 'Could not read that agent file.';
+      // In a roster the way on is Skip, not choosing the file again.
+      problem = file
+        ? 'This file could not be read. Skip it to go on.'
+        : e instanceof Error
+          ? e.message
+          : 'Could not read that agent file.';
     } finally {
       busy = false;
     }
@@ -414,9 +424,14 @@
 {/snippet}
 
 {#if file}
-  <button class="px-3 py-1 text-xs text-muted" disabled={busy || saving} onclick={onskip}
-    >Skip this file</button
-  >
+  <div class="flex items-center gap-2 border-b border-hairline px-3 py-2">
+    <p class="min-w-0 flex-1 truncate text-xs text-muted">{place}: {file.name}</p>
+    <button
+      class="shrink-0 rounded-lg bg-raise px-3 py-1.5 text-xs font-medium text-ink hover:bg-sea/20 disabled:opacity-40"
+      disabled={busy || saving}
+      onclick={() => onskip(upToDate)}>{upToDate ? 'Next file' : 'Skip this file'}</button
+    >
+  </div>
 {/if}
 {#if file && path === 'choose'}
   {#if problem}<p class="p-3 text-xs text-coral" role="alert">{problem}</p>{/if}
@@ -468,18 +483,27 @@
         proposal={{ desk, servers: imported?.servers ?? [] }}
         bind:saving
         {onupdated}
+        oncurrent={() => (upToDate = true)}
       />
       <button
         class="self-start text-xs text-muted"
         disabled={saving}
-        onclick={() => (updating = undefined)}>Back to matches</button
+        onclick={() => {
+          updating = undefined;
+          upToDate = false;
+        }}>Back to matches</button
       >
     {:else}
       <p class="text-sm text-ink">
         Update an existing Odd's instructions or hire another worker from this file.
       </p>
       {#each matches as p (p.id)}
-        {@render choice(p.name, `${p.role} · ${p.id}`, 'Review instructions', () => (updating = p))}
+        {@render choice(
+          p.name,
+          [p.role, rooms.find((r) => r.id === p.room)?.name].filter(Boolean).join(' · '),
+          'Review instructions',
+          () => (updating = p)
+        )}
       {/each}
       <button class="self-start rounded-lg bg-raise px-3 py-2" onclick={() => (path = 'odd')}
         >Hire a new Odd</button
