@@ -42,6 +42,14 @@
   type Props = {
     staff: StaffProfile[];
     version: number;
+    /** One file of several the owner chose at once (`HireRoster.svelte`). */
+    file?: File;
+    /** The owner chose several agent files: the roster opens each in turn. */
+    onfiles: (files: File[]) => void;
+    /** Leave this file out of the roster and go to the next. */
+    onskip: () => void;
+    /** In a roster, an Odd's instructions were updated from this file. */
+    onupdated?: () => void;
     /** Rooms on the floor a staffer can work in: template id and name. */
     rooms: { id: string; name: string }[];
     /** A hire a staffer proposed. Hiring from it approves that ask. */
@@ -52,7 +60,19 @@
     /** A persona hired here joined, through its own sign-in: the window closes. */
     ondone: () => void;
   };
-  let { staff, version, rooms, from, id, onhired, ondone }: Props = $props();
+  let {
+    staff,
+    version,
+    file,
+    onfiles,
+    onskip,
+    onupdated,
+    rooms,
+    from,
+    id,
+    onhired,
+    ondone
+  }: Props = $props();
 
   // Hire opens on a choice: make an Odd, or hire a persona New Altitude offers
   // the owner's account. A proposal skips the choice: it opens on the builder,
@@ -181,6 +201,8 @@
   /** Office tools from the proposal. Without one, a hire gets the starters. */
   let tools = $state<string[] | undefined>();
   let busy = $state(false);
+  /** An Odd's job description is saving from the file. */
+  let saving = $state(false);
   let problem = $state('');
   /**
    * What an imported Claude Code agent file brought: the settings it left in
@@ -256,6 +278,7 @@
   // Fill the window from the proposal. The job description is read from its
   // file now, so edits the owner made in the viewer are in it.
   onMount(() => {
+    if (file) void importAgent(file);
     if (!from) return;
     const p = from.proposal;
     name = p.name;
@@ -390,7 +413,14 @@
   </div>
 {/snippet}
 
-{#if path === 'choose'}
+{#if file}
+  <button class="px-3 py-1 text-xs text-muted" disabled={busy || saving} onclick={onskip}
+    >Skip this file</button
+  >
+{/if}
+{#if file && path === 'choose'}
+  {#if problem}<p class="p-3 text-xs text-coral" role="alert">{problem}</p>{/if}
+{:else if path === 'choose'}
   <section class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 text-sm" aria-label="Hire">
     {@render choice(
       'Hire an Odd',
@@ -406,7 +436,7 @@
     )}
     {@render choice(
       'Import a Claude Code agent',
-      'Start from its Markdown file. You check its job and access before you hire it.',
+      'Start from one or more of its Markdown files. You check each job and its access before you hire.',
       'Import',
       () => picker?.click()
     )}
@@ -415,11 +445,13 @@
       class="hidden"
       type="file"
       accept=".md"
-      aria-label="Claude Code agent file"
+      multiple
+      aria-label="Claude Code agent files"
       onchange={(e) => {
-        const file = e.currentTarget.files?.[0];
+        const picked = Array.from(e.currentTarget.files ?? []);
         e.currentTarget.value = '';
-        if (file) void importAgent(file);
+        if (picked.length > 1) onfiles(picked);
+        else if (picked[0]) void importAgent(picked[0]);
       }}
     />
     {#if problem}<p class="text-xs text-coral" role="alert">{problem}</p>{/if}
@@ -434,9 +466,13 @@
         profile={updating}
         {version}
         proposal={{ desk, servers: imported?.servers ?? [] }}
+        bind:saving
+        {onupdated}
       />
-      <button class="self-start text-xs text-muted" onclick={() => (updating = undefined)}
-        >Back to matches</button
+      <button
+        class="self-start text-xs text-muted"
+        disabled={saving}
+        onclick={() => (updating = undefined)}>Back to matches</button
       >
     {:else}
       <p class="text-sm text-ink">
@@ -826,10 +862,10 @@
     </div>
 
     <footer class="flex gap-2 border-t border-hairline p-3">
-      <!-- Back from the first step returns to the choice, except on a proposal. -->
+      <!-- Back from the first step returns to the choice, except on a proposal or a roster file. -->
       <button
         class="rounded-lg bg-raise px-3 py-2 text-sm disabled:opacity-40"
-        disabled={(step === 0 && !!from) || busy}
+        disabled={(step === 0 && (!!from || !!file)) || busy}
         onclick={() => (step === 0 ? (path = 'choose') : step--)}>Back</button
       >
       {#if step < STEPS.length - 1}

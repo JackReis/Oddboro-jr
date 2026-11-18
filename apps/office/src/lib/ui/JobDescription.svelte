@@ -13,8 +13,12 @@
     profile: StaffProfile;
     version: number;
     proposal?: { desk: string; servers: ImportedServer[] };
+    /** True while Save is on its way, so a roster holds its Skip until it lands. */
+    saving?: boolean;
+    /** Saved: a roster of agent files goes on to the next file. */
+    onupdated?: () => void;
   };
-  let { profile, version, proposal }: Props = $props();
+  let { profile, version, proposal, saving = $bindable(false), onupdated }: Props = $props();
 
   let shown = $state(untrack(() => proposal !== undefined));
   let text = $state<string | undefined>();
@@ -96,13 +100,19 @@
   }
 
   async function save(draft: string): Promise<string> {
-    const r = await call<{ text: string }>(
-      `/api/staff/${profile.id}/description`,
-      { text: draft, was: text, servers: fromFile?.servers },
-      'PUT'
-    );
-    text = r.text;
-    return r.text;
+    saving = true;
+    try {
+      const r = await call<{ text: string }>(
+        `/api/staff/${profile.id}/description`,
+        { text: draft, was: text, servers: fromFile?.servers },
+        'PUT'
+      );
+      text = r.text;
+      onupdated?.();
+      return r.text;
+    } finally {
+      saving = false;
+    }
   }
 </script>
 

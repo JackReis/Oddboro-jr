@@ -1244,7 +1244,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     connects without the owner's yes. The form's lines about the file are
     `src/lib/ui/AgentFileServers.svelte`. A server that runs a command is listed in
     the form and never run or asked for. Picking another choice clears the
-    import. Step one makes the person's look
+    import. Choosing several files opens the same form for each in turn
+    (`src/lib/ui/HireRoster.svelte`): a file an Odd came from offers that Odd
+    first, as one file does, each hire or update saves as it happens, Skip
+    leaves a file out, and the last file ends on a count. Step one makes the person's look
     (`src/lib/ui/LookStudio.svelte`), drawn or built. Drawn: the owner
     describes them, LookStudio asks `/api/looks`, and
     the owner sees the portrait and the walk, then redraws with a note or keeps it.
