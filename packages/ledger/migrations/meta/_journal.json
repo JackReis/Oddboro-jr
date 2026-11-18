@@ -253,6 +253,13 @@
       "when": 1794818214134,
       "tag": "0035_staff_skills",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794976196566,
+      "tag": "0036_usage_session",
+      "breakpoints": true
     }
   ]
 }
