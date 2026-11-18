@@ -1188,7 +1188,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     in the document editor (`src/lib/ui/JobDescription.svelte`); a save
     refuses if the description changed since the owner opened it. On an Odd
     that is not the Office Manager or a persona, the owner can open a Claude
-    agent file here to compare and edit its proposed instructions. The section
+    Code or Grok Build agent file here to compare and edit its proposed instructions. The section
     lists the file's servers as the hire window does (`AgentFileServers.svelte`),
     less any tool the Odd already holds or has asked for (`sortFor`). Save
     updates the same Odd through the description route, then raises those
@@ -1235,7 +1235,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 
 12. **Hire** on the office plate opens the hire drawer
     (`src/lib/ui/HireDrawer.svelte`). An owner can start it from a Claude Code
-    agent Markdown file with Import. Its name, description, instructions and
+    or Grok Build agent Markdown file with Import. Grok Build uses the same
+    format with a few more settings, so one reader (`claude-agent.ts`) takes
+    both, and a Grok model in the file starts the hire on Grok. A Grok file
+    whose full prompt mode fills in `${{ }}` as it runs is refused until the
+    owner writes plain instructions. Its name, description, instructions and
     supported model fill the same form, and the form names in plain words the
     settings left in the file. A header that does not parse says so in one
     sentence. Each MCP server the file lists by an https address, or by a name
