@@ -231,7 +231,7 @@
         spec: drawn.spec,
         description: words(basis, changes),
         art: drawn.art,
-        ...(changing === undefined ? {} : { layout: changing })
+        ...(changing === undefined ? { new: true } : { layout: changing })
       });
       location.reload();
     } catch (e) {
