@@ -588,8 +588,14 @@ export function claudeReader(
     }
     if (e.type === 'rate_limit_event') events.push({ type: 'plan', info: e.rate_limit_info });
     // Claude Code's own shape for it, which the ledger's usage reads as it is.
+    // Claude Code counts it for the whole session, earlier runs of a resumed
+    // one included, so it names the session. Grok's is not known to.
     if (e.type === 'result' && e.modelUsage)
-      events.push({ type: 'usage', usage: e.modelUsage as ModelUsage });
+      events.push({
+        type: 'usage',
+        usage: e.modelUsage as ModelUsage,
+        ...(agent === 'claude' && session ? { session } : {})
+      });
     for (const name of streamTools(agent, e)) events.push({ type: 'tool', name });
     if (e.type === 'stream_event') {
       const ev = e.event as { type: string; delta?: { type: string; text?: string } };
