@@ -122,3 +122,26 @@ test('the original agent name survives a shortened display name', () => {
   assert.equal(draft.sourceName, sourceName);
   assert.equal(draft.name, sourceName.slice(0, LIMITS.name));
 });
+
+test('a Grok Build agent opens on Grok, with its own settings named and templates refused', () => {
+  const grok = [
+    '---',
+    'name: orchard',
+    'description: Count the crates.',
+    'model: grok-4.7',
+    'promptMode: extend',
+    'tools: [read_file]',
+    '---',
+    'Check each batch.'
+  ].join('\n');
+  const draft = readClaudeAgent(grok);
+  assert.equal(draft.agent, 'grok');
+  assert.equal(draft.model, 'grok-4.7');
+  assert.equal(draft.desk, 'Count the crates.\n\nCheck each batch.');
+  assert.equal(skippedSaid(draft.skipped), 'its prompt mode, its tool list');
+  assert.equal(readClaudeAgent(agent).agent, 'claude');
+  assert.throws(
+    () => readClaudeAgent(grok.replace('extend', 'full') + '\nUse ${{ tools.by_kind.read }}.'),
+    /plain words/
+  );
+});

@@ -208,7 +208,7 @@
   let saving = $state(false);
   let problem = $state('');
   /**
-   * What an imported Claude Code agent file brought: the settings it left in
+   * What an imported Claude Code or Grok Build agent file brought: the settings it left in
    * the file, in plain words, and its MCP servers, sorted into the ones that
    * become access asks once hired and the ones only listed (`sortServers`).
    */
@@ -248,7 +248,7 @@
       role = draft.role;
       remit = draft.remit;
       desk = draft.desk;
-      pickAgent('claude');
+      pickAgent(draft.agent);
       pickedModel = draft.model;
       imported = {
         skipped: skippedSaid(draft.skipped),
@@ -259,12 +259,9 @@
       step = 0;
       path = matches.length ? 'matches' : 'odd';
     } catch (e) {
-      // In a roster the way on is Skip, not choosing the file again.
-      problem = file
-        ? 'This file could not be read. Skip it to go on.'
-        : e instanceof Error
-          ? e.message
-          : 'Could not read that agent file.';
+      // In a roster, say why, then point at Skip as the way on.
+      const reason = e instanceof Error ? e.message : 'Could not read that agent file.';
+      problem = file ? `${reason} Or skip this file to go on.` : reason;
     } finally {
       busy = false;
     }
@@ -450,8 +447,8 @@
       () => choose('persona')
     )}
     {@render choice(
-      'Import a Claude Code agent',
-      'Start from one or more of its Markdown files. You check each job and its access before you hire.',
+      'Import an agent',
+      'Start from one or more Claude Code or Grok Build agent files. You check each job and its access before you hire.',
       'Import',
       () => picker?.click()
     )}
@@ -461,7 +458,7 @@
       type="file"
       accept=".md"
       multiple
-      aria-label="Claude Code agent files"
+      aria-label="Agent files"
       onchange={(e) => {
         const picked = Array.from(e.currentTarget.files ?? []);
         e.currentTarget.value = '';
