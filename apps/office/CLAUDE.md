@@ -758,7 +758,9 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    office writes its `config.toml` only into a home with none, before the
    sign-in check, so the sign-in from the office's page (item 18), where a run
    without one points, is kept as a file. Every run
-   passes the office's switches as `-c` (`SWITCHES`) under `--strict-config`.
+   passes the office's switches as `-c` (`SWITCHES`) under `--strict-config`,
+   and its instructions, servers, folders and shell variables in its own
+   settings file (`RUN_FILE`, `-p`), so the command line fits Windows' limit.
    With Run commands on (a Mac or Linux), a Codex Odd has a shell, held by
    one kernel permission profile per run
    (`filesystem` in `codex.ts`): everything shut but the system's own folders
@@ -999,7 +1001,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    and `core.excludesFile` and `core.attributesFile` set to nothing) and
    a Codex Odd's `git init` copies no sample hooks (`GIT_TEMPLATE_DIR`, an
    empty folder in the run's temp folder). Codex takes `shellEnv` through one
-   `-c shell_environment_policy.set`, since its shell inherits only the core
+   `shell_environment_policy.set` in the run's settings file, since its shell inherits only the core
    variables and a second `set` would replace the first. Nor does it write the file a run
    reading the owner's edit is reading. It gets no skills, no
    plugins, none of the owner's own CLAUDE.md files, no Claude Code
