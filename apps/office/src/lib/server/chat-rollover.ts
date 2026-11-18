@@ -22,12 +22,20 @@ const HANDOVER_TIMEOUT_MS = 3 * 60_000;
 /** The note an Odd's chat keeps from its last session. */
 export const handoverFile = (id: string) => home('staff', id, OFFICE_FILES.handover);
 
+/**
+ * How many tokens the chat's saved session holds, in this tool folder: what
+ * its next message reads. Nothing when the next message starts a fresh one.
+ */
+export function sessionTokens(id: string, toolHome: string): number | undefined {
+  const file = chatSession(id);
+  if (!existsSync(file)) return undefined;
+  const saved = parseSession(readFileSync(file, 'utf8'));
+  return saved && (saved.home ?? '') === toolHome ? saved.context : undefined;
+}
+
 /** Whether the chat's saved session, in this tool folder, has grown past `ROLLOVER_TOKENS`. */
 export function outgrown(id: string, toolHome: string): boolean {
-  const file = chatSession(id);
-  if (!existsSync(file)) return false;
-  const saved = parseSession(readFileSync(file, 'utf8'));
-  return !!saved && (saved.home ?? '') === toolHome && (saved.context ?? 0) >= ROLLOVER_TOKENS;
+  return (sessionTokens(id, toolHome) ?? 0) >= ROLLOVER_TOKENS;
 }
 
 /** What the Odd is asked, in the session that ends. */

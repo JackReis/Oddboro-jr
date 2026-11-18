@@ -1,4 +1,5 @@
 <script lang="ts">
+  import OfficeUsage from './OfficeUsage.svelte';
   import type { ArtKind, ArtRequest, DrawnArt } from '@oddboro/sprites/art';
   import { LIMITS, type OfficeSpec, type SpriteCatalog, type World } from '@oddboro/world';
   import { untrack } from 'svelte';
@@ -581,6 +582,8 @@
         {/if}
       </div>
     {/if}
+
+    <OfficeUsage />
   </div>
 </section>
 
