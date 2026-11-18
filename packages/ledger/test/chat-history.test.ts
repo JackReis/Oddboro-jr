@@ -53,7 +53,31 @@ test('a turn is one row: the owner words, Send now added, and the last reply tha
     rows.map((r) => [r.key, r.owner, r.reply]),
     [
       ['t1', 'Book the dentist.\n\nTuesday works.', 'Booked for Tuesday.'],
-      ['at:2026-11-17T11:00:00Z', '', 'Hello, I am Ava.']
+      ['at:2026-11-17T11:00:00Z:staff', '', 'Hello, I am Ava.']
+    ]
+  );
+});
+
+test('a chat from before turn ids pairs each reply with the owner lines before it, and a told line stands alone', () => {
+  const rows = exchangesOf([
+    { at: '2026-11-07T09:00:00Z', from: 'staff', text: 'Hello, I am Penny.' },
+    { at: '2026-11-07T09:01:00Z', from: 'owner', text: 'Check the mail.' },
+    { at: '2026-11-07T09:01:30Z', from: 'staff', text: 'Gone wrong.', failed: true },
+    { at: '2026-11-07T09:02:00Z', from: 'owner', text: 'Try again.' },
+    { at: '2026-11-07T09:02:10Z', from: 'staff', text: 'A note from the office.', told: true },
+    { at: '2026-11-07T09:03:00Z', from: 'staff', text: 'Two new messages.' },
+    { at: '2026-11-07T09:04:00Z', from: 'owner', text: 'Thanks.' },
+    { at: '2026-11-07T09:05:00Z', from: 'owner', text: 'Newer.', turnId: 't9' },
+    { at: '2026-11-07T09:05:10Z', from: 'staff', text: 'Newer reply.', turnId: 't9' }
+  ]);
+  assert.deepEqual(
+    rows.map((r) => [r.owner, r.reply]),
+    [
+      ['', 'Hello, I am Penny.'],
+      ['Check the mail.\n\nTry again.', 'Two new messages.'],
+      ['', 'A note from the office.'],
+      ['Thanks.', ''],
+      ['Newer.', 'Newer reply.']
     ]
   );
 });
