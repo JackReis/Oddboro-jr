@@ -1,12 +1,13 @@
 // A change to a layout saves over it, so its room names stay, and can be
-// undone. A layout the owner is not in can be removed, with its room names but not its art. Run
-// with `npm test -w @oddboro/ledger`.
+// undone. A layout the owner is not in can be removed, with its room names
+// but not its art. Moving in says in the ledger what happened. Run with
+// `npm test -w @oddboro/ledger`.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { db } from './pglite.ts';
 import type { FloorPlan, OfficeSpec } from '@oddboro/world';
-import { art, offices, roomNames } from '../src/schema.ts';
-import { eq } from 'drizzle-orm';
+import { art, ledger, offices, roomNames } from '../src/schema.ts';
+import { desc, eq } from 'drizzle-orm';
 
 const { layoutKey, moveIn, officeLayouts, removeOffice, saveArt, saveOffice, undoOffice } =
   await import('../src/offices.ts');
@@ -92,4 +93,18 @@ test('undo brings back the version before the last change, and undoing again red
   const redone = await undoOffice(first.id);
   assert.equal(redone?.name, 'Harbour with a pool');
   assert.equal(redone?.previous?.name, 'Harbour');
+});
+
+test('moving in says what happened in the ledger', async () => {
+  const last = async () =>
+    (await db.select().from(ledger).orderBy(desc(ledger.id)).limit(1))[0]?.title;
+  const office = await saveOffice(drawing('Lighthouse'));
+  await goTo(office.id, office.name);
+  assert.equal(await last(), 'Moved the office into Lighthouse');
+  await moveIn(
+    'main-street',
+    { id: office.id, key: layoutKey(office.id), name: office.name, rooms: {}, seats: {} },
+    'Undid the last change to Lighthouse'
+  );
+  assert.equal(await last(), 'Undid the last change to Lighthouse');
 });

@@ -34,5 +34,10 @@ export async function moveInto(
   );
   await saveArt(art, row.id);
   const from = (await currentOffice()).id;
-  return moveIn(from, destination(row.id, row.name, office.world, office.kinds));
+  const changed = row.id === layout;
+  return moveIn(
+    from,
+    destination(row.id, row.name, office.world, office.kinds),
+    changed ? `Changed ${row.name}` : undefined
+  );
 }
