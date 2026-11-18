@@ -30,6 +30,18 @@ test('a Claude agent opens as an editable job with its other settings named', ()
   );
   assert.match(draft.model ?? '', /^claude-sonnet-/);
   assert.deepEqual(draft.skipped, ['tools', 'skills', 'permissionMode']);
+  assert.deepEqual(draft.skills, ['check-claims']);
+  assert.equal(
+    skippedSaid(draft.skipped, draft.skills),
+    'its tool list, its skills (check-claims), its permission mode'
+  );
+});
+
+test('skills listed on one line are named once each', () => {
+  const draft = readClaudeAgent(
+    agent.replace('skills: [check-claims]', 'skills: check-claims, house-style, check-claims')
+  );
+  assert.deepEqual(draft.skills, ['check-claims', 'house-style']);
 });
 
 test('an unsupported model is named and the job description is never silently cut', () => {
