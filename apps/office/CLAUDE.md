@@ -1555,9 +1555,13 @@ and the front and street only if the theme did; its edits elsewhere are
 ignored, and with nothing touched it does not run. Nothing changes until **Move in**:
 `POST /api/office/move-in` (`moveInto` in `src/lib/server/move-in.ts`) checks
 the art and builds the spec again on the server, keeps the layout and its art (`saveArt`), and `moveIn` makes it the
-office. A change to the office the owner is in sends that layout's id (`current.id`
-from `/api/office/layouts`) and saves over it (`saveOffice(o, id)`), so its room
-names and seats, kept under `layoutKey(id)`, stay with it. The version it replaces
+office. A move in saves over the layout the owner is in (`saveOffice(o, id)`), so
+its room names and seats, kept under `layoutKey(id)`, stay with it, and a Claude
+that sends the office again with new art changes it rather than adding a twin.
+Only `new: true` (on the move in, or on the `POST /api/office/design` that a
+`PUT { moveIn: true }` follows) adds another layout; the window sends it when
+the owner draws a whole new office (**Draw it**), and `layout: <id>` names the layout to save over. A move in from
+the sample always adds a layout, since the sample is never written over. The version it replaces
 goes in the layout's `previous`, and **Undo last change** beside "You are here"
 (`POST /api/office/layouts/[id]/undo`, `undoOffice`) swaps the two and moves in
 again, so a second press redoes the change. Kept art joins the library for every later drawing: `officeLibrary()`
