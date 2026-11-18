@@ -27,6 +27,7 @@ import { attachedFiles, filesNow } from './chat-files.ts';
 import { replyBrief, savedTaskWords } from './chat-delivery.ts';
 import { missingChatSignIn } from './chat-sign-in.ts';
 import { sessionIdIn } from './resume.ts';
+import { handoverBrief, outgrown, rollOver } from './chat-rollover.ts';
 import { changedSince, replay, replayed, replayedAt, replaySince } from './replay.ts';
 import {
   chatPreface,
@@ -193,7 +194,11 @@ export async function replyToOwnerTurn(
       // leaves out the told, poke and failed run's owner lines the replay holds,
       // and keeps those the budget cut, so each line since the owner last wrote
       // is said once.
-      const resumed = !!sessionIdIn(chatSession(id), await runHomeOf(who));
+      const toolHome = await runHomeOf(who);
+      // A session grown too long ends with the Odd's handover note, so this
+      // reply starts a fresh one (chat-rollover.ts). A persona keeps its own.
+      if (!who.package && outgrown(id, toolHome)) await rollOver(who, live.key);
+      const resumed = !!sessionIdIn(chatSession(id), toolHome);
       const kept = resumed ? [] : replayed(past);
       const since = replaySince(past, kept);
       const session: Session = resumed ? 'resumed' : { replayed: new Set(replayedAt(past, kept)) };
@@ -219,6 +224,8 @@ export async function replyToOwnerTurn(
               )
             ]
           : []),
+        // The note the chat's last session wrote as it rolled over (chat-rollover.ts).
+        ...(resumed ? [] : handoverBrief(id)),
         ...chatPreface(past, landed, session),
         ...(re ? [re.brief] : []),
         ...(/\b(bug|bugs|issue tracker)\b/i.test(message)

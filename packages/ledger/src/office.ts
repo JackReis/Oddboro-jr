@@ -83,6 +83,7 @@ export {
   checkFolder
 } from './office-folders.ts';
 export { record, searchLedger, precedent, reindexLedger } from './office-ledger.ts';
+export { keepChatLine, loadChats, searchChats, type ChatLine } from './chat-history.ts';
 export {
   AlreadyOnDesk,
   raiseAsk,

@@ -189,6 +189,7 @@ async function runOn(
           case 'tool':
           case 'message':
           case 'delta':
+          case 'context':
             break;
           default: {
             // The type check fails here until a new kind of event has its case.

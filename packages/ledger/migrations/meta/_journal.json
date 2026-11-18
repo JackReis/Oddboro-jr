@@ -271,8 +271,15 @@
     {
       "idx": 38,
       "version": "7",
-      "when": 1794984481323,
-      "tag": "0038_job_removed",
+      "when": 1794982250482,
+      "tag": "0038_chat_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794985580493,
+      "tag": "0039_job_removed",
       "breakpoints": true
     }
   ]

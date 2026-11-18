@@ -604,6 +604,19 @@ export function claudeReader(
       events.push({ type: 'session', id: session });
     }
     if (e.type === 'rate_limit_event') events.push({ type: 'plan', info: e.rate_limit_info });
+    // Each model call's message says what it read: the session as it stands.
+    if (e.type === 'assistant') {
+      const u = (e.message as { usage?: Record<string, unknown> } | undefined)?.usage;
+      const read = (k: string) => (typeof u?.[k] === 'number' ? u[k] : 0);
+      if (u)
+        events.push({
+          type: 'context',
+          tokens:
+            read('input_tokens') +
+            read('cache_read_input_tokens') +
+            read('cache_creation_input_tokens')
+        });
+    }
     // Claude Code's own shape for it, which the ledger's usage reads as it is.
     // Claude Code counts it for the whole session, earlier runs of a resumed
     // one included, so it names the session. Grok's is not known to.

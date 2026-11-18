@@ -365,7 +365,13 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    while the panel is open, so a
    reply survives switching tabs or collapsing. A send first keeps the owner's
    line in `chat.jsonl` with its source and turn ID (`keepOwnerTurn` in
-   `chat-turns.ts`). Imports and uploads share the existing `attachments`
+   `chat-turns.ts`), and every line also goes to the searchable
+   `chat_history` (`keepChatLine` in the ledger's `chat-history.ts`), which
+   `search_chats` reads. A chat whose session read more than
+   `ROLLOVER_TOKENS` in one model call rolls over before the next message:
+   the Odd writes a handover note in the old session (`handover.md`), and
+   the reply starts a fresh session that hears the note after the replay
+   (`chat-rollover.ts`). Imports and uploads share the existing `attachments`
    folder and `ChatFile` records. Each inline import is checked before any
    part is saved. The runner opens text and PDF files through its file tools;
    Claude Code, Codex and Grok also receive picture bytes. Get a reply on an
@@ -1188,7 +1194,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     in the document editor (`src/lib/ui/JobDescription.svelte`); a save
     refuses if the description changed since the owner opened it. On an Odd
     that is not the Office Manager or a persona, the owner can open a Claude
-    agent file here to compare and edit its proposed instructions. The section
+    Code or Grok Build agent file here to compare and edit its proposed instructions. The section
     lists the file's servers as the hire window does (`AgentFileServers.svelte`),
     less any tool the Odd already holds or has asked for (`sortFor`). Save
     updates the same Odd through the description route, then raises those
@@ -1235,7 +1241,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 
 12. **Hire** on the office plate opens the hire drawer
     (`src/lib/ui/HireDrawer.svelte`). An owner can start it from a Claude Code
-    agent Markdown file with Import. Its name, description, instructions and
+    or Grok Build agent Markdown file with Import. Grok Build uses the same
+    format with a few more settings, so one reader (`claude-agent.ts`) takes
+    both, and a Grok model in the file starts the hire on Grok. A Grok file
+    whose full prompt mode fills in `${{ }}` as it runs is refused until the
+    owner writes plain instructions. Its name, description, instructions and
     supported model fill the same form, and the form names in plain words the
     settings left in the file. A header that does not parse says so in one
     sentence. Each MCP server the file lists by an https address, or by a name

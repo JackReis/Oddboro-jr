@@ -1088,6 +1088,42 @@ export const usage = pgTable(
 );
 
 /**
+ * An Odd's chat, one row per exchange: the owner's words and the Odd's reply,
+ * or a line the Odd said alone, like a hello or a poke. The chat's file
+ * (`chat.jsonl` in the Odd's folder) is what the page shows; this is what
+ * `search_chats` searches, so a chat that rolled into a fresh session can
+ * still find what was said before (chat-history.ts).
+ */
+export const chatHistory = pgTable(
+  'chat_history',
+  {
+    id: id(),
+    staffId: text()
+      .notNull()
+      .references(() => staff.id),
+    /** The owner's turn it answers, or `at:<time>` for a line the Odd said alone. One row each. */
+    key: text().notNull(),
+    /** The run that wrote the reply. A thread a chat started lists it in `threads.runs`. */
+    runId: text(),
+    at: at('at').notNull(),
+    owner: text().notNull().default(''),
+    reply: text().notNull().default(''),
+    embedding: vector({ dimensions: 768 }),
+    /** Which model made `embedding` (`EMBED_MODEL`). */
+    embeddingModel: text()
+  },
+  (t) => [
+    unique('chat_history_one_row').on(t.staffId, t.key),
+    index('chat_history_by_run').on(t.runId),
+    index('chat_history_embedding').using('hnsw', t.embedding.op('vector_cosine_ops')),
+    index('chat_history_words').using(
+      'gin',
+      sql`to_tsvector('english', ${t.owner} || ' ' || ${t.reply})`
+    )
+  ]
+);
+
+/**
  * The person the office works for, as the staff address them. One row. Each
  * install sets its own, so no name is written into the code.
  */
