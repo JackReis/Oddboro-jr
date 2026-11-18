@@ -663,6 +663,7 @@ export {
   json,
   shortDay,
   line,
+  day,
   refused
 };
 

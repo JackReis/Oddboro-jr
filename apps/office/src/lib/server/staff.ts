@@ -1138,6 +1138,13 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
   const [cmd, before] = agentCommand(who.agent) ?? [who.agent, []];
   /** Codex's and Gemini's whole messages, as the chat shows them. */
   let said = '';
+  // How big the session has grown, which a chat weighs to start a fresh one
+  // (chat-run.ts): the largest model call when the tool says each one's size
+  // (Claude Code), else the run's tokens read over its model calls, one more
+  // than its tool calls.
+  let largest = 0;
+  let calls = 1;
+  let tokensRead: Promise<number> | undefined;
   const sink: Sink = {
     event: (e) => {
       switch (e.type) {
@@ -1145,7 +1152,11 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
           // The end carries it.
           break;
         case 'tool':
+          calls++;
           opts.onEvent?.({ type: 'tool', name: floorTool(e.name) });
+          break;
+        case 'context':
+          largest = Math.max(largest, e.tokens);
           break;
         case 'delta':
           opts.onEvent?.({ type: 'delta', text: e.text });
@@ -1159,7 +1170,7 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
           break;
         }
         case 'usage':
-          void recordUsage(who.id, opts.kind, e.usage, e.session).catch(() => {});
+          tokensRead = recordUsage(who.id, opts.kind, e.usage, e.session).catch(() => 0);
           break;
         case 'plan':
           void notePlan(e.info);
@@ -1217,7 +1228,12 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
   try {
     void closeGateway(gate);
     if (end.session && opts.sessionFile)
-      saveSession(opts.sessionFile, { sessionId: end.session, seen: sections, home: toolDir });
+      saveSession(opts.sessionFile, {
+        sessionId: end.session,
+        seen: sections,
+        home: toolDir,
+        context: largest || Math.round(((await tokensRead) ?? 0) / calls)
+      });
     // The time limit passed while it got ready, so the driver started nothing.
     if (end.outcome === 'timeout' && !started)
       console.error(

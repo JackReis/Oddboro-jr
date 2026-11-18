@@ -1,6 +1,6 @@
 // Tools for the ledger and the desk: searching, asks and tasks for the owner.
 import { z } from 'zod';
-import { asksFor, giveTask, raiseAsk, searchLedger, tasksFrom } from './office.ts';
+import { asksFor, giveTask, raiseAsk, searchChats, searchLedger, tasksFrom } from './office.ts';
 import { askReplaced, SAID_AS, taskSaid } from './desk-answers.ts';
 import { parseLevel, SWITCH_NAMES } from './access-words.ts';
 import { notLed, recentThreads, threadsOn } from './threads.ts';
@@ -25,6 +25,7 @@ import {
   text,
   json,
   line,
+  day,
   refused
 } from './mcp-run.ts';
 
@@ -80,6 +81,36 @@ if (offered('send_project_work'))
       return json({ id: row.id, state: row.state });
     }
   );
+if (has('search_chats'))
+  tool(
+    'search_chats',
+    {
+      description: `Search your earlier chats with ${OWNER}: what they asked and what you answered, including turns from before this session began, and the chats that started work handed to you. It searches by meaning when available, otherwise by keywords. Search here before you say you do not know something ${OWNER} told you, or ask them again.`,
+      inputSchema: {
+        query: z
+          .string()
+          .describe('What you are looking for, in plain words. Empty for the newest exchanges.'),
+        limit: z.number().int().min(1).max(50).optional()
+      }
+    },
+    async ({ query, limit }) => {
+      const rows = await searchChats(ME, query, limit);
+      return text(
+        rows.length
+          ? rows
+              .map((r) =>
+                [
+                  `- ${day(r.at)}${r.staffId === ME ? '' : ` (in ${r.staffId}'s chat)`}`,
+                  ...(r.owner ? [`  ${OWNER}: ${r.owner.slice(0, 600)}`] : []),
+                  ...(r.reply ? [`  Reply: ${r.reply.slice(0, 600)}`] : [])
+                ].join('\n')
+              )
+              .join('\n')
+          : 'Nothing found.'
+      );
+    }
+  );
+
 if (has('search_ledger'))
   tool(
     'search_ledger',
