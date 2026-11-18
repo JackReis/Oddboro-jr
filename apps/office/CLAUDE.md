@@ -1569,6 +1569,8 @@ seats. The `offices` trigger reloads every open page. Other layouts and the
 sample stay in the window to move back to. Remove takes a second click and
 deletes a layout the owner is not in (`DELETE /api/office/layouts/[id]`,
 `removeOffice`) with its room names and seats; its art stays in the library.
+The route tells every open page (a `layouts` event, not the trigger, which
+would reload them), and each open Office window reads its list again.
 
 ## A new owner's first visit
 

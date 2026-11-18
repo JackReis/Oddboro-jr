@@ -15,8 +15,15 @@
   // the owner is in changes the same way: a note redraws it from its spec, and
   // saving the change saves over that layout, which keeps the version before
   // to undo it. Other layouts stay, to move back to, until the owner removes one.
-  type Props = { id: string; catalog: SpriteCatalog; staffCount: number; current: string };
-  let { id, catalog, staffCount, current }: Props = $props();
+  type Props = {
+    id: string;
+    catalog: SpriteCatalog;
+    staffCount: number;
+    current: string;
+    /** Bumps when a layout is removed, from this window or another, to read the list again. */
+    layouts: number;
+  };
+  let { id, catalog, staffCount, current, layouts: layoutsVersion }: Props = $props();
 
   type Drawn = {
     spec: OfficeSpec;
@@ -86,6 +93,7 @@
   };
 
   $effect(() => {
+    void layoutsVersion;
     void call<{
       layouts: Layout[];
       current?: { id: number; spec: OfficeSpec; description: string };

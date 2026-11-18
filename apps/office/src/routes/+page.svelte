@@ -189,6 +189,8 @@
   let version = $state(0);
   /** Bumped on a change to the ledger's rows, so the Ledger window searches again. */
   let ledgerVersion = $state(0);
+  /** Bumped when the owner removes a layout, so an open Office window reads its list again. */
+  let layoutsVersion = $state(0);
   /** What the page does when each table changes, by the name the event carries. */
   const ON_CHANGE = new Map<string, LiveTable['page']>(
     Object.entries(LIVE_TABLES).map(([table, live]) => [table, live.page])
@@ -740,6 +742,7 @@
         return;
       }
       if (e.type === 'weather') return void askWeather(true);
+      if (e.type === 'layouts') return void layoutsVersion++;
       if (e.type === 'working') {
         // Every tool call a staffer makes updates its work in progress; only
         // a run starting or ending reloads the card's tabs.
@@ -1418,6 +1421,7 @@
                     catalog={office.catalog}
                     staffCount={staff.length}
                     current={office.name}
+                    layouts={layoutsVersion}
                   />
                 {/await}
               {:else if w.kind === 'hire'}

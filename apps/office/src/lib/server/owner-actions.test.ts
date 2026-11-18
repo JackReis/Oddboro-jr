@@ -355,7 +355,14 @@ const TRY: Record<Recording, (send: Send) => Promise<void>> = {
   // After moving back to the sample, so a layout the owner left is there to remove.
   'DELETE /api/office/layouts/[id]': async (send) => {
     const [row] = await L.pg<{ id: number }[]>`select id from offices where not active limit 1`;
+    // Every open Office window hears it, to drop the layout from its list.
+    const { bus } = await import('./events.ts');
+    let heard = 0;
+    const hear = (e: { type: string }) => void (e.type === 'layouts' && heard++);
+    bus.on('event', hear);
     await send({ params: { id: String(row.id) } });
+    bus.off('event', hear);
+    assert.equal(heard, 1);
   },
   // A layout the owner is in, changed once, so there is a change to undo.
   'POST /api/office/layouts/[id]/undo': async (send) => {
