@@ -908,8 +908,8 @@
                           rel="noreferrer">give the Odd a folder it can read</a
                         >.
                       {:else}
-                        The service returned no tools. Check the account and its access, then
-                        reconnect.
+                        The service listed no tools, so nothing is connected yet. Check the key or
+                        the account, then click Connect again.
                       {/if}
                     </p>
                     <ul class="mt-1.5 flex max-h-48 flex-col gap-1 overflow-y-auto">
@@ -925,12 +925,25 @@
                         </li>
                       {/each}
                     </ul>
-                    <button
-                      class="mt-2 rounded-lg bg-sea px-3 py-1.5 text-xs font-medium text-night disabled:opacity-40"
-                      disabled={busy}
-                      onclick={() => step(t, index, { op: 'confirm-tools' })}>Confirm</button
-                    >
+                    <!-- No tools is no connection: Confirm would leave a service with 0 tools (#305). -->
+                    {#if list.length}
+                      <button
+                        class="mt-2 rounded-lg bg-sea px-3 py-1.5 text-xs font-medium text-night disabled:opacity-40"
+                        disabled={busy}
+                        onclick={() => step(t, index, { op: 'confirm-tools' })}
+                        >{busy ? 'Confirming' : 'Confirm'}</button
+                      >
+                    {:else}
+                      <button
+                        class="mt-2 rounded-lg bg-sea px-3 py-1.5 text-xs font-medium text-night disabled:opacity-40"
+                        disabled={busy}
+                        onclick={() => loadTools(t, index)}
+                        >{busy ? 'Connecting' : 'Connect again'}</button
+                      >
+                    {/if}
                   {/if}
+                {:else if s.action?.kind === 'tools' && s.answer}
+                  <p class="mt-1.5 text-xs text-muted">{s.answer}</p>
                 {:else if s.action?.kind === 'choice'}
                   {#if s.answer}
                     <div class="mt-1.5 text-xs text-sea">You chose: {s.answer}</div>
