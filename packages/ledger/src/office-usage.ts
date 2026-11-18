@@ -58,20 +58,22 @@ export function runShare(total: UsageCounts, counted: UsageCounts | undefined): 
 }
 
 /** Each session's latest recording, so the next one reads the session after it is written. */
-const recording = new Map<string, Promise<void>>();
+const recording = new Map<string, Promise<number>>();
 
 /**
  * Keep one run's tokens. `staffId` is null for a run as the office itself.
  * `session` names the session when the tool reports a running total for it,
  * as Claude Code and Codex do once a session is resumed. Each row then holds
  * the run's own share (`runShare`), so no earlier run counts twice.
+ * Resolves to the tokens the run read, its input in every form, which a
+ * chat weighs to know when its session has grown too long (chat-run.ts).
  */
 export function recordUsage(
   staffId: string | null,
   kind: UsageKind,
   byModel: ModelUsage,
   session?: string
-): Promise<void> {
+): Promise<number> {
   if (!session) return keepUsage(staffId, kind, byModel);
   const next = (recording.get(session) ?? Promise.resolve())
     .catch(() => {})
@@ -89,7 +91,7 @@ async function keepUsage(
   kind: UsageKind,
   byModel: ModelUsage,
   session?: string
-): Promise<void> {
+): Promise<number> {
   const counted = new Map<string, UsageCounts>();
   if (session)
     for (const { model, ...c } of await db
@@ -112,6 +114,7 @@ async function keepUsage(
     return [{ staffId, kind, model, session: session ?? null, ...own }];
   });
   if (rows.length) await db.insert(usage).values(rows);
+  return rows.reduce((n, r) => n + r.inputTokens + r.cacheReadTokens + r.cacheWriteTokens, 0);
 }
 
 /** The plan's one row in plan_limits: the owner's Claude plan, whose windows each run reports. */

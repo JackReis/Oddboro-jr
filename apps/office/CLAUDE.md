@@ -365,7 +365,13 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    while the panel is open, so a
    reply survives switching tabs or collapsing. A send first keeps the owner's
    line in `chat.jsonl` with its source and turn ID (`keepOwnerTurn` in
-   `chat-turns.ts`). Imports and uploads share the existing `attachments`
+   `chat-turns.ts`), and every line also goes to the searchable
+   `chat_history` (`keepChatLine` in the ledger's `chat-history.ts`), which
+   `search_chats` reads. A chat whose session read more than
+   `ROLLOVER_TOKENS` in one model call rolls over before the next message:
+   the Odd writes a handover note in the old session (`handover.md`), and
+   the reply starts a fresh session that hears the note after the replay
+   (`chat-rollover.ts`). Imports and uploads share the existing `attachments`
    folder and `ChatFile` records. Each inline import is checked before any
    part is saved. The runner opens text and PDF files through its file tools;
    Claude Code, Codex and Grok also receive picture bytes. Get a reply on an
