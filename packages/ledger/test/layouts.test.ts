@@ -1,5 +1,5 @@
-// A change to a layout saves over it, so its room names stay, and a layout the
-// owner is not in can be removed, with its room names but not its art. Run
+// A change to a layout saves over it, so its room names stay, and can be
+// undone. A layout the owner is not in can be removed, with its room names but not its art. Run
 // with `npm test -w @oddboro/ledger`.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -8,7 +8,8 @@ import type { FloorPlan, OfficeSpec } from '@oddboro/world';
 import { art, offices, roomNames } from '../src/schema.ts';
 import { eq } from 'drizzle-orm';
 
-const { layoutKey, moveIn, removeOffice, saveArt, saveOffice } = await import('../src/offices.ts');
+const { layoutKey, moveIn, officeLayouts, removeOffice, saveArt, saveOffice, undoOffice } =
+  await import('../src/offices.ts');
 
 const drawing = (name: string) => ({
   description: `An office called ${name}`,
@@ -71,4 +72,24 @@ test('a change saves over its layout, and a layout the owner left can be removed
   // A change to a layout removed meanwhile is kept as a new one.
   const again = await saveOffice(drawing('Odd Orbit Station'), first.id);
   assert.notEqual(again.id, first.id);
+});
+
+test('undo brings back the version before the last change, and undoing again redoes it', async () => {
+  const first = await saveOffice(drawing('Harbour'));
+  assert.equal(await undoOffice(first.id), undefined);
+  const canUndo = async () => (await officeLayouts()).find((l) => l.id === first.id)?.canUndo;
+  assert.equal(await canUndo(), false);
+
+  await saveOffice(drawing('Harbour with a pool'), first.id);
+  assert.equal(await canUndo(), true);
+
+  const undone = await undoOffice(first.id);
+  assert.equal(undone?.id, first.id);
+  assert.equal(undone?.name, 'Harbour');
+  assert.equal(undone?.description, 'An office called Harbour');
+  assert.equal(undone?.previous?.name, 'Harbour with a pool');
+
+  const redone = await undoOffice(first.id);
+  assert.equal(redone?.name, 'Harbour with a pool');
+  assert.equal(redone?.previous?.name, 'Harbour');
 });

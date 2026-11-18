@@ -1553,7 +1553,10 @@ ignored, and with nothing touched it does not run. Nothing changes until **Move 
 the art and builds the spec again on the server, keeps the layout and its art (`saveArt`), and `moveIn` makes it the
 office. A change to the office the owner is in sends that layout's id (`current.id`
 from `/api/office/layouts`) and saves over it (`saveOffice(o, id)`), so its room
-names and seats, kept under `layoutKey(id)`, stay with it. Kept art joins the library for every later drawing: `officeLibrary()`
+names and seats, kept under `layoutKey(id)`, stay with it. The version it replaces
+goes in the layout's `previous`, and **Undo last change** beside "You are here"
+(`POST /api/office/layouts/[id]/undo`, `undoOffice`) swaps the two and moves in
+again, so a second press redoes the change. Kept art joins the library for every later drawing: `officeLibrary()`
 in `space.ts` merges it into the catalog and the page loads its sheet beside
 the atlas. It first remembers where
 each Odd works in the office being left, puts anyone it remembers back in

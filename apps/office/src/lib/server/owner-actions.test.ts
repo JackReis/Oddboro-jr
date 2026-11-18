@@ -357,6 +357,14 @@ const TRY: Record<Recording, (send: Send) => Promise<void>> = {
     const [row] = await L.pg<{ id: number }[]>`select id from offices where not active limit 1`;
     await send({ params: { id: String(row.id) } });
   },
+  // A layout the owner is in, changed once, so there is a change to undo.
+  'POST /api/office/layouts/[id]/undo': async (send) => {
+    const { moveInto } = await import('./move-in.ts');
+    await moveInto(spec, [], 'A test office.');
+    const [row] = await L.pg<{ id: number }[]>`select id from offices where active`;
+    await moveInto({ ...spec, name: 'Changed office' }, [], 'A changed office.', row.id);
+    await send({ params: { id: String(row.id) } });
+  },
   // Pat's sign-in finished before the welcome, so the welcome adds Pat after
   // the manager: two hire rows.
   'POST /api/onboarding': async (send) => {

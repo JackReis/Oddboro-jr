@@ -12,8 +12,8 @@
   // spec first, then each piece the library lacks, then a preview to pan
   // around. Redraw with a note until it is right, then move in. The office
   // the owner is in changes the same way: a note redraws it from its spec, and
-  // saving the change saves over that layout. Other layouts stay, to move back
-  // to, until the owner removes one.
+  // saving the change saves over that layout, which keeps the version before
+  // to undo it. Other layouts stay, to move back to, until the owner removes one.
   type Props = { id: string; catalog: SpriteCatalog; staffCount: number; current: string };
   let { id, catalog, staffCount, current }: Props = $props();
 
@@ -44,6 +44,8 @@
     description: string;
     active: boolean;
     movedInAt: string | null;
+    /** It has a version from before its last change to go back to. */
+    canUndo: boolean;
   };
 
   /** The words for a new office. */
@@ -234,6 +236,18 @@
     moving = true;
     try {
       await call(`/api/office/layouts/${l.id}`, {});
+      location.reload();
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+      moving = false;
+    }
+  }
+
+  async function undo(l: Layout) {
+    problem = '';
+    moving = true;
+    try {
+      await call(`/api/office/layouts/${l.id}/undo`, {});
       location.reload();
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
@@ -443,7 +457,7 @@
         Odds whose room is gone move to the workspace with the most free desks. {changing ===
         undefined
           ? 'Your old layout stays below, to move back to.'
-          : 'This saves over the layout you are in.'}
+          : 'This saves over the layout you are in. Undo last change, below, takes it back.'}
         <button
           class="text-muted underline underline-offset-2 hover:text-ink disabled:opacity-40"
           disabled={drawing || moving}
@@ -528,6 +542,13 @@
             <div class="flex items-center gap-3 rounded-lg bg-raise px-2.5 py-1.5 text-xs">
               <span class="min-w-0 flex-1 truncate text-ink" title={l.description}>{l.name}</span>
               {#if l.active}
+                {#if l.canUndo}
+                  <button
+                    class="text-sea underline underline-offset-2 disabled:opacity-40"
+                    disabled={drawing || moving}
+                    onclick={() => undo(l)}>Undo last change</button
+                  >
+                {/if}
                 <span class="text-faint">You are here</span>
               {:else}
                 <button

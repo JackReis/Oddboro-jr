@@ -1,12 +1,13 @@
 // Office layouts. The owner describes an office, the office draws it, and
 // moving in makes it the one everybody works in. A change to a layout saves
-// over it. Other layouts stay, to move back to, until the owner removes them.
-import { and, desc, eq, isNull } from 'drizzle-orm';
+// over it and keeps the version before, so the owner can undo it. Other
+// layouts stay, to move back to, until the owner removes them.
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { DrawnArt } from '@oddboro/sprites/art';
 import type { FloorPlan, OfficeSpec, RoomKind, RoomTemplate } from '@oddboro/world';
 import { db } from './db.ts';
 import { record } from './office.ts';
-import { art, officeRooms, offices, roomNames, staff } from './schema.ts';
+import { art, officeRooms, offices, roomNames, staff, type OfficeVersion } from './schema.ts';
 
 export type OfficeRow = typeof offices.$inferSelect;
 
@@ -28,17 +29,27 @@ export async function officeLayouts() {
       description: offices.description,
       active: offices.active,
       createdAt: offices.createdAt,
-      movedInAt: offices.movedInAt
+      movedInAt: offices.movedInAt,
+      canUndo: sql<boolean>`${offices.previous} is not null`
     })
     .from(offices)
     .orderBy(desc(offices.createdAt));
 }
 
+const versionOf = (o: OfficeRow): OfficeVersion => ({
+  name: o.name,
+  description: o.description,
+  spec: o.spec,
+  plan: o.plan,
+  templates: o.templates,
+  kinds: o.kinds
+});
+
 /**
  * Keep a drawn layout. It is not the office until the owner moves in. With
  * `id`, the drawing is a change to that layout and saves over it, so its room
- * names and where everybody sat stay with it. A layout removed meanwhile is
- * kept as a new one.
+ * names and where everybody sat stay with it, and the version before is kept
+ * to undo the change. A layout removed meanwhile is kept as a new one.
  */
 export async function saveOffice(
   o: {
@@ -52,10 +63,33 @@ export async function saveOffice(
 ): Promise<OfficeRow> {
   const values = { ...o, name: o.plan.name };
   if (id !== undefined) {
-    const [row] = await db.update(offices).set(values).where(eq(offices.id, id)).returning();
-    if (row) return row;
+    const was = await officeLayout(id);
+    if (was) {
+      const [row] = await db
+        .update(offices)
+        .set({ ...values, previous: versionOf(was) })
+        .where(eq(offices.id, id))
+        .returning();
+      return row;
+    }
   }
   const [row] = await db.insert(offices).values(values).returning();
+  return row;
+}
+
+/**
+ * Undo a layout's last change: the version before comes back, and the one it
+ * replaces is kept, so undoing again redoes the change. Returns the layout as
+ * it is now, or undefined when there is nothing to undo.
+ */
+export async function undoOffice(id: number): Promise<OfficeRow | undefined> {
+  const was = await officeLayout(id);
+  if (!was?.previous) return undefined;
+  const [row] = await db
+    .update(offices)
+    .set({ ...was.previous, previous: versionOf(was) })
+    .where(eq(offices.id, id))
+    .returning();
   return row;
 }
 
