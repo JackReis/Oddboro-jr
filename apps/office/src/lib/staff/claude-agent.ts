@@ -42,9 +42,28 @@ const SETTING_WORDS: Record<string, string> = {
   toolConfig: 'its tool settings'
 };
 
-/** The settings left in the file, in plain words: "its tool list, its skills". */
-export const skippedSaid = (keys: string[]) =>
-  keys.map((k) => SETTING_WORDS[k] ?? `its ${k} setting`).join(', ');
+/**
+ * The settings left in the file, in plain words: "its tool list, its skills
+ * (check-claims)". Skills are named, so the owner knows which SKILL.md to add.
+ */
+export const skippedSaid = (keys: string[], skills: string[] = []) =>
+  keys
+    .map((k) =>
+      k === 'skills' && skills.length
+        ? `its skills (${skills.join(', ')})`
+        : (SETTING_WORDS[k] ?? `its ${k} setting`)
+    )
+    .join(', ');
+
+/** The skill names a file lists, as a YAML list or one comma-separated line. */
+function skillNames(value: unknown): string[] {
+  const all = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  const names = all
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim().slice(0, 80))
+    .filter(Boolean);
+  return [...new Set(names)].slice(0, 20);
+}
 
 const TEMPLATE =
   'This Grok Build agent fills in parts of its instructions as it runs. Replace each ${{ }} and ${% %} with plain words, then import it again.';
@@ -176,6 +195,8 @@ export function readClaudeAgent(file: string) {
     agent,
     model,
     servers: serversIn(fields.mcpServers),
+    /** Named for the owner only. No skill comes over until the owner adds one. */
+    skills: skillNames(fields.skills),
     skipped: Object.keys(fields).filter((key) => !imported.has(key))
   };
 }

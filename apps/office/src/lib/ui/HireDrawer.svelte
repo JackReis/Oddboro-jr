@@ -212,7 +212,12 @@
    * the file, in plain words, and its MCP servers, sorted into the ones that
    * become access asks once hired and the ones only listed (`sortServers`).
    */
-  let imported = $state<{ skipped: string; servers: ImportedServer[]; sorted: SortedServers }>();
+  let imported = $state<{
+    skipped: string;
+    skills: boolean;
+    servers: ImportedServer[];
+    sorted: SortedServers;
+  }>();
   /** The hidden file box the Import button opens. */
   let picker = $state<HTMLInputElement>();
 
@@ -251,7 +256,8 @@
       pickAgent(draft.agent);
       pickedModel = draft.model;
       imported = {
-        skipped: skippedSaid(draft.skipped),
+        skipped: skippedSaid(draft.skipped, draft.skills),
+        skills: draft.skills.length > 0,
         servers: draft.servers,
         sorted: sortServers(draft.servers, known)
       };
@@ -671,7 +677,8 @@
         <AgentFileServers
           sorted={imported.sorted}
           once="hired"
-          note={imported.skipped && `Not brought over: ${imported.skipped}.`}
+          note={imported.skipped &&
+            `Not brought over: ${imported.skipped}.${imported.skills ? ' Add each skill on its Skills tab after the hire.' : ''}`}
         />
       </div>
     {/if}
