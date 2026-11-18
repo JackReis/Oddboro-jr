@@ -14,7 +14,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, sleep};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 #[cfg(target_os = "linux")]
-use zbus::zvariant::Value;
+use zbus::zvariant::Value as BusValue;
 
 use serde_json::Value;
 
@@ -694,7 +694,7 @@ fn notify(title: &str, text: &str) {
 fn session_notify(title: &str, text: &str) -> Result<(), String> {
     let bus =
         zbus::blocking::Connection::session().map_err(|error| one_line(&error.to_string()))?;
-    let hints = HashMap::from([("desktop-entry", Value::from("oddboro"))]);
+    let hints = HashMap::from([("desktop-entry", BusValue::from("oddboro"))]);
     bus.call_method(
         Some("org.freedesktop.Notifications"),
         "/org/freedesktop/Notifications",
