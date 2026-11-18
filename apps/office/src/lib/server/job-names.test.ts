@@ -75,6 +75,12 @@ test("an Odd with two jobs of one name, from before names had to differ, pauses 
     );
     // By its id, the second stops running and the first keeps going.
     assert.match(await call({ job: b.id, paused: true }), /It is paused/);
+    // The owner's editor saves the name it shows, so either one stays editable.
+    await L.updateJob(a.id, {
+      name: 'Daily calendar brief',
+      instructions: 'Write the brief once.'
+    });
+    assert.equal((await L.job(a.id))?.instructions, 'Write the brief once.');
     assert.equal((await L.job(a.id))?.enabled, true);
     assert.equal((await L.job(b.id))?.enabled, false);
     const [line] = await L.pg<{ body: string }[]>`
@@ -82,10 +88,6 @@ test("an Odd with two jobs of one name, from before names had to differ, pauses 
       order by id desc limit 1`;
     assert.match(line.body, /Paused/);
     // And it renames the one it paused, so the pair is gone.
-    assert.match(
-      await call({ job: b.id, new_name: 'Daily calendar brief' }),
-      /already has a job with that name/
-    );
     assert.match(
       await call({ job: b.id, new_name: 'Old calendar brief' }),
       /Changed "Old calendar brief"/

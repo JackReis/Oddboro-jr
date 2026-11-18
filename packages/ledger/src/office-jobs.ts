@@ -139,9 +139,12 @@ export async function updateJob(
   expectedFiles?: JobFiles,
   q: Db = db
 ): Promise<void> {
+  // Only a new name is checked: the owner's editor saves the name it shows,
+  // so one job of an older pair stays editable under the name it shares.
   if (patch.name) {
     const was = await job(id, q);
-    if (was) await refuseSameName(was.staffId, patch.name, q, id);
+    if (was && nameKey(was.name) !== nameKey(patch.name))
+      await refuseSameName(was.staffId, patch.name, q, id);
   }
   if (patch.files)
     refuseFileCycle(
