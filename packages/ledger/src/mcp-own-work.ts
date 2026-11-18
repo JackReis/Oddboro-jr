@@ -1,6 +1,14 @@
 // Tools for an Odd's own work: its jobs, goals, lessons and description.
 import { z } from 'zod';
-import { editOwnJob, jobsFor, raiseAsk, setDescription, record, roster } from './office.ts';
+import {
+  DescriptionChanged,
+  editOwnJob,
+  jobsFor,
+  raiseAsk,
+  setDescription,
+  record,
+  roster
+} from './office.ts';
 import { allGoals, goal, goalDraft, goalsFor, logProgress, updateGoal } from './goals.ts';
 import { GOAL_IS_LIVE } from './goal-words.ts';
 import {
@@ -54,7 +62,7 @@ tool(
       rows
         .map(
           (j) =>
-            `## ${j.name}\n${describeSchedule(j.schedule)}${j.enabled ? '' : ', paused'}${j.report ? `, reports to ${OWNER}` : ''}, missed runs: ${j.missed}\n\n${j.instructions}${j.files ? `\nScheduled files: ${JSON.stringify(j.files)}` : ''}`
+            `## ${j.name} (id ${j.id})\n${describeSchedule(j.schedule)}${j.enabled ? '' : ', paused'}${j.report ? `, reports to ${OWNER}` : ''}, missed runs: ${j.missed}\n\n${j.instructions}${j.files ? `\nScheduled files: ${JSON.stringify(j.files)}` : ''}`
         )
         .join('\n\n')
     );
@@ -208,8 +216,21 @@ if (has('propose_goal_plan'))
       if (!g) return text(`No goal #${a.goal_id}. Check list_goals.`);
       const here = new Set((await roster()).map((s) => s.id));
       const items: GoalPlanItem[] = [];
+      /** Each new job's Odd and name, so a plan never gives one Odd two jobs of one name (#306). */
+      const named = new Set<string>();
       for (const x of a.assign ?? []) {
         if (!here.has(x.staff)) return text(`No Odd "${x.staff}". Check office_report.`);
+        if (x.new_job) {
+          const key = `${x.staff}:${x.new_job.name.trim().toLowerCase()}`;
+          const has = (await jobsFor(x.staff)).some(
+            (j) => `${x.staff}:${j.name.trim().toLowerCase()}` === key
+          );
+          if (has || named.has(key))
+            return text(
+              `${x.staff} already has a job named "${x.new_job.name.trim()}". Change that job with change_job, or give the new one another name. Nothing was raised.`
+            );
+          named.add(key);
+        }
         items.push({
           kind: 'assign',
           staff: x.staff,
@@ -251,7 +272,7 @@ if (has('propose_goal_plan'))
 tool(
   'keep_lesson',
   {
-    description: `Remember a correction from ${OWNER}, so they never give it twice. Call it once when they correct your work or say how they want something done from now on, in chat, in a reason on an ask, or in feedback on a report: "too long", "always copy Sam", "never book before 9". It works only in a chat, a run carrying ${OWNER}'s note on an ask or a task, or a run reading their edit to one of your files; in any other run it refuses, so tell them in your reply instead. Not for an instruction about this one piece of work only. ${OWNER} sees it in your chat as "I'll remember: ..." with Undo, so do not repeat it to them. It goes live in every later run at once when they said it; a lesson you inferred waits for their Keep.`,
+    description: `Remember a correction from ${OWNER}, so they never give it twice. Call it once when they correct your work or say how they want something done from now on, in chat, or in their answer to something you raised: "too long", "always copy Sam", "never book before 9". It works only in a chat, a run carrying ${OWNER}'s note on an ask or a task, or a run reading their edit to one of your files; in any other run it refuses, so tell them in your reply instead. Not for an instruction about this one piece of work only. ${OWNER} sees it in your chat as "I'll remember: ..." with Undo, so do not repeat it to them. It goes live in every later run at once when they said it; a lesson you inferred waits for their Keep.`,
     inputSchema: {
       lesson: z
         .string()
@@ -387,9 +408,11 @@ if (has('edit_my_job'))
   tool(
     'edit_my_job',
     {
-      description: `Change one of your own jobs: its name, steps, scheduled files, schedule, whether it reports to ${OWNER}, or what it does with runs it missed. When ${OWNER} asks for a change in chat, make it at once, worded the way they asked, then tell them what changed. Outside a chat, only to carry out an ask they approved, passing its id. To propose a change, raise_ask with the exact new steps first.`,
+      description: `Change one of your own jobs: its name, steps, scheduled files, schedule, whether it reports to ${OWNER}, or what it does with runs it missed, or pause or resume it. When ${OWNER} asks for a change in chat, make it at once, worded the way they asked, then tell them what changed. Outside a chat, only to carry out an ask they approved, passing its id. To propose a change, raise_ask with the exact new steps first. A job that runs twice is paused, never left running. ${OWNER} can also pause, resume, edit or remove your jobs themselves: your name at the top of your panel opens your info page, which lists your jobs.`,
       inputSchema: {
-        job: z.string().describe('The job name, exactly as my_jobs lists it.'),
+        job: z
+          .union([z.number().int(), z.string()])
+          .describe('The job id, or its exact name, as my_jobs lists them.'),
         new_name: z.string().trim().min(1).max(80).optional(),
         files: jobFiles
           .nullable()
@@ -401,21 +424,54 @@ if (has('edit_my_job'))
         schedule: scheduleArg.optional(),
         report: z.boolean().optional(),
         missed: missedArg,
+        paused: z
+          .boolean()
+          .optional()
+          .describe('True pauses the job, so it stops running. False resumes it.'),
         approved_ask: approvedArg
       }
     },
-    async ({ job, new_name, instructions, schedule, report, missed, files, approved_ask }) => {
+    async ({
+      job,
+      new_name,
+      instructions,
+      schedule,
+      report,
+      missed,
+      files,
+      paused,
+      approved_ask
+    }) => {
       const go = await goAhead(approved_ask);
       if ('problem' in go) return text(go.problem);
       const j = await editOwnJob(
         ME,
         job,
-        { name: new_name, instructions, schedule, report, missed, files },
+        {
+          name: new_name,
+          instructions,
+          schedule,
+          report,
+          missed,
+          files,
+          ...(paused === undefined ? {} : { enabled: !paused })
+        },
         go
       );
-      return text(j ? `Changed "${j.name}".` : `You have no job named "${job}". Check my_jobs.`);
+      return text(
+        j
+          ? `Changed "${j.name}"${j.enabled ? '' : '. It is paused'}.`
+          : `You have no job ${typeof job === 'number' ? `with id ${job}` : `named "${job}"`}. Check my_jobs.`
+      );
     }
   );
+
+/**
+ * The job description this run last read: the one it began with, then each
+ * one it saved or was shown. A save from it stops if the text changed since,
+ * so the Odd never overwrites a newer edit by the owner.
+ */
+let myDescription = me.desk;
 
 if (has('edit_my_description'))
   tool(
@@ -430,10 +486,23 @@ if (has('edit_my_description'))
     async ({ description, approved_ask }) => {
       const go = await goAhead(approved_ask);
       if ('problem' in go) return text(go.problem);
-      return text(
-        (await setDescription(ME, description, { go }))
-          ? 'Your job description is changed. It applies from your next run.'
-          : 'That is your job description already. Nothing changed.'
-      );
+      try {
+        const changed = await setDescription(ME, description, { go, was: myDescription });
+        myDescription = description.trim();
+        return text(
+          changed
+            ? 'Your job description is changed. It applies from your next run.'
+            : 'That is your job description already. Nothing changed.'
+        );
+      } catch (e) {
+        if (!(e instanceof DescriptionChanged)) throw e;
+        myDescription = e.current;
+        return {
+          ...text(
+            `Nothing changed. Your job description changed since this run began, so your edit would undo the newer one. Here it is now:\n\n${e.current}\n\nMake your change on this text and pass the whole of it again.`
+          ),
+          isError: true
+        };
+      }
     }
   );

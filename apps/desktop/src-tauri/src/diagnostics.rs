@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::fs;
 use std::panic;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -54,7 +54,13 @@ const KEYRING_READ: Reader = (
 /// The owner's answer, which the office's Setup writes.
 const ANSWER_KEY: &str = "OFFICE_DIAGNOSTICS";
 /// The most a report may hold up the dialog or the panic that sent it.
+#[cfg(not(test))]
 const SEND_TIMEOUT: Duration = Duration::from_secs(2);
+/// Under test, long enough that a slow runner never drops a report: each
+/// call then returns once its report has reached the door, or never will
+/// (#312). No test waits this long on a report that goes.
+#[cfg(test)]
+const SEND_TIMEOUT: Duration = Duration::from_secs(60);
 const WITHHELD: &str = "[withheld]";
 /// Sent in place of the computer's name.
 const SERVER_NAME: &str = "oddboro-shell";
@@ -325,7 +331,7 @@ fn read_sign_in() -> Option<String> {
         return keychain_sign_in();
     }
     let (program, args) = sign_in_command()?;
-    let read = Command::new(program)
+    let read = crate::host::host_command(program)
         .args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -545,6 +551,7 @@ mod tests {
     use crate::server::Server;
     use std::io::{BufRead, BufReader, Read, Write};
     use std::net::TcpListener;
+    use std::process::Command;
     use std::sync::mpsc::Receiver;
 
     /// Words from an owner's office that must never reach a report.
@@ -593,14 +600,16 @@ mod tests {
                 }
                 let mut body = vec![0; length];
                 reader.read_exact(&mut body).unwrap();
-                let _ = reader.get_mut().write_all(
-                    b"HTTP/1.1 200 OK\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
-                );
+                // Kept before the answer, so a report the shell finished
+                // sending is always here by the time its call returns.
                 let _ = got.send(Request {
                     path,
                     body: String::from_utf8_lossy(&body).into_owned(),
                     authorization,
                 });
+                let _ = reader.get_mut().write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{}",
+                );
             }
         });
         (
@@ -643,10 +652,10 @@ mod tests {
         dir
     }
 
+    /// The one request a report sent. Its call has returned, so it is here
+    /// already, or it never left.
     fn the_one_request(door: &Receiver<Request>) -> Request {
-        let request = door
-            .recv_timeout(Duration::from_secs(10))
-            .expect("nothing reached the door");
+        let request = door.try_recv().expect("nothing reached the door");
         assert!(door.try_recv().is_err(), "more than one request");
         request
     }
@@ -664,6 +673,29 @@ mod tests {
                 json.to_string()
             })
             .collect()
+    }
+
+    /// Whether `word` stands on its own in `body`, not inside a longer name.
+    /// The backtrace holds `std::panicking` and the toolchain's
+    /// `panicking.rs`, so a user named `nic` is inside every report as a
+    /// substring, though their name never reaches it.
+    fn holds_word(body: &str, word: &str) -> bool {
+        let part_of_name = |c: char| c.is_alphanumeric() || c == '_';
+        body.match_indices(word).any(|(at, _)| {
+            let before = body[..at].chars().next_back();
+            let after = body[at + word.len()..].chars().next();
+            !before.is_some_and(part_of_name) && !after.is_some_and(part_of_name)
+        })
+    }
+
+    #[test]
+    fn a_user_name_counts_only_as_a_whole_word() {
+        let frame = "core::panicking::panic_fmt at /rustc/abc/library/core/src/panicking.rs";
+        assert!(!holds_word(frame, "nic"));
+        assert!(!holds_word(frame, "pan"));
+        assert!(holds_word("/srv/nic/code", "nic"));
+        assert!(holds_word("D:\\\\work\\\\nic\\\\code", "nic"));
+        assert!(holds_word("nic", "nic"));
     }
 
     #[test]
@@ -715,14 +747,18 @@ mod tests {
             home.replace('\\', "/"),
         ];
         never.extend(PLANTS.map(String::from));
-        never.extend(
-            ["USER", "USERNAME"]
-                .iter()
-                .filter_map(|name| std::env::var(name).ok())
-                .filter(|v| !v.is_empty()),
-        );
         for word in never {
             assert!(!body.contains(&word), "the report holds {word}");
+        }
+        for user in ["USER", "USERNAME"]
+            .iter()
+            .filter_map(|name| std::env::var(name).ok())
+            .filter(|v| !v.is_empty())
+        {
+            assert!(
+                !holds_word(&body, &user),
+                "the report holds the user name {user}"
+            );
         }
         let hostname = Command::new("hostname").output().unwrap().stdout;
         let hostname = String::from_utf8_lossy(&hostname).trim().to_string();
@@ -749,7 +785,7 @@ mod tests {
             home: dir.clone(),
             log: log.clone(),
             version: String::new(),
-            update_token: String::new(),
+            updates: false,
             diagnostics_dsn: None,
         };
         let why = GaveUp::KeptStopping { code: Some(3) };
@@ -801,11 +837,8 @@ mod tests {
             diagnostics.gave_up(&GaveUp::KeptStopping { code: Some(3) });
             diagnostics.failed(crate::NO_NODE);
             // Each report has reached the door, or never will, by the time
-            // its call returns; the wait only catches a late one.
-            let mut got = 0;
-            while door.recv_timeout(Duration::from_millis(500)).is_ok() {
-                got += 1;
-            }
+            // its call returns, so this counts without waiting.
+            let got = door.try_iter().count();
             assert_eq!(got, want, "{name}");
         }
         fs::remove_dir_all(&dir).unwrap();
@@ -1145,8 +1178,8 @@ mod tests {
         };
 
         let signed_in = the_one_request(&report(saved_sign_in));
-        let signed_out = report(no_sign_in).recv_timeout(Duration::from_millis(500));
-        let run_out = report(run_out_sign_in).recv_timeout(Duration::from_millis(500));
+        let signed_out = report(no_sign_in).try_recv();
+        let run_out = report(run_out_sign_in).try_recv();
         fs::remove_dir_all(&dir).unwrap();
 
         assert_eq!(signed_in.authorization.as_deref(), Some("Bearer access-1"));

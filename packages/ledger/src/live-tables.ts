@@ -32,6 +32,12 @@ export const LIVE_TABLES: Record<TableName, LiveTable> = {
   // the list that made it reads the accounts again (agent-tools.svelte.ts).
   accounts: { trigger: 'all', page: [] },
   goals: { trigger: 'all', page: ['version'] },
+  staff_skills: {
+    trigger: {
+      none: "Written only by the owner on the Odd's info page, which reads its list again after each change."
+    },
+    page: []
+  },
   staff_goals: { trigger: 'all', page: ['version'] },
   goal_progress: { trigger: 'all', page: ['version'] },
   asks: { trigger: 'all', page: ['refresh', 'version'] },
@@ -57,6 +63,12 @@ export const LIVE_TABLES: Record<TableName, LiveTable> = {
     page: []
   },
   usage: { trigger: 'all', page: ['version'] },
+  chat_history: {
+    trigger: {
+      none: "A searchable copy of each Odd's chat file, which the page reads; the file's own change event tells it."
+    },
+    page: []
+  },
   owner: {
     trigger: {
       none: "Written only by the owner's own welcome and Setup on the page (finishWelcome, setAdvancedMode), never by an Odd."

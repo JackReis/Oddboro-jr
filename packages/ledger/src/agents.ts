@@ -118,8 +118,10 @@ export const offeredAgent = (v: unknown, platform: NodeJS.Platform): Agent | und
 export const MIN_VERSIONS: Record<Agent, string> = {
   claude: '2.1.318',
   codex: '0.166.0',
-  // Grok's office runs send pictures as --prompt-json blocks, measured on 1.0.62.
-  grok: '1.0.62',
+  // Grok's runs read their message, and pictures as content blocks, from a
+  // --prompt-file, and the system prompt from an agent file with
+  // prompt_mode: extend; measured on 1.0.77.
+  grok: '1.0.77',
   gemini: '0.66.0'
 };
 
@@ -280,7 +282,9 @@ export const COMMANDS_WHY: Record<Agent, string> = {
   // Codex's Windows sandbox gave every Odd's folder to reads (2026-11-06).
   codex: 'Not safe on Windows yet: Codex cannot keep commands in this Odd’s folders here.',
   // Grok's sandbox blocks a command's network on Linux only, so its sign-in could leave the Mac.
-  // Grok's sandbox keeps a command off the network on Linux only, and Windows has none.
+  // Grok's sandbox keeps a command off the network on Linux only, and the office
+  // turns that off there so its own tool server reaches the database
+  // (`profileToml` in grok.ts). Windows has none.
   grok: "Not with Grok yet: its sandbox can't keep commands off the internet on every system.",
   gemini: 'Not tested with Gemini yet.'
 };

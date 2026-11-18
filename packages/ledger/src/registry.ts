@@ -102,12 +102,22 @@ function toCandidate(s: RegistryServer): Candidate {
   };
 }
 
+/** A work description such as "Notion pages" need not appear in the registry's server name. */
+const hostedProviders = [
+  { product: /\bnotion\b/i, registry: 'com.notion/mcp' },
+  { product: /\blinear\b/i, registry: 'app.linear/linear' }
+];
+
 export async function searchRegistry(query: string, limit = 8): Promise<Candidate[]> {
-  const url = `${REGISTRY}?version=latest&limit=${limit}&search=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!res.ok) throw new Error(`The MCP Registry answered ${res.status}`);
-  const body = (await res.json()) as { servers: { server: RegistryServer }[] };
-  return body.servers.map((s) => toCandidate(s.server));
+  const provider = /\s/.test(query) && hostedProviders.find((p) => p.product.test(query));
+  for (const search of provider ? [query, provider.registry] : [query]) {
+    const url = `${REGISTRY}?version=latest&limit=${limit}&search=${encodeURIComponent(search)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`The MCP Registry answered ${res.status}`);
+    const body = (await res.json()) as { servers: { server: RegistryServer }[] };
+    if (body.servers.length) return body.servers.map((s) => toCandidate(s.server));
+  }
+  return [];
 }
 
 /** One registry server by its exact name. */
@@ -196,6 +206,46 @@ const byAddress = (url: string, way: WayIn): ConnectorConfig =>
   way.keyHeader ? { url, headers: [way.keyHeader], oauth: false } : { url, oauth: true };
 
 /**
+ * Whether an address carries anything after `?` or `#`, like `?key=...`. The
+ * office keeps keys in the password store, never in an address, and a
+ * server's id leaves the query out, so such an address once lost its key
+ * without a word (issue #305). It is refused instead.
+ */
+export const carriesQuery = (url: URL): boolean => !!url.search || !!url.hash;
+
+const QUERY_PROBLEM =
+  'This address has a key or setting after "?". The office keeps keys in this computer\'s password store, never in an address. Use the address without the "?" part, and send the key in a header. Most servers that take ?key= also take a header, named in their setup guide.';
+
+const badHeader = (header: string) =>
+  `"${header}" is not a header name. Use letters, digits and dashes, like x-api-key.`;
+
+/**
+ * A hosted server named by its address takes its key in `header` from now on,
+ * even once connected: the owner pastes the key on the reconnect task. Its
+ * open connect tasks name the old way, so they drop (`reconfigureConnector`).
+ * `changed` says whether it took a key some other way before.
+ */
+export async function takeKeyIn(
+  c: ConnectorRow,
+  header: string
+): Promise<{ problem: string } | { changed: boolean }> {
+  if (!HEADER_NAME.test(header)) return { problem: badHeader(header) };
+  if (c.id === POSTAL_ID || c.kind !== 'http' || c.registry || c.config.google || !c.config.url)
+    return { problem: `${c.name} has its own way in, so it takes no key_header.` };
+  const config = byAddress(c.config.url, { keyHeader: header });
+  if (JSON.stringify(config) === JSON.stringify(c.config)) return { changed: false };
+  await reconfigureConnector(c.id, config);
+  return { changed: true };
+}
+
+/** The catalog id `ensureConnector` finds or gives `wanted`: an id as it is, or a hosted server's by its https address. */
+export function connectorIdFor(wanted: string): string {
+  const url = /^https:\/\/\S+$/.test(wanted) ? new URL(wanted) : undefined;
+  if (!url) return wanted;
+  return url.href === POSTAL_URL ? POSTAL_ID : connectorId(`${url.hostname}${url.pathname}`);
+}
+
+/**
  * A catalog connector by id, or a registry server added to the catalog by its
  * name, or a hosted server by its https address. `way` says how a server named
  * by its address lets the office in. Without it, a new one signs in and one
@@ -206,21 +256,22 @@ export async function ensureConnector(
   way?: WayIn
 ): Promise<{ connector?: ConnectorRow; problem?: string }> {
   if (way?.keyHeader !== undefined && !HEADER_NAME.test(way.keyHeader))
-    return {
-      problem: `"${way.keyHeader}" is not a header name. Use letters, digits and dashes, like x-api-key.`
-    };
-  const isUrl = /^https:\/\/\S+$/.test(wanted);
-  const url = isUrl ? new URL(wanted) : undefined;
-  const id =
-    url?.href === POSTAL_URL
-      ? POSTAL_ID
-      : url
-        ? connectorId(`${url.hostname}${url.pathname}`)
-        : wanted;
+    return { problem: badHeader(way.keyHeader) };
+  const url = /^https:\/\/\S+$/.test(wanted) ? new URL(wanted) : undefined;
+  if (url && carriesQuery(url)) return { problem: QUERY_PROBLEM };
+  const id = connectorIdFor(wanted);
   const own = await connector(id);
   if (own) {
-    // One named by its address and not connected yet takes the way in asked for now.
-    if (id !== POSTAL_ID && way && own.kind === 'http' && !own.registry && !own.readyAt) {
+    // One named by its address and not connected yet takes the way in asked
+    // for now. One that connected with no tools never really connected: a
+    // server that turned down its key could answer with none (issue #305).
+    if (
+      id !== POSTAL_ID &&
+      way &&
+      own.kind === 'http' &&
+      !own.registry &&
+      (!own.readyAt || !own.tools.length)
+    ) {
       const config = byAddress(own.config.url!, way);
       if (JSON.stringify(config) !== JSON.stringify(own.config)) {
         await reconfigureConnector(own.id, config);
@@ -228,6 +279,10 @@ export async function ensureConnector(
       }
     }
     return { connector: own };
+  }
+  if (!url && wanted.includes('/')) {
+    const saved = await connector(connectorId(wanted));
+    if (saved?.registry === wanted) return { connector: saved };
   }
   const built = BUILT_IN.find((b) => b.id === id);
   if (built) return { connector: await addConnector(built) };

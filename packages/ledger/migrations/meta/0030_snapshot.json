@@ -1,5 +1,5 @@
 {
-  "id": "a18605f6-d97d-424b-851a-014925696f58",
+  "id": "5b74267c-2ce9-4c92-85db-e11eb7838934",
   "prevId": "089406c6-170a-4f23-baae-7fe08c116ade",
   "version": "7",
   "dialect": "postgresql",
@@ -309,6 +309,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "level": {
+          "name": "level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "office_tools": {
+          "name": "office_tools",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "odd": {
           "name": "odd",
           "type": "text",
@@ -364,13 +376,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "needs": {
-          "name": "needs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -380,12 +385,6 @@
         },
         "decided_at": {
           "name": "decided_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hidden_at": {
-          "name": "hidden_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -2214,12 +2213,6 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
-        },
-        "hidden_at": {
-          "name": "hidden_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2763,13 +2756,6 @@
           "notNull": true,
           "default": false
         },
-        "needs": {
-          "name": "needs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2779,12 +2765,6 @@
         },
         "done_at": {
           "name": "done_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hidden_at": {
-          "name": "hidden_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

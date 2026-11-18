@@ -215,8 +215,92 @@
     {
       "idx": 30,
       "version": "7",
-      "when": 1794548213370,
-      "tag": "0030_owner_items",
+      "when": 1794655622500,
+      "tag": "0030_ask_level",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794669369838,
+      "tag": "0031_act_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794671392908,
+      "tag": "0032_colleague_hand_offs",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794733791464,
+      "tag": "0033_work_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794771998985,
+      "tag": "0034_embedding_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794818214134,
+      "tag": "0035_staff_skills",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794974615861,
+      "tag": "0036_claude_agent_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794977665055,
+      "tag": "0037_usage_session",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794982250482,
+      "tag": "0038_chat_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794985580493,
+      "tag": "0039_job_removed",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794991181109,
+      "tag": "0040_layout_undo",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794992892489,
+      "tag": "0041_usage_label",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795010923998,
+      "tag": "0042_owner_items",
       "breakpoints": true
     }
   ]
