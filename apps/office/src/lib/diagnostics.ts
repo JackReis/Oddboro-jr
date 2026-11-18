@@ -188,12 +188,14 @@ export const ROUTE_IDS = {
   '/api/staff/[id]/look': true,
   '/api/staff/[id]/pokes': true,
   '/api/staff/[id]/portrait': true,
+  '/api/staff/[id]/skills': true,
   '/api/staff/[id]/storage': true,
   '/api/staff/[id]/usage': true,
   '/api/staff/draft': true,
   '/api/switches': true,
   '/api/tasks/[id]': true,
   '/api/update': true,
+  '/api/weather': true,
   '/atlas/[file]': true,
   '/connect/callback': true
 } as const satisfies Record<RouteId, true>;

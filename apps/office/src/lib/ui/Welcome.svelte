@@ -11,7 +11,7 @@
   import SearchDownload from './SearchDownload.svelte';
   import { selectOnFocus } from './select-on-focus.ts';
   import UpdatesSection from './UpdatesSection.svelte';
-  import { shown } from './diagnostics.svelte.ts';
+  import WeatherSection from './WeatherSection.svelte';
 
   // The office's first screen for a new owner, and its Setup window after:
   // the name staff call them, the office they work in, their first staffer,
@@ -192,9 +192,8 @@
 
     {#if welcomed}
       <UpdatesSection />
-      {#if shown()}
-        <DiagnosticsSection />
-      {/if}
+      <WeatherSection />
+      <DiagnosticsSection />
       <AccountSection />
       {#if setup}
         <BackupSection app={setup.app} ownDatabase={setup.ownDatabase} />

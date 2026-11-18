@@ -340,8 +340,10 @@ their change triggers; `0028_advanced_mode` adds `owner.advanced_at` and
 FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   takes too), and `ask_for_folder` refuses it (`FOLDER_REFUSED.broad`).
   `setFolder()` finds a folder the Odd has by that real
-  path, so a level change replaces it, and refuses a new one inside or
-  holding another the Odd has (`FOLDER_REFUSED.nested`). A stored folder no
+  path, so a level change replaces it. Folders may sit one inside another,
+  but a folder only to read is refused inside or around one to change, by a
+  new folder or a level change (`FOLDER_REFUSED.readInsideChange`,
+  `nestRefused`). A stored folder no
   run gets (`touchesSecretStore()`) does not count for a folder inside it, so
   the owner can give a clean one there, and still counts for a folder that
   would hold it, which would put its store in a run; `folderAskRefused` does
@@ -747,8 +749,9 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   real path `checkFolder` gave and `read` or `write`), raised by
   `ask_for_folder`, which every Odd has (`always`). The tool refuses at once
   with the Settings tab's words (`FOLDER_REFUSED`), and refuses a folder the
-  Odd has at that level or above, or one `setFolder` would refuse as nested
-  (`folderAskRefused`). `raiseAsk` refuses a repeat from the same place (the
+  Odd has at that level or above, or one `setFolder` would refuse beside the
+  folders it has (`folderAskRefused`, with `nestRefused`). `raiseAsk` refuses
+  a repeat from the same place (the
   same hand-off and thread, `AlreadyOnDesk`) unless it `revises` it; one from
   another place for the same folder at the same or a lower level is a twin
   (`asksNoMore`, as access asks are). Only the office approves one, with
@@ -932,6 +935,12 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
   the transaction that approves the ask, so the hub's run finds it, and a
   part that fails leaves the whole plan open. Hiring one of those
   hires answers its ask on the thread, which brings the hub back again.
+- An Odd's skills (`staff_skills`, `src/staff-skills.ts`) are text the owner
+  attached, one SKILL.md each by name. Only the owner changes them, and only
+  against the copy they reviewed (`setSkill`). A run's prompt lists each name
+  and when to use it; `read_skill` (`src/mcp-skills.ts`) gives the Odd its own
+  skill's text, and is offered only while it has one (`withSkills`). A skill
+  grants nothing.
 - An Odd sees only the goals it serves (`staff_goals`): `my_goals` and its
   prompt read `goalsFor`, never `allGoals`. `log_progress` takes a goal it
   serves or whose thread it leads (`logProgress`), so the lead planning a goal
@@ -985,7 +994,7 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
     its row in `GOAL_IS_LIVE` (`src/goal-words.ts`).
   - To add an office tool, start at its row in `OFFICE_TOOLS` in
     `src/tools.ts`; a tool registered beside it goes in `RIDES_WITH`. When
-    it is offered (`withGmail`, `withWrite`, `inChat`, `notToManager`, and `prompt` for
+    it is offered (`withGmail`, `withWrite`, `withSkills`, `inChat`, `notToManager`, and `prompt` for
     one that only shapes the prompt and is never offered) is a field on its
     row, which `isOffered` in `src/tools.ts` reads for the tool server
     (`offered()` in `mcp-run.ts`), the Settings tab's Always on group

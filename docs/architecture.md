@@ -32,7 +32,9 @@ an app; `ledger` imports `world` and `sprites`, and `world` imports `sprites`.
 - `scripts`. The lint guards: plain Node, no dependencies.
 - `.github/workflows`. `ci.yml` runs the checks on every pull request, on a
   Mac, Linux and Windows, unless it changes only the site or the docs;
-  `site.yml` checks those; `release.yml` builds the app; `codeql.yml` scans.
+  `site.yml` checks those; `app-smoke.yml` installs and smoke-tests the app
+  on pull requests that change it, and by hand; `release.yml` builds the app;
+  `codeql.yml` scans.
 
 ## One function per job
 
@@ -175,7 +177,8 @@ change.
   under the tool it rides with. When it is offered is a field on its row,
   never a rule in its `mcp-*.ts` file, which registers such a tool behind `offered()`:
   `withGmail` only while the Odd holds Gmail, `withWrite` only while it holds
-  a service at Read and write, `inChat` only in a chat on the owner's words,
+  a service at Read and write, `withSkills` only while the owner attached a
+  skill to it, `inChat` only in a chat on the owner's words,
   `notToManager` never to the Office Manager.
   Whether the owner grants it is the `office_tools` row of `OWNER_GRANTS`.
   `hand-off-tool.test.ts` fails a registered tool that is neither listed nor

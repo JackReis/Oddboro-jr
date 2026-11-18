@@ -56,7 +56,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 2. `/atlas/atlas.png` and `/atlas/atlas.json` serve the compiled atlas from
    `packages/sprites/dist/`.
 3. The page builds a `Floor` (`src/lib/floor/engine.ts`): sprites by draw
-   pass, sky behind windows, and sun shafts and dust by day. At night every
+   pass, sky behind windows, and sun shafts and dust by day, unless the
+   office's weather is overcast (see "Weather"). At night every
    sprite wears a tint by the hour, emissive pixels ride on top of their own
    sprite at full brightness, and each lamp adds a glow cut to its room.
    Doors open only for an Odd stepping through them. The hour is always
@@ -329,10 +330,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    when lessons change (`version`).
 9. The Odd's panel has three groups, each an icon and a word (the icon
    alone when the bar is under 18rem): **Chat** (the chat alone, with no
-   row of tabs), **Data** (a files icon: Lessons and Storage) and
-   **Settings** (its own four tabs, below). A group opens on the tab it was
-   last on; the Lessons tab counts its guesses, and the Data group itself
-   shows no count. It opens on Chat. Storage
+   row of tabs), **Knowledge** (a book icon: Skills, Lessons and Storage;
+   a persona Odd has no Skills) and **Settings** (its own four tabs,
+   below). A group opens on the tab it was last on; the Lessons tab counts
+   its guesses, and the Knowledge group itself shows no count. It opens on Chat. Storage
    (`StorageTab.svelte`, what a row lists and says in `storage-list.ts`) is a tree of everything the Odd kept in its own
    folder, then, under Shared work, its part of each thread it is on (by the
    test `workFile` uses, `workTitles` in the ledger), one folder per piece of
@@ -686,14 +687,18 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    `FolderWarning.svelte` shows it with a warning icon, a More info link to
    the site's `/info/folder-sharing/`, and Accept and Cancel; Accept sends the
    same change again with `accept`, on this tab and on a folder ask's Give
-   access. `setFolder` refuses one inside or holding
-   a folder the Odd already has ("That folder is inside one this Odd already
-   has, or holds one."); the line shows under the field. An Odd asks for a
-   folder with `ask_for_folder` (item 7), for Run commands or Browse the web
-   with `ask_for_switch`, for a higher level with `ask_for_level`, and for
-   office tools with `ask_for_office_tool`, never with steps for this tab: a
-   rule in
-   `house.ts` says so. The
+   access. `setFolder` refuses a folder on Can read inside one on Can write,
+   either way round ("A folder on Can read can't sit inside one on Can write.
+   This Odd can already change everything in it.",
+   `FOLDER_REFUSED.readInsideChange`), and one that would hold a folder
+   dropped for holding keys ("That folder holds one of this Odd's folders that
+   has your keys or sign-ins.", `FOLDER_REFUSED.nested`); the line shows under
+   the field. Since the tab adds
+   each folder at Can read first, a folder to change goes inside one to read in
+   either order. An Odd asks for a folder with `ask_for_folder` (item 7), for Run
+   commands or Browse the web with `ask_for_switch`, for a higher level with
+   `ask_for_level`, and for office tools with `ask_for_office_tool`, never with
+   steps for this tab: a rule in `house.ts` says so. The
    list reads the profile's folders, each with the home folder written `~`
    (`shown`), so it loads nothing of its own and the staff route has no GET;
    a level change or Remove sends the path as stored. A folder that holds or
@@ -1179,7 +1184,24 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     A manual run leaves the schedule where it was, and the Office Manager's report data
     (office times) tells the two apart. The Jobs tab edits a job in place, and opens the Odd's job description
     in the document editor (`src/lib/ui/JobDescription.svelte`); a save
-    refuses if the description changed since the owner opened it. While an
+    refuses if the description changed since the owner opened it. On an Odd
+    that is not the Office Manager or a persona, the owner can open a Claude
+    agent file here to compare and edit its proposed instructions. The section
+    lists the file's servers as the hire window does (`AgentFileServers.svelte`),
+    less any tool the Odd already holds or has asked for (`sortFor`). Save
+    updates the same Odd through the description route, then raises those
+    access asks at read, as a hire does; a refused save raises none. The file's
+    tools and permission mode are never taken. A local Odd's Skills tab, under
+    Knowledge, lists the SKILL.md files the owner attached, each by name with
+    when to use it and Remove (`src/lib/ui/StaffSkills.svelte`, the ledger's
+    `staff_skills`). Add a skill reads the name and when to use it from the
+    file's front matter (`src/lib/staff/skill.ts`); the owner writes what is
+    missing, can change either, and reads the text before Save. A name already
+    saved shows the saved copy beside the new one. A save or a Remove applies
+    only while the saved copy is the one the owner saw. Every run lists each
+    skill's name and when to use it under "Your skills" (`skillsSection` in
+    `house.ts`), never its text, and the Odd reads one with the office tool
+    `read_skill`. A skill grants no tool, folder or permission. While an
     update is about to install it starts no scheduled job (item 17).
     Every job run is told the time it is for and the time it is now
     (`src/lib/server/job-brief.ts`); Run now is for the moment it is pressed. A
@@ -1213,7 +1235,8 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     sentence. Each MCP server the file lists by an https address, or by a name
     the office's tools have (`knownTools`), becomes an access ask at read on the
     desk when the Odd is hired (`src/lib/server/imported-servers.ts`), so nothing
-    connects without the owner's yes. A server that runs a command is listed in
+    connects without the owner's yes. The form's lines about the file are
+    `src/lib/ui/AgentFileServers.svelte`. A server that runs a command is listed in
     the form and never run or asked for. Picking another choice clears the
     import. Step one makes the person's look
     (`src/lib/ui/LookStudio.svelte`), drawn or built. Drawn: the owner
@@ -1777,6 +1800,85 @@ account.
    `src/lib/server/diagnostics.ts` and `src/lib/server/hosts.ts` import
    nothing that brings in Postgres.
 
+## Weather
+
+The weather where the owner is, as a pill beside the desk count. Off until
+the owner turns it on in Setup. The decision is in `docs/decisions/`
+(grep `weather`).
+
+1. Setup's Weather section (`WeatherSection.svelte`) takes a country (the
+   ones GeoNames covers, `POSTAL_COUNTRIES` in `src/lib/weather.ts`, starting
+   at the browser's region), a postal code and °C or °F (°F for the US,
+   Liberia and Myanmar until the owner picks). Show weather is
+   `PUT /api/weather`.
+2. The lookup (`src/lib/server/postal-codes.ts`) downloads
+   `download.geonames.org/export/zip/<CC>.zip`, reads `<CC>.txt` out of it
+   with Node's zlib (`zip.ts`), and finds the code: whole, then the part the
+   file lists (GB, GG, JE and IM drop the last three characters, CA keeps three,
+   NL four), then the longest listed start (a coarse area, a ZIP+4). In IE,
+   MT, CL, CN, AR and BR, whose files hold coarse areas, it takes the listed
+   code sharing the most of its start. Anything else not found answers
+   `missing` with the closest code, which Setup offers as Use. Nothing of the
+   file is kept.
+3. The setting is `OFFICE_WEATHER` in `.env`, as JSON: country, the code as
+   typed, the place ("Seattle, WA 98101", which Setup shows as Matched),
+   latitude and longitude to one decimal, and the unit. Every window and the
+   app share it. The same country and code again change only the unit, with
+   no lookup. Turn off (`DELETE`) clears it. Each change sends
+   `{ type: 'weather' }` on the live line, and every page asks again.
+4. The forecast (`src/lib/server/weather.ts`) is MET Norway's
+   `locationforecast/2.0/compact`, asked by the server alone, with
+   `Oddboro/<version> https://oddboro.com` as the User-Agent and gzip. One
+   cache serves every window: it asks only when a page asks after the last
+   answer's Expires (read against MET Norway's Date), sends
+   `If-Modified-Since` with the last `Last-Modified`, and shares one request
+   among pages asking at once. A failure keeps the last series and its
+   reason: 10 minutes, doubling to 6 hours, or an hour, doubling, after a 429
+   or 403. Each answer serves the hour that has started from the kept series
+   (`currentHour`): temperature, cloud and the raw `symbol_code`.
+5. `GET /api/weather` answers the setting, that hour, the reason a check
+   failed, and `next`: the series' next hour or the expiry, whichever is
+   first. The page (`weather.svelte.ts`) asks as it opens, then on the page's
+   15 s clock only once `next` has passed, and only while
+   `document.visibilityState` is visible (`askNow`); `visibilitychange`
+   catches up. Off, `next` is null and the page asks nothing until the live
+   line says the setting changed.
+6. The pill (`WeatherPill.svelte`) sits in the desk pill's row with the same
+   classes: an icon for the sky (`WeatherIcon.svelte`, one per family in
+   `SKIES`: `skyOf` maps every MET Norway symbol to one) and the temperature.
+   A click opens the place, the sky in words (`conditionWords`), the time of
+   the last answer, why the last check failed, Change in Setup, and the
+   credit to MET Norway and GeoNames. A failed check greys the pill and adds a
+   coral dot; the last report stays.
+7. The floor draws each sky (`Floor.setWeather(symbol)`), only while the
+   light is Auto; holding day or night shows the clock's sky. `lookOf` in
+   `src/lib/floor/sky.ts` reads the symbol: what falls (rain, sleet, snow),
+   how hard (light, steady, heavy), thunder, drifting clouds, fog. The
+   drawing is `src/lib/floor/weather-layer.ts`, over whatever floor is
+   loaded: outdoors is any cell in no indoor room or hall and no wall,
+   and the panes are the sprites tagged `window`.
+   - The window sky (`skyBand`) is the clock's, softened for partly cloudy,
+     grey at the hour's brightness under cloud, darker in rain or snow and
+     darkest in a storm. Overcast also stops the sun shafts and dims the
+     scene a little by day (`dimOf`).
+   - Partly cloudy: a small cloud crosses each pane, a pixel every two
+     seconds, all in step. Fog: a haze over the grounds that thins toward
+     the building, drawn once.
+   - Rain, sleet and snow fall over the grounds from one pool of `POOL`
+     sprites made once; `placeFall` wraps each mark into the view, so all
+     are on screen, and the field stays fixed to the world. Heavier symbols
+     fall thicker and faster. Rain slants, darker over pale stone, flecks
+     on hard ground, and at night catches the street lamps. Snow sways and
+     settles on the grounds over 15 minutes, fading over 30 after.
+   - Thunder: a soft flash over the grounds and the panes every 8 to 25
+     seconds (`flashStep`), fading over four ticks, and one flash in three
+     draws a pixel bolt over the grounds.
+   - Everything steps on the ambient clock (12 a second). A sky with nothing
+     moving (clear, cloudy, fog) asks for no draw, and partly cloudy only
+     when its clouds move. A hidden page stops it with the rest of the
+     floor. Under reduced motion nothing moves: the marks hold still, and
+     there is no flash or bolt.
+
 ## A New Altitude account
 
 An owner who already has a New Altitude account can sign in to it in Setup
@@ -1978,6 +2080,9 @@ the persona's voice.
 | `src/lib/server/design-job.ts`        | The drawing as a job on the server, which pages follow                                                                                                                       |
 | `src/lib/ui/onboarding/`              | A new owner's first visit: the cards, the reveal's story, the music                                                                                                          |
 | `src/lib/floor/reveal.ts`             | The office going up beat by beat, and the bus                                                                                                                                |
+| `src/lib/weather.ts`                  | The weather's setting, report, skies, words and units, shared by the server and the page                                                                                     |
+| `src/lib/server/weather.ts`           | The weather setting in `.env`, and the one MET Norway cache that honours Expires                                                                                             |
+| `src/lib/server/postal-codes.ts`      | A postal code looked up in its country's GeoNames file, on this computer                                                                                                     |
 | `src/lib/diagnostics.ts`              | What a report may carry, and when a trace is taken: the server's, the relay's and the page's one rule                                                                        |
 | `src/lib/server/diagnostics.ts`       | The SDK's options and the gate every report passes, with the owner's answer                                                                                                  |
 | `src/lib/server/account.ts`           | The New Altitude sign-in: start, callback, refresh, sign out                                                                                                                 |
@@ -2012,6 +2117,12 @@ the persona's voice.
   first text it shows (plain text until then), so the first page carries
   none of PixiJS, layerchart or markdown-it. Import a floor module's values only through `index.ts`; a
   type import is free.
+- Panels and dialogs that open on a click load when they open, with
+  `{#await import('…') then { default: X }}` at the render site in
+  `src/routes/+page.svelte`. Only what shows at start (the plate, the top bar,
+  the floor controls, the Odds rail, the side panel frame) is imported at the
+  top. The first run's guide loads beside the floor, and the Odd's card and the
+  Desk are fetched once after the floor draws, so they open at once.
 - Third-party packages go under `devDependencies` in `package.json`, even
   the ones the office runs: the build bundles those, and the app ships only
   what the workspace packages load (`apps/desktop/scripts/stage.ts`).
