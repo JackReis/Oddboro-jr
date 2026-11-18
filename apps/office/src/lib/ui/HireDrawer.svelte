@@ -259,12 +259,9 @@
       step = 0;
       path = matches.length ? 'matches' : 'odd';
     } catch (e) {
-      // In a roster the way on is Skip, not choosing the file again.
-      problem = file
-        ? 'This file could not be read. Skip it to go on.'
-        : e instanceof Error
-          ? e.message
-          : 'Could not read that agent file.';
+      // In a roster, say why, then point at Skip as the way on.
+      const reason = e instanceof Error ? e.message : 'Could not read that agent file.';
+      problem = file ? `${reason} Or skip this file to go on.` : reason;
     } finally {
       busy = false;
     }
