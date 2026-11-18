@@ -139,7 +139,7 @@
           You are in {office}, the sample office. Describe the one you want, with the rooms and the
           feel you like, and the office draws it.
         {:else}
-          You work in {office}. Redraw it whenever you like; your earlier layouts stay.
+          You work in {office}. Change it whenever you like in the Office window.
         {/if}
       </p>
       <button

@@ -1,14 +1,17 @@
 // Office layouts. The owner describes an office, the office draws it, and
-// moving in makes it the one everybody works in. Earlier layouts stay, so
-// the owner can move back.
-import { desc, eq, isNull } from 'drizzle-orm';
+// moving in makes it the one everybody works in. A change to a layout saves
+// over it. Other layouts stay, to move back to, until the owner removes them.
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DrawnArt } from '@oddboro/sprites/art';
 import type { FloorPlan, OfficeSpec, RoomKind, RoomTemplate } from '@oddboro/world';
 import { db } from './db.ts';
 import { record } from './office.ts';
-import { art, officeRooms, offices, staff } from './schema.ts';
+import { art, officeRooms, offices, roomNames, staff } from './schema.ts';
 
 export type OfficeRow = typeof offices.$inferSelect;
+
+/** What a layout's room names and seats are kept under. The sample uses its plan id. */
+export const layoutKey = (id: number) => `office-${id}`;
 
 /** The office everybody works in, or undefined while the install still uses the sample. */
 export async function activeOffice(): Promise<OfficeRow | undefined> {
@@ -31,19 +34,50 @@ export async function officeLayouts() {
     .orderBy(desc(offices.createdAt));
 }
 
-/** Keep a drawn layout. It is not the office until the owner moves in. */
-export async function saveOffice(o: {
-  description: string;
-  spec: OfficeSpec;
-  plan: FloorPlan;
-  templates: Record<string, RoomTemplate>;
-  kinds: Record<string, RoomKind>;
-}): Promise<OfficeRow> {
-  const [row] = await db
-    .insert(offices)
-    .values({ ...o, name: o.plan.name })
-    .returning();
+/**
+ * Keep a drawn layout. It is not the office until the owner moves in. With
+ * `id`, the drawing is a change to that layout and saves over it, so its room
+ * names and where everybody sat stay with it. A layout removed meanwhile is
+ * kept as a new one.
+ */
+export async function saveOffice(
+  o: {
+    description: string;
+    spec: OfficeSpec;
+    plan: FloorPlan;
+    templates: Record<string, RoomTemplate>;
+    kinds: Record<string, RoomKind>;
+  },
+  id?: number
+): Promise<OfficeRow> {
+  const values = { ...o, name: o.plan.name };
+  if (id !== undefined) {
+    const [row] = await db.update(offices).set(values).where(eq(offices.id, id)).returning();
+    if (row) return row;
+  }
+  const [row] = await db.insert(offices).values(values).returning();
   return row;
+}
+
+/**
+ * Remove a layout the owner is not in, with its room names and seats. Art
+ * drawn for it stays in the library. Returns its name, or undefined when
+ * there is no such layout or the owner is in it.
+ */
+export async function removeOffice(id: number): Promise<string | undefined> {
+  const key = layoutKey(id);
+  const name = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(offices)
+      .where(and(eq(offices.id, id), eq(offices.active, false)))
+      .returning({ name: offices.name });
+    if (!row) return undefined;
+    await tx.delete(officeRooms).where(eq(officeRooms.office, key));
+    await tx.delete(roomNames).where(eq(roomNames.office, key));
+    return row.name;
+  });
+  if (name) await record({ kind: 'work', actor: 'owner', title: `Removed the layout ${name}` });
+  return name;
 }
 
 /** Everything the office has drawn for itself, oldest first. */
