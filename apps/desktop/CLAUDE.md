@@ -106,7 +106,11 @@ digits>`, answered with HMAC-SHA256 under the key of `oddboro-proof:` and
     there as a link the office makes for that path: the shell asks
     `POST /api/browser-link` with the key and opens the address with the
     code it gets, which works once within a minute. If the office makes
-    none, the shell logs it and opens nothing.
+    none, the shell logs it and opens nothing. On Linux the shell lets the
+    page open a window after it waits on the office, as the Mac's webview
+    already does (`open_windows_after_a_wait`). WebKitGTK otherwise blocks a
+    window no click opened in that moment, so a Sign in button that asks the
+    office for its page first did nothing (#204).
 11. Reports a panic, giving up on the office (step 4's timeout, step 6's
     limit, or Node not starting) and a broken install (no Node, no server
     code), only when it found a report address and the office's `.env`
@@ -205,7 +209,9 @@ Saving a report works with online diagnostics off.
   `src-tauri/src/host.rs`. Inside an AppImage `LD_LIBRARY_PATH` points at the
   glib the bundle carries, which is older than the host's libnotify, so those
   programs fail to start. `host.rs` drops that path, or puts back the values
-  the runtime saved, and takes the AppImage's folders off `PATH`.
+  the runtime saved, and takes the AppImage's folders off `PATH`. The office
+  does the same for the programs it starts (`hostEnv` in the ledger's
+  `platform.ts`), sign-ins and installs among them (`cleanEnv`).
 - The Keychain, on a Mac (`src-tauri/src/secrets.rs`). The office sends
   `oddboro:secret {"id":n,"op":"list"|"legacy"|"set"|"remove","account":"...","value":"..."}`
   and the shell answers on Node's stdin with one line, `{"id":n,"ok":true,...}`
