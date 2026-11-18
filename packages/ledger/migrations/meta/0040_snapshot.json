@@ -1,5 +1,5 @@
 {
-  "id": "e7a611a9-c82b-4eb2-b6ae-8d081398d3a2",
+  "id": "b6116a7d-2f80-40dd-9ee2-e2f773dbf22a",
   "prevId": "33ae104f-f3e6-4e57-82d5-9265de3555d8",
   "version": "7",
   "dialect": "postgresql",
@@ -1872,6 +1872,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "previous": {
+          "name": "previous",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3306,12 +3312,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",

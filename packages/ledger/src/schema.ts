@@ -1169,6 +1169,16 @@ export const planLimits = pgTable('plan_limits', {
  * furniture in an office already lived in. `spec` is what Claude wrote, for
  * redrawing.
  */
+/** One version of a layout: everything a change to it replaces. */
+export type OfficeVersion = {
+  name: string;
+  description: string;
+  spec: OfficeSpec;
+  plan: FloorPlan;
+  templates: Record<string, RoomTemplate>;
+  kinds: Record<string, RoomKind>;
+};
+
 export const offices = pgTable('offices', {
   id: id(),
   name: text().notNull(),
@@ -1180,7 +1190,9 @@ export const offices = pgTable('offices', {
   kinds: jsonb().$type<Record<string, RoomKind>>().notNull(),
   active: boolean().notNull().default(false),
   createdAt: at('created_at').notNull().defaultNow(),
-  movedInAt: at('moved_in_at')
+  movedInAt: at('moved_in_at'),
+  /** The layout as it was before its last change, to undo it. Undoing swaps the two. */
+  previous: jsonb().$type<OfficeVersion>()
 });
 
 /**

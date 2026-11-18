@@ -355,7 +355,7 @@ FOLDER_WARNING }` until the owner accepts it (`accept`, which `giveFolder`
 - `usage.staff_id` is null for a run as the office (drafting a job
   description, drawing a look). `usage.tokens` is a generated column, the
   row's one token sum, which a staffer's usage (`usageFor`) adds up.
-  `usage.label` (migration `0040_usage_label`) says what the run was for: its
+  `usage.label` (migration `0041_usage_label`) says what the run was for: its
   job's name or its ask's title, as the floor names the run, null for a chat.
   A run's rows, one per model, share one `created_at`, so `recentRuns` groups
   by it into one line per run. `officeUsage` ranks every Odd, an Odd that left

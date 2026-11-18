@@ -1555,13 +1555,20 @@ and the front and street only if the theme did; its edits elsewhere are
 ignored, and with nothing touched it does not run. Nothing changes until **Move in**:
 `POST /api/office/move-in` (`moveInto` in `src/lib/server/move-in.ts`) checks
 the art and builds the spec again on the server, keeps the layout and its art (`saveArt`), and `moveIn` makes it the
-office. Kept art joins the library for every later drawing: `officeLibrary()`
+office. A change to the office the owner is in sends that layout's id (`current.id`
+from `/api/office/layouts`) and saves over it (`saveOffice(o, id)`), so its room
+names and seats, kept under `layoutKey(id)`, stay with it. The version it replaces
+goes in the layout's `previous`, and **Undo last change** beside "You are here"
+(`POST /api/office/layouts/[id]/undo`, `undoOffice`) swaps the two and moves in
+again, so a second press redoes the change. Kept art joins the library for every later drawing: `officeLibrary()`
 in `space.ts` merges it into the catalog and the page loads its sheet beside
 the atlas. It first remembers where
 each Odd works in the office being left, puts anyone it remembers back in
 the one being entered, and moves the rest to the work room with the most free
-seats. The `offices` trigger reloads every open page. Earlier layouts and the
-sample stay in the window to move back to.
+seats. The `offices` trigger reloads every open page. Other layouts and the
+sample stay in the window to move back to. Remove takes a second click and
+deletes a layout the owner is not in (`DELETE /api/office/layouts/[id]`,
+`removeOffice`) with its room names and seats; its art stays in the library.
 
 ## A new owner's first visit
 
