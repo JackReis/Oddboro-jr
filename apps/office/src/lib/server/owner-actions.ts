@@ -143,6 +143,8 @@ export const OWNER_ACTIONS = {
   },
   'PUT /api/office/design': { records: 'work' },
   'POST /api/office/layouts/[id]': { records: 'work' },
+  'DELETE /api/office/layouts/[id]': { records: 'work' },
+  'POST /api/office/layouts/[id]/undo': { records: 'work' },
   'POST /api/office/move-in': { records: 'work' },
   'POST /api/onboarding': {
     mayRecord: ['hire', 'work'],
