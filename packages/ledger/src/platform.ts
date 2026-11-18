@@ -76,14 +76,21 @@ function restoreOrClear(
   else delete env[key];
 }
 
+/** A path without its trailing slashes. A loop, since a regex here is slow on a long run of them. */
+function trimSlashes(path: string): string {
+  let end = path.length;
+  while (end > 0 && path[end - 1] === '/') end--;
+  return path.slice(0, end);
+}
+
 /** PATH with every entry inside the AppImage mount taken out. */
 function withoutAppDir(path: string, appdir: string): string {
-  const root = appdir.replace(/\/+$/, '');
+  const root = trimSlashes(appdir);
   if (!root) return path;
   return path
     .split(delimiter)
     .filter((entry) => {
-      const dir = entry.replace(/\/+$/, '');
+      const dir = trimSlashes(entry);
       return dir !== root && !dir.startsWith(`${root}/`);
     })
     .join(delimiter);
