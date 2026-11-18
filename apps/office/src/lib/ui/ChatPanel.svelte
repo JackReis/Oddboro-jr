@@ -33,7 +33,7 @@
     refusal,
     type ChatFile
   } from '#lib/attachments.ts';
-  import { when, workLine } from './format.ts';
+  import { compact, when, workLine } from './format.ts';
   import { chatRequest, takeDraft, type Delivered } from './chat-about.svelte.ts';
   import type { StaffProfile } from '../staff/roster.ts';
   import { handOffProgress, workItems, type ReaderProps } from '../staff/odd-now.ts';
@@ -435,14 +435,22 @@
 
   /** Pokes the staffer set that have not landed yet. */
   let upcoming = $state<PokeRow[]>([]);
+  /** How many tokens the chat's session holds, and where it starts fresh (chat-rollover.ts). */
+  let size = $state<{ tokens: number; limit: number } | undefined>();
 
   function load(id: string) {
     fetch(`/api/staff/${id}/chat` satisfies ApiUrl)
       .then((r) => r.json())
       .then(
-        (d: { history: ChatEntry[]; busy: boolean; reply?: { runId: string; turnId: string } }) => {
+        (d: {
+          history: ChatEntry[];
+          busy: boolean;
+          reply?: { runId: string; turnId: string };
+          size?: { tokens: number; limit: number };
+        }) => {
           // A message that started meanwhile is streaming into the list: keep it.
           if (sending) return;
+          size = d.size;
           remoteBusy = d.busy;
           active = d.reply;
           lines = d.history.map((h) => ({ ...h }));
@@ -1674,7 +1682,7 @@
     />
   {/if}
   <form
-    class="flex items-end gap-2 px-3 {refused ? 'pb-2' : 'pb-3'}"
+    class="flex items-end gap-2 px-3 {refused || size ? 'pb-2' : 'pb-3'}"
     novalidate
     onsubmit={send}
     {ondragover}
@@ -1790,6 +1798,18 @@
       </button>
     </div>
   </form>
+  {#if size}
+    <p class="px-3 text-[11px] text-faint {refused ? 'pb-1' : 'pb-3'}">
+      {#if size.tokens < size.limit}
+        This chat holds {compact.format(size.tokens)} of {compact.format(size.limit)} tokens. At {compact.format(
+          size.limit
+        )}, {profile.name} writes a note of where things stand and starts fresh.
+      {:else}
+        This chat holds {compact.format(size.tokens)} tokens. {profile.name} starts fresh with your next
+        message, from a note of where things stand.
+      {/if}
+    </p>
+  {/if}
   {#if refused}
     <p class="px-3 pb-3 text-xs text-coral" role="alert">{refused}</p>
   {/if}

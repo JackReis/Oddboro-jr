@@ -156,6 +156,7 @@ export const ROUTE_IDS = {
   '/api/office/layouts': true,
   '/api/office/layouts/[id]': true,
   '/api/office/move-in': true,
+  '/api/office/usage': true,
   '/api/onboarding': true,
   '/api/personas': true,
   '/api/personas/[slug]': true,

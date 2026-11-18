@@ -1170,7 +1170,14 @@ async function runTool(who: StaffRow, message: string, opts: RunOpts): Promise<R
           break;
         }
         case 'usage':
-          tokensRead = recordUsage(who.id, opts.kind, e.usage, e.session).catch(() => 0);
+          tokensRead = recordUsage(
+            who.id,
+            opts.kind,
+            e.usage,
+            e.session,
+            // What the run is for, as the floor names it: a job's name or an ask's title.
+            opts.runId ? runsGoing.get(opts.runId)?.work?.label : undefined
+          ).catch(() => 0);
           break;
         case 'plan':
           void notePlan(e.info);

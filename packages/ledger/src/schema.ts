@@ -1079,6 +1079,8 @@ export const usage = pgTable(
     ),
     /** What the run would cost at API list prices. The owner's plan does not bill it. */
     costUsd: doublePrecision().notNull().default(0),
+    /** What the run was for: its job's name or its ask's title. Null for a chat, and for rows from before it was kept. */
+    label: text(),
     createdAt: created()
   },
   (t) => [

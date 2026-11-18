@@ -232,7 +232,11 @@ export {
   plan,
   type UsageTotals,
   type UsageBucket,
-  usageFor
+  usageFor,
+  type RunUsage,
+  recentRuns,
+  type OddUsage,
+  officeUsage
 } from './office-usage.ts';
 export {
   schedulePoke,

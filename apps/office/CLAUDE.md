@@ -1151,7 +1151,11 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 10. Every run records its tokens per model and the owner's plan windows (5 hours
     and weekly), read from Claude Code's own stream. A run often reports only
     one window, so each is kept as it last came (`notePlan`). The card's back shows
-    them (`src/lib/ui/UsageStats.svelte`, LayerChart bars). An Odd's text renders
+    them (`src/lib/ui/UsageStats.svelte`, LayerChart bars), then the Odd's last
+    20 runs, each named by what it was for. The chat says how many tokens its
+    session holds, from `session.json` (`sessionTokens` in
+    `src/lib/server/chat-rollover.ts`), and the Office panel ranks every Odd by
+    tokens over 24 hours or 7 days (`src/lib/ui/OfficeUsage.svelte`). An Odd's text renders
     as Markdown through `src/lib/ui/Markdown.svelte` (markdown-it, raw HTML
     off). Only a written-out address links out: one with its scheme
     (`https://`, `http://`, `mailto:`, `ftp://`), one that starts `//`, an
