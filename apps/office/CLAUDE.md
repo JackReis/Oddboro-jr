@@ -321,10 +321,10 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    alone when the bar is under 18rem): **Chat** (the chat alone, with no
    row of tabs), **Items** (`ItemsTab.svelte`: everything the Odd put in
    front of the owner, Open, Done, All or Deleted, with Clear, Delete and
-   Restore on the ones ticked; the group counts what waits), **Knowledge** (a
-   book icon: Skills, Lessons and Storage; a persona Odd has no Skills) and
+   Restore on the ones ticked; the group counts what waits), **Brain** (a
+   brain icon: Skills, Lessons and Storage; a persona Odd has no Skills) and
    **Settings** (its own four tabs, below). A group opens on the tab it was
-   last on; the Lessons tab counts its guesses, and the Knowledge group itself
+   last on; the Lessons tab counts its guesses, and the Brain group itself
    shows no count. It opens on Chat. Storage
    (`StorageTab.svelte`, what a row lists and says in `storage-list.ts`) is a tree of everything the Odd kept in its own
    folder, then, under Shared work, its part of each thread it is on (by the
@@ -1200,7 +1200,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     Odds hired from it (or, hired before the office kept it, an Odd of the
     same name) and a separate new hire; choosing one reviews its job
     description here against the file. A local Odd's Skills tab, under
-    Knowledge, lists the SKILL.md files the owner attached, each by name with
+    Brain, lists the SKILL.md files the owner attached, each by name with
     when to use it and Remove (`src/lib/ui/StaffSkills.svelte`, the ledger's
     `staff_skills`). Add a skill reads the name and when to use it from the
     file's front matter (`src/lib/staff/skill.ts`); the owner writes what is

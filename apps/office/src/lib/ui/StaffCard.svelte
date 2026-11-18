@@ -91,7 +91,7 @@
   });
   /**
    * Four groups, each an icon and a word (the icon alone when the bar is
-   * narrow), and under Knowledge a row of its own tabs: Skills, Lessons and
+   * narrow), and under Brain a row of its own tabs: Skills, Lessons and
    * Storage. Chat is the chat alone, Items everything the Odd put in front of
    * the owner without the chat, and Settings holds its own four tabs. The
    * info page, opened from the name, sits in no group: it holds In progress,
@@ -113,9 +113,9 @@
     },
     {
       id: 'knowledge',
-      label: 'Knowledge',
-      // An open book.
-      icon: 'M12 6.5C10.5 5 8 4.5 3 4.5v14c5 0 7.5.5 9 2 1.5-1.5 4-2 9-2v-14c-5 0-7.5.5-9 2zM12 6.5v14',
+      label: 'Brain',
+      // A brain: two halves, a fold in each.
+      icon: 'M12 5C10.5 3.5 7.5 3.8 7 6C4.8 6.2 3.6 8.5 4.5 10.5C2.8 11.8 3.2 15 5.2 15.6C5 18 7.5 19.8 9.5 19C10.3 20.2 11.4 20.4 12 20ZM12 5C13.5 3.5 16.5 3.8 17 6C19.2 6.2 20.4 8.5 19.5 10.5C21.2 11.8 20.8 15 18.8 15.6C19 18 16.5 19.8 14.5 19C13.7 20.2 12.6 20.4 12 20ZM8 10c1.5 0 2.5 1 2.5 2.5M16 10c-1.5 0-2.5 1-2.5 2.5M7.5 15.5c1-.3 2 .2 2.5 1M16.5 15.5c-1-.3-2 .2-2.5 1',
       tabs: [
         { id: 'skills', label: 'Skills' },
         { id: 'lessons', label: 'Lessons' },
@@ -331,7 +331,7 @@
         <ItemsTab {profile} {version} {onitem} />
       {/await}
     {:else if tab === 'skills'}
-      <!-- The Knowledge tabs load when opened, so they stay out of the first page. -->
+      <!-- The Brain tabs load when opened, so they stay out of the first page. -->
       {#await import('./StaffSkills.svelte') then { default: StaffSkills }}
         <StaffSkills staff={id} name={profile.name} />
       {/await}

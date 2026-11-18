@@ -1371,35 +1371,35 @@
     >
       <div class="flex h-full min-h-0 flex-col">
         <div class="pb-2">{@render plate(true)}</div>
-        <!-- Where the owner is in the one pane: Office, then an Odd, then one of its items. -->
-        <nav
-          class="flex min-w-0 items-center gap-1 border-t border-hairline px-3 py-1.5 text-xs"
-          aria-label="Where you are"
-        >
-          <button
-            class="shrink-0 rounded px-1.5 py-0.5 {oddInFront
-              ? 'text-muted hover:text-ink'
-              : 'text-ink'}"
-            aria-current={oddInFront ? undefined : 'page'}
-            onclick={toOffice}>Office</button
+        <!-- Where the owner is in the one pane: Office, then an Odd, then one of its items.
+             Shown only below the Office level, where it leads back up. -->
+        {#if oddInFront}
+          <nav
+            class="flex min-w-0 items-center gap-1 border-t border-hairline px-3 py-1.5 text-xs"
+            aria-label="Where you are"
           >
-          {#if profile && !rightCollapsed}
-            <span class="text-faint" aria-hidden="true">›</span>
             <button
-              class="min-w-0 truncate rounded px-1.5 py-0.5 {oddInFront && !paneItem
-                ? 'text-ink'
-                : 'text-muted hover:text-ink'}"
-              aria-current={oddInFront && !paneItem ? 'page' : undefined}
-              onclick={toOdd}>{profile.name}</button
+              class="shrink-0 rounded px-1.5 py-0.5 text-muted hover:text-ink"
+              onclick={toOffice}>Office</button
             >
-          {/if}
-          {#if oddInFront && paneItem}
-            <span class="text-faint" aria-hidden="true">›</span>
-            <span class="min-w-0 truncate px-1.5 py-0.5 text-ink" aria-current="page"
-              >{paneItem.title}</span
-            >
-          {/if}
-        </nav>
+            {#if profile}
+              <span class="text-faint" aria-hidden="true">›</span>
+              <button
+                class="min-w-0 truncate rounded px-1.5 py-0.5 {paneItem
+                  ? 'text-muted hover:text-ink'
+                  : 'text-ink'}"
+                aria-current={paneItem ? undefined : 'page'}
+                onclick={toOdd}>{profile.name}</button
+              >
+            {/if}
+            {#if paneItem}
+              <span class="text-faint" aria-hidden="true">›</span>
+              <span class="min-w-0 truncate px-1.5 py-0.5 text-ink" aria-current="page"
+                >{paneItem.title}</span
+              >
+            {/if}
+          </nav>
+        {/if}
         {#if !oddInFront && staff.length}
           <!-- The Office level opens on every Odd, a click from each. -->
           <OddsList
