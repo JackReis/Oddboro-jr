@@ -21,31 +21,68 @@ export type ChatLine = {
   runId?: string;
   failed?: true;
   interrupted?: true;
+  /** A line the office wrote in the chat, or a reminder the Odd set: never a reply. */
+  told?: true;
+  poke?: true;
 };
 
 type Exchange = { key: string; at: Date; owner: string; reply: string; runId: string | null };
 
-/** The row a line belongs to: its owner turn, or the line itself when it has none. */
-const keyOf = (l: ChatLine): string => l.turnId ?? `at:${l.at}`;
+/**
+ * The row a line belongs to: its owner turn, or the line itself when it has
+ * none, by its time and who said it. An older office wrote a told line at the
+ * very time of the owner's line it answered.
+ */
+const keyOf = (l: ChatLine): string => l.turnId ?? `at:${l.at}:${l.from}`;
 /** A line the search keeps: words, and no failed or stopped reply. */
 const kept = (l: ChatLine): boolean => !!l.text.trim() && !l.failed && !l.interrupted;
 
 /**
  * A chat's lines as exchanges, in the order they began: each owner turn's
  * words (more than one with Send now) and its last reply, and each line the
- * Odd said alone.
+ * Odd said alone. A chat from before the office kept turn ids has none on
+ * its lines, so there an owner's line opens an exchange, more owner lines join
+ * it, and the Odd's next reply closes it. A told line or a reminder in
+ * between stands alone.
  */
 export function exchangesOf(lines: ChatLine[]): Exchange[] {
   const rows = new Map<string, Exchange>();
+  /** An exchange from before turn ids, still waiting for its reply. */
+  let open: Exchange | undefined;
+  const fresh = (key: string, l: ChatLine): Exchange => ({
+    key,
+    at: new Date(l.at),
+    owner: '',
+    reply: '',
+    runId: null
+  });
+  /** Whether the row already holds this line's words where the line puts them. */
+  const holds = (r: Exchange, l: ChatLine) => (l.from === 'owner' ? r.owner : r.reply) === l.text;
   for (const l of lines.filter(kept)) {
-    const key = keyOf(l);
-    const row = rows.get(key) ?? { key, at: new Date(l.at), owner: '', reply: '', runId: null };
+    const alone = !l.turnId && l.from === 'staff' && (l.told || l.poke);
+    let row: Exchange;
+    if (l.turnId) row = rows.get(l.turnId) ?? fresh(l.turnId, l);
+    else if (!alone && open) row = open;
+    else {
+      // The same line twice is one row. Another line at the same time, from
+      // the same side, gets a row of its own, so no line's words are lost.
+      let key = keyOf(l);
+      for (let n = 2; rows.has(key) && !holds(rows.get(key)!, l); n++) key = `${keyOf(l)}#${n}`;
+      const same = rows.get(key);
+      if (same) {
+        if (!alone) open = l.from === 'owner' ? same : undefined;
+        continue;
+      }
+      row = fresh(key, l);
+    }
     if (l.from === 'owner') row.owner = row.owner ? `${row.owner}\n\n${l.text}` : l.text;
     else {
       row.reply = l.text;
       row.runId = l.runId ?? row.runId;
     }
-    rows.set(key, row);
+    rows.set(row.key, row);
+    if (alone) continue;
+    open = !l.turnId && l.from === 'owner' ? row : undefined;
   }
   return [...rows.values()];
 }
