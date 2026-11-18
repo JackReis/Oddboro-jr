@@ -66,7 +66,10 @@ test("an Odd's recent runs come newest first, one line per run whatever its mode
 });
 
 test('every Odd is ranked by its tokens over a day and a week, the office itself and an Odd that left included', async () => {
+  // A run is its rows' one moment, so Ada's two runs get a moment each: two
+  // calls in a row can share one on a fast runner (#312).
   await recordUsage('ada', 'job', { [OPUS]: used(100) });
+  await backdate(1);
   await recordUsage('ada', 'job', { [OPUS]: used(100) });
   await recordUsage('bo', 'chat', { [OPUS]: used(5000) });
   await recordUsage(null, 'look', { [OPUS]: used(300) });
