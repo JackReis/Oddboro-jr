@@ -40,11 +40,40 @@ async function oidcToken(): Promise<string> {
   return value;
 }
 
+/**
+ * Trades the token with Azure the way the signing client will, so a refusal
+ * says why in Azure's own words (an AADSTS code) instead of signtool's bare
+ * exit code. Nothing it gets back is kept or printed.
+ */
+async function checkAzure(assertion: string): Promise<void> {
+  const tenant = need('AZURE_TENANT_ID');
+  const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
+    method: 'POST',
+    body: new URLSearchParams({
+      client_id: need('AZURE_CLIENT_ID'),
+      scope: 'https://codesigning.azure.net/.default',
+      grant_type: 'client_credentials',
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: assertion
+    })
+  });
+  if (res.ok) return;
+  const why = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    error_description?: string;
+  };
+  throw new Error(
+    `sign-windows: Azure refused the sign-in (${res.status}): ${why.error_description ?? why.error ?? 'no reason given'}`
+  );
+}
+
 const dir = mkdtempSync(join(tmpdir(), 'oddboro-sign-'));
 try {
   // The service now and then drops a request: three tries, each with its own token.
   for (let n = 1; ; n++) {
     const token = join(dir, 'token');
+    // The check spends a token of its own, so the client gets a fresh one.
+    if (n === 1) await checkAzure(await oidcToken());
     writeFileSync(token, await oidcToken());
     try {
       execFileSync(
@@ -52,6 +81,7 @@ try {
         [
           'sign',
           '/v',
+          '/debug',
           '/fd',
           'SHA256',
           '/tr',
@@ -65,7 +95,9 @@ try {
           file
         ],
         {
-          stdio: 'inherit',
+          // Tauri shows a failed command's stderr and nothing else, so
+          // signtool's own words go there.
+          stdio: ['ignore', process.stderr, process.stderr],
           env: {
             ...process.env,
             AZURE_CLIENT_ID: need('AZURE_CLIENT_ID'),
@@ -77,7 +109,7 @@ try {
       break;
     } catch (e) {
       if (n === 3) throw e;
-      console.log(`Signing ${file} failed, try ${n} of 3. Trying again in ${n * 10} seconds.`);
+      console.error(`Signing ${file} failed, try ${n} of 3. Trying again in ${n * 10} seconds.`);
       await new Promise((r) => setTimeout(r, n * 10_000));
     }
   }
