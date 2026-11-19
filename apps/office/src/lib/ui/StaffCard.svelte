@@ -31,7 +31,6 @@
     onschedule: () => void;
     onchatstart: () => void;
     onchatend: () => void;
-    oncollapse: () => void;
     onclose: () => void;
   };
 
@@ -53,7 +52,6 @@
     onschedule,
     onchatstart,
     onchatend,
-    oncollapse,
     onclose,
     onitem
   }: Props = $props();
@@ -88,6 +86,10 @@
   // So does one with a delivery selected in it.
   $effect(() => {
     if (chatRequest.focus?.staff === id) tab = 'chat';
+  });
+  // And so does one picked to talk to, from the ⌘K finder.
+  $effect(() => {
+    if (chatRequest.typing === id) tab = 'chat';
   });
   /**
    * Four groups, each an icon and a word (the icon alone when the bar is
@@ -218,12 +220,6 @@
         {profile.role} · {lineWords(now)}
       </span>
     </div>
-    <button
-      class="rounded-full px-2 py-1 text-muted hover:text-ink"
-      aria-label="Collapse the panel"
-      title="Collapse"
-      onclick={oncollapse}>»</button
-    >
     <button
       class="rounded-full px-2 py-1 text-muted hover:text-ink"
       aria-label="Close"

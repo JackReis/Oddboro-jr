@@ -1,6 +1,6 @@
 <script lang="ts">
   // Which Odd uses the owner's plan most: every Odd's tokens over the last
-  // day or week, most first. Loaded once as the Office panel opens.
+  // day or week, most first. Loaded once as the Usage section opens.
   import type { OddUsage } from '@oddboro/ledger';
   import { call } from './api.ts';
   import { compact } from './format.ts';
@@ -24,7 +24,7 @@
   const top = $derived(Math.max(1, ...rows.map((r) => r.tokens)));
 </script>
 
-<section class="mt-2 flex flex-col gap-1" aria-label="Token use">
+<section class="flex flex-col gap-1" aria-label="Token use">
   <div class="flex items-center justify-between">
     <span class="text-xs text-muted">Token use</span>
     <div class="flex gap-0.5 rounded-full bg-raise p-0.5" role="group" aria-label="Range">

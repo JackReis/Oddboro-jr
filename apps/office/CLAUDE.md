@@ -102,28 +102,55 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    on the start or end side as the viewer docks it (⇄ on the plate,
    `paneSide`, kept in localStorage as `oddboro.pane.side`). It resizes by
    dragging its inner edge (or the arrow keys on it), and remembers its width
-   per viewer. A breadcrumb under the plate says where the owner is: Office,
-   then a picked Odd, then one item or file of it; a click goes back up, and so
-   does Esc outside a field. The Office level opens on Your Odds
-   (`src/lib/ui/OddsList.svelte`): every Odd with what waits on the owner from
-   it, as portraits with names or portraits alone (`oddboro.odds.view`), a
-   click going down to that Odd, and ⌘K (Ctrl K off a Mac) putting the cursor
-   in its search. Under it, the windows (`src/lib/ui/windows.svelte.ts`):
-   Waiting, Goals, Lessons, Ledger, Services, each hire and each open file is
-   a tab, opened from the plate's buttons. D opens Waiting. Every open window
-   stays mounted, so a drawing keeps going while the owner works another. ✕
-   folds the pane away with its windows still open; closing a window with
-   unsaved edits or a drawing in progress asks first. Picking an Odd, on Your
-   Odds or the floor, opens its level in the same pane (`oddInFront`), and an
-   item it delivered opens one level down (`paneItem`), on `DeskDrawer` with
+   per viewer. Under the plate sits a strip of three tabs across the pane's
+   width, drawn like the Odd card's groups: **Odds**, **Office** and
+   **Setup** (`wins.tab`, `showTab` in `src/lib/ui/windows.svelte.ts`). The
+   Odds label carries the count waiting on the owner in an ember circle and
+   the unread messages and pokes from Odds in a sea one
+   (`src/lib/ui/CountBadge.svelte`), each only above zero; each Odd's row
+   carries its own the same way. The plate names the office and its clock,
+   with no line under them. The Odds tab is one scrolling column
+   (`DeskDrawer.svelte` with Your Odds as its `after`): the Next card, then
+   Waiting (N), the rest of the desk, then Your Odds
+   (`src/lib/ui/OddsList.svelte`), every Odd with its own waiting and unread
+   counts, a find box that filters in place, names with portraits or
+   portraits alone (`oddboro.odds.view`), and + Hire. The Office tab holds
+   Goals, Layout, Usage, Lessons, Ledger and Services. In Advanced mode a
+   Projects tab sits between Office and Setup. Setup holds `src/lib/ui/Welcome.svelte`. Every section on the Odds and Office tabs folds open in place under a header with a
+   chevron (`src/lib/ui/Fold.svelte`), loads the first time it opens, stays
+   mounted once folded, and is remembered per viewer (`folds`,
+   `oddboro.pane.folds`). At first Waiting, Your Odds and Goals are open.
+   `openSection`, `openLessons` and `openProject` open a section on its tab
+   and scroll to it. Hires, files and reports open as windows in a tab
+   strip under the tabs, each kept mounted, so a drawing keeps going
+   while the owner works another; closing one goes back to the window or tab
+   it came from. ⌘K (Ctrl K off a Mac) opens the Odd finder from anywhere
+   (`src/lib/ui/OddFinder.svelte`, rules in `odd-finder.ts`): Up and Down
+   move, Enter opens that Odd with the cursor in its chat, Esc closes and
+   puts the cursor back. D, or
+   the desk pill, opens the Odds tab on its list with Waiting open. With one item
+   or file of an Odd open, a line names the Odd, then the item; the Odd's
+   name goes back up. Esc goes up one level: the item to its Odd, the Odd
+   to the Odds list, a tab to the whole office with the pane folded. In the
+   chat box Esc goes up at once, since each Odd's unsent words, reply and
+   files wait in memory until the owner comes back (`chat-unsent.ts`, gone
+   on a reload); any other box with words in it only lets go of the
+   cursor. A menu or popover that Esc closes claims the key, so the pane
+   stays put. Above that the Odds
+   tab and the Odd's own card say where the owner is, so no line repeats it. The tabs stay at every level, and Odds goes back to
+   the list. ✕ folds the pane away with its windows still open; closing a
+   window with unsaved edits or a drawing in progress asks first. Picking an
+   Odd, on Your Odds, in the finder or on the floor, opens its level in the
+   same pane (`oddInFront`), and an item it delivered opens one level down
+   (`paneItem`), on `DeskDrawer` with
    `single`. The camera centres on the floor beside the pane, and follows the
    picked Odd until the owner drags. The floor opens on the whole building.
-7. **The Desk** (`src/lib/ui/DeskDrawer.svelte`, its window titled Waiting) is everything waiting on the owner:
+7. **The Desk** (`src/lib/ui/DeskDrawer.svelte`, the Odds tab) is everything waiting on the owner:
    open asks, open tasks, unread reports. With more than one, a Next card on
    top names the first that can be done now and what it unblocks, and the rest
    group by goal, ordered by `orderItems` (`desk-order.ts` in the ledger); an
    item that waits on another open one (`needs`) is dimmed and says so. The pill at the top shows the count,
-   the tab title carries it, a waiting Odd's tag turns ember, and a
+   the Odds tab carries it, a waiting Odd's tag turns ember, and a
    notification for each new item is one switch away, under You in the Setup
    window (`Welcome.svelte`, per viewer). An open item has All items above it,
    on a row of its own, to go back to the list. A task's Choose one step and a
@@ -374,7 +401,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    hand-off it gave or got (`handOffsFor`). A hand-off it gave sits on the card
    of its thread (`threadsFor`), where the thread began, even once it is
    continued: its title, when it began, where it stands in the same words as
-   the Goals window (`workLine`) and anything waiting on the owner, with each
+   the Goals section (`workLine`) and anything waiting on the owner, with each
    step on Open. A click anywhere on a desk item's card opens it: the card is
    one button, its title still selectable, and a click that ends a selection
    opens nothing; its controls sit below it, outside the button. It opens
@@ -644,7 +671,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
    (`ServiceActions.svelte`, `/api/services/[id]`), which puts its AWS step
    on the desk again from the office (`changeAwsTask`) and opens it. Under a
    grant the Odd's level does not allow, a line says so, with one click that
-   raises the level. The plate's Services window (`ServicesPanel.svelte`,
+   raises the level. The Office tab's Services section (`ServicesPanel.svelte`,
    `services()` in the ledger) lists every service an Odd holds or that is
    connected, with each Odd and its grant; a click on an Odd opens its card.
    The line saying what an Odd is doing names an outside tool's service by
@@ -1146,7 +1173,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     them (`src/lib/ui/UsageStats.svelte`, LayerChart bars), then the Odd's last
     20 runs, each named by what it was for. The chat says how many tokens its
     session holds, from `session.json` (`sessionTokens` in
-    `src/lib/server/chat-rollover.ts`), and the Office panel ranks every Odd by
+    `src/lib/server/chat-rollover.ts`), and the Office tab's Usage section ranks every Odd by
     tokens over 24 hours or 7 days (`src/lib/ui/OfficeUsage.svelte`). An Odd's text renders
     as Markdown through `src/lib/ui/Markdown.svelte` (markdown-it, raw HTML
     off). Only a written-out address links out: one with its scheme
@@ -1445,7 +1472,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     `install` turns true once `installAt` has come and no chat, job,
     follow-up, draft or office drawing runs, or 20 minutes after it whatever
     runs. That answer records `downAt`; the next start records `upAt` and
-    forgets the ready update (`loadUpdate`). The Setup window's Updates section
+    forgets the ready update (`loadUpdate`). The Setup tab's Updates section
     (`src/lib/ui/UpdatesSection.svelte`) shows the version (`ODDBORO_VERSION`,
     or "development"), Check now (the server writes `oddboro:update-check` on
     its stdout), the window, and a ready update with Install now and Install
@@ -1486,7 +1513,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
     with a listing of Google's models before the keychain keeps it. The page's
     side is `src/lib/ui/agent-tools.svelte.ts`, used by the Your AI tiles
     (`src/lib/ui/OfficeTools.svelte`) and by "Runs on". The tiles show on
-    setup's Your AI card (`AiCard.svelte`) and as the Setup window's Your AI
+    setup's Your AI card (`AiCard.svelte`) and as the Setup tab's Your AI
     section: one per tool on every system, a tool this system does not offer
     greyed with why (`notOfferedWhy`), and the picked tool's panel below
     them. Picking a tile sets the office's tool (`OFFICE_AGENT`, PUT
@@ -1501,7 +1528,7 @@ pieces under 3,900 bytes a line, so no value is on a command line.
 
 ## Designing the office
 
-The Office window (`src/lib/ui/OfficeDesigner.svelte`) takes the owner's words
+The Office tab's Layout section (`src/lib/ui/OfficeDesigner.svelte`) takes the owner's words
 and `POST /api/office/design` asks Claude, as the office, for an `OfficeSpec`
 (a room the owner places carries `side`, west or east, and `row`, back or
 front; a change to an office is told where its rooms stand now)
@@ -1562,11 +1589,11 @@ the atlas. It first remembers where
 each Odd works in the office being left, puts anyone it remembers back in
 the one being entered, and moves the rest to the work room with the most free
 seats. The `offices` trigger reloads every open page. Other layouts and the
-sample stay in the window to move back to. Remove takes a second click and
+sample stay in the Layout section to move back to. Remove takes a second click and
 deletes a layout the owner is not in (`DELETE /api/office/layouts/[id]`,
 `removeOffice`) with its room names and seats; its art stays in the library.
 The route tells every open page (a `layouts` event, not the trigger, which
-would reload them), and each open Office window reads its list again.
+would reload them), and each open Layout section reads its list again.
 
 ## A new owner's first visit
 
@@ -2191,8 +2218,8 @@ the persona's voice.
   never the screen's. There is no time slider and there are no office hours:
   Odds work around the clock.
 - A new owner lands on the first visit (`src/lib/ui/onboarding/`) until they
-  press Open the office. The plate's Setup link opens the Setup window
-  (`src/lib/ui/Welcome.svelte`) after that.
+  press Open the office. The Setup tab (`src/lib/ui/Welcome.svelte`) holds
+  it after that.
 - Never show demo numbers as real ones. The card's back shows only measured
   usage.
 - A tool connects at read or write: read gets the tools its server marks as
@@ -2227,23 +2254,25 @@ Retry reply on the saved turn, so the earlier failed reply stays in
 history. Access cards come from database deliveries, never the Odd's chat
 file.
 
-The Projects window and its local controller live in
+The Projects tab and its local controller live in
 `src/lib/ui/ProjectSessions.svelte` and `src/lib/server/project-sessions/`.
-Projects is a window at the Office level of the pane (`openProject` in
-`windows.svelte.ts`). While it is in front on a wide screen, the pane
+Projects is its own tab, shown only in Advanced mode, and fills the pane's
+height (`openProject` in `windows.svelte.ts`). Esc inside it belongs to the
+terminal, so the pane does not go up from there (`data-own-esc`). While the
+Projects tab is in front on a wide screen, the pane
 stretches to 16 px short of the screen's far edge
 (`projectsReach` in `+page.svelte`, `reach` on `SidePanel.svelte`), the desk
 pill hides, and the music keeps its usual width. Its handle still drags: the
 width it leaves is Projects' own (`reachWidth`, kept beside the panel's usual
 width), from `min` up to that reach, and dragged all the way it follows the
-reach again. Another tab in front brings the usual width back. Its sessions run down the start side as a listbox; the selected one's
+reach again. Another tab or window in front brings the usual width back. Its sessions run down the start side as a listbox; the selected one's
 terminal fills the rest, and its details fold out over the terminal. The
 terminal refits at once and sends the session its size only once it settles
 (`ProjectTerminal.svelte`).
 They sit behind Advanced mode (`owner.advanced_at`), which the owner turns on
 in Setup's Advanced section (`AdvancedSection.svelte`, `PUT
 /api/setup/advanced`) after one warning. The page holds it in `advanced` in
-`windows.svelte.ts`: off, the top bar and the chat's plus menu offer no
+`windows.svelte.ts`: off, the Office tab and the chat's plus menu offer no
 Projects. Off, `/api/project-sessions` and its event stream answer 403
 (`ADVANCED_OFF`), and turning it off ends every open stream
 (`detachProjectViews`). Find existing reads Claude Code's own session files

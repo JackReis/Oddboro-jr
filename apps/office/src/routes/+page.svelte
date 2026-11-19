@@ -8,6 +8,7 @@
   import type { Beat } from '#lib/floor/reveal.ts';
   import type { Stage } from '#lib/ui/onboarding/Onboarding.svelte';
   import WeatherPill from '#lib/ui/WeatherPill.svelte';
+  import CountBadge from '#lib/ui/CountBadge.svelte';
   import { askWeather, weather } from '#lib/ui/weather.svelte.ts';
   import FloorControls, { type Light } from '#lib/ui/FloorControls.svelte';
   import { music, musicEnded, startMusic } from '#lib/ui/music.svelte.ts';
@@ -25,6 +26,7 @@
   } from '#lib/staff/odd-now.ts';
   import { chatRequest, type Delivered } from '#lib/ui/chat-about.svelte.ts';
   import OddsList from '#lib/ui/OddsList.svelte';
+  import Fold from '#lib/ui/Fold.svelte';
   import type { Work } from '#lib/staff/work.ts';
   import type { LessonEvent, OfficeEvent } from '#lib/server/events.ts';
   import { account } from '#lib/ui/account.svelte.ts';
@@ -37,12 +39,16 @@
     advanced,
     close,
     deskRequest,
+    folds,
+    loadFolds,
     open,
     openHire,
     openLessons,
-    openProject,
     openReport,
+    openSection,
+    showTab,
     wins,
+    type Tab,
     type Win
   } from '#lib/ui/windows.svelte.ts';
   import type { AskRow } from '@oddboro/ledger';
@@ -143,10 +149,6 @@
   $effect.pre(() => {
     if (data.actChecked) actCheck.passed = true;
   });
-  // Off, nothing offers Projects, and an open Projects window closes.
-  $effect(() => {
-    if (!advanced.on) for (const w of wins.list) if (w.kind === 'projects') close(w.id, true);
-  });
   /** A new owner's first visit, from the empty lot until their manager says hello. */
   // svelte-ignore state_referenced_locally
   let firstRun = $state(!data.welcomed);
@@ -175,7 +177,7 @@
    * ends it.
    */
   let watching: (() => [number, number] | undefined) | undefined;
-  const openSetup = () => open({ id: 'setup', kind: 'setup' });
+  const openSetup = () => showTab('setup');
   /** Each staffer's runs going, or waiting for a slot: every `working` event brings them. */
   let inProgress = $state<Record<string, Work[]>>({});
   /** The Odds replying to the owner in chat: every `working` event brings them. */
@@ -184,11 +186,11 @@
   let toStart = $state<Record<string, Work[]>>({});
   /** A request for the card to open on a tab, from the Odds rail's list. */
   let cardShow = $state<{ id: string; tab: 'work'; n: number } | undefined>();
-  /** Bumps when jobs, runs, access, goals, threads or lessons change, so the card's tabs and the Goals and Lessons windows reload. */
+  /** Bumps when jobs, runs, access, goals, threads or lessons change, so the card's tabs and the Goals and Lessons sections reload. */
   let version = $state(0);
-  /** Bumped on a change to the ledger's rows, so the Ledger window searches again. */
+  /** Bumped on a change to the ledger's rows, so the Ledger section searches again. */
   let ledgerVersion = $state(0);
-  /** Bumped when the owner removes a layout, so an open Office window reads its list again. */
+  /** Bumped when the owner removes a layout, so an open Layout section reads its list again. */
   let layoutsVersion = $state(0);
   /** What the page does when each table changes, by the name the event carries. */
   const ON_CHANGE = new Map<string, LiveTable['page']>(
@@ -210,11 +212,32 @@
   let rightCollapsed = $state(false);
   /** An item opened from an Odd's chat or Items: the pane's deepest level. */
   let paneItem = $state<Delivered | undefined>();
-  /** An Odd's level of the pane is in front: one is picked and no Office window was raised over it. */
+  /** An Odd's level of the pane is in front: one is picked and no tab or window was raised over it. */
   const oddInFront = $derived(!!selected && !rightCollapsed && !wins.raised);
-  /** The one pane is open while it holds an Odd or windows and the owner has not folded it away. */
+  /** The one pane is open while it holds an Odd, or a tab or window, and the owner has not folded it away. */
   const leftOpen = $derived(oddInFront || wins.shown);
-  const front = $derived(wins.list.find((w) => w.id === wins.active));
+  /** The tab whose own page is in front: none while an Odd or a window is. */
+  const tabInFront = $derived<Tab | undefined>(
+    leftOpen && !oddInFront && !wins.active ? wins.tab : undefined
+  );
+  /** Each tab's page loads the first time it shows, then stays while the pane is open. */
+  let tabSeen = $state<Record<Tab, boolean>>({
+    odds: false,
+    office: false,
+    projects: false,
+    setup: false
+  });
+  // Advanced mode turned off while Projects was in front: back to the Odds tab.
+  $effect(() => {
+    if (!advanced.on && wins.tab === 'projects') wins.tab = 'odds';
+  });
+  $effect.pre(() => {
+    if (tabInFront) tabSeen[tabInFront] = true;
+  });
+  /** Bumps to take the Odds tab back to its list from an open item. */
+  let deskHome = $state(0);
+  /** The ⌘K finder is open. */
+  let finding = $state(false);
   let deskFocus = $state<string | undefined>();
   let notify = $state(false);
   // The two side panels. Widths are remembered per viewer by SidePanel.
@@ -222,20 +245,6 @@
   let innerWidth = $state(1280);
   /** Below this the panels cover the floor instead of sitting beside it. */
   const wide = $derived(innerWidth > 720);
-
-  // Every Odd is at the Office level of the pane (OddsList.svelte), not here.
-  const SECTIONS = [
-    { id: 'desk', label: 'Waiting' },
-    { id: 'goals', label: 'Goals' },
-    { id: 'lessons', label: 'Lessons' },
-    { id: 'ledger', label: 'Ledger' },
-    { id: 'services', label: 'Services' },
-    { id: 'projects', label: 'Projects' },
-    { id: 'hire', label: 'Hire' },
-    { id: 'office', label: 'Office' }
-  ] as const;
-  /** The sections the top bar offers: Projects only in Advanced mode. */
-  const sections = $derived(SECTIONS.filter((s) => s.id !== 'projects' || advanced.on));
 
   /** Select a staffer, opening its panel if it was folded away. */
   function select(id: string | undefined) {
@@ -314,10 +323,8 @@
   const leftSpace = $derived(paneSide === 'start' || firstRun ? paneSpace : 0);
   /** One pane only, so nothing takes the floor's end side. */
   const rightSpace = $derived(paneSide === 'end' && !firstRun ? paneSpace : 0);
-  /** Projects in front widens the pane to 16 px short of the screen's end edge. */
-  const projectsReach = $derived(
-    wide && leftOpen && !oddInFront && front?.kind === 'projects' ? 16 : undefined
-  );
+  /** The Projects tab widens the pane to 16 px short of the screen's end edge. */
+  const projectsReach = $derived(wide && tabInFront === 'projects' && advanced.on ? 16 : undefined);
   /** The Odd's panel slides in from the screen's edge (the left in a right-to-left page). */
   const fromEdge = (far = 48) => ({
     x: (getComputedStyle(document.documentElement).direction === 'rtl' ? -1 : 1) * far,
@@ -356,6 +363,8 @@
       desk.projectWork.length +
       (desk.away.length ? 1 : 0)
   );
+  /** Messages and pokes from the Odds the owner has not read. */
+  const unread = $derived(staff.reduce((n, p) => n + (messages[p.id] ?? 0), 0));
 
   /** Rooms a new hire can work in: any with a place to work, read or sort mail. */
   const hireRooms = $derived.by(() => {
@@ -630,11 +639,10 @@
     paneItem = undefined;
   }
 
-  /** Up to the Office level: every Odd, and the windows open there. */
-  function toOffice() {
+  /** Up to the Odds tab: the desk and every Odd. */
+  function toOdds() {
     paneItem = undefined;
-    wins.shown = true;
-    wins.raised = true;
+    showTab('odds');
   }
 
   /** Back down to the picked Odd, off its item. */
@@ -644,12 +652,19 @@
     wins.raised = false;
   }
 
+  /** The Odds tab, on one desk item when one is named. */
   async function openDesk(focus?: string) {
     // Cleared first, so asking for the item already open still brings it back.
     deskFocus = undefined;
-    open({ id: 'desk', kind: 'desk' });
+    showTab('odds');
     await tick();
     deskFocus = focus;
+  }
+
+  /** D and the desk pill: the Odds tab, back on its list, with Waiting open. */
+  function openWaiting() {
+    deskHome++;
+    openSection('waiting');
   }
 
   /**
@@ -684,22 +699,14 @@
     }
   }
 
-  /** A thread from the Goals window: the oldest thing it waits on, else its hub's chat, which shows it as a card. */
+  /** A thread from the Goals section: the oldest thing it waits on, else its hub's chat, which shows it as a card. */
   function openThread(t: GoalThread) {
     const first = t.waiting[0];
     if (!(first && openDelivered(t.hubId, first))) select(t.hubId);
   }
 
-  /** A section's button: brings its window forward, or folds the panel when it already is. */
-  function toggle(id: (typeof SECTIONS)[number]['id']) {
-    if (leftOpen && !oddInFront && front?.kind === id) return hide();
-    if (id === 'desk') return void openDesk();
-    if (id === 'ledger') return open({ id: 'ledger', kind: 'ledger' });
-    if (id === 'projects') return openProject();
-    if (id === 'services') return open({ id: 'services', kind: 'services' });
-    if (id === 'goals') return open({ id: 'goals', kind: 'goals' });
-    if (id === 'lessons') return openLessons();
-    if (id === 'office') return open({ id: 'office', kind: 'office' });
+  /** + Hire: the hire already under way, else a new one. */
+  function startHire() {
     const hire = wins.list.findLast((w) => w.kind === 'hire');
     if (hire) open(hire);
     else openHire();
@@ -715,14 +722,6 @@
   }
 
   function winTitle(w: Win): string {
-    if (w.kind === 'desk') return 'Waiting';
-    if (w.kind === 'ledger') return 'Ledger';
-    if (w.kind === 'projects') return 'Projects';
-    if (w.kind === 'services') return 'Services';
-    if (w.kind === 'goals') return 'Goals';
-    if (w.kind === 'lessons') return 'Lessons';
-    if (w.kind === 'office') return wins.titles[w.id] ?? 'Office';
-    if (w.kind === 'setup') return welcomed ? 'Setup' : 'Welcome';
     if (w.kind === 'file') return w.file.path.split('/').pop() ?? w.file.path;
     if (w.kind === 'report') return w.report.title;
     return wins.titles[w.id] ?? (w.from ? `Hire ${w.from.proposal.name}` : 'New hire');
@@ -739,6 +738,7 @@
     try {
       notify = localStorage.getItem('oddboro.notify') === '1';
       if (localStorage.getItem('oddboro.pane.side') === 'end') paneSide = 'end';
+      loadFolds();
       const held = localStorage.getItem('oddboro.light');
       if (held === 'day' || held === 'night') light = held;
     } catch {
@@ -947,6 +947,19 @@
     floor?.overview();
   }
 
+  // Leaving an Odd, to the Odds list or with the pane folded, the camera lets
+  // go of it and fits the whole office in the room the pane now leaves.
+  let wasInFront = false;
+  $effect(() => {
+    const inFront = oddInFront;
+    if (wasInFront && !inFront && floor) {
+      floor.viewOffsetX = centreOffset();
+      floor.viewCover = leftSpace + rightSpace;
+      fitFloor();
+    }
+    wasInFront = inFront;
+  });
+
   /** Where staff arrive: the home spot by the bus stop, or the bottom edge nearest the middle. */
   function arrival(w: World): [number, number] {
     const exit = w.spots.find((s) => s.activity === 'home');
@@ -1115,24 +1128,43 @@
     renaming = undefined;
   }
 
-  /** Bumps to put the cursor in the Your Odds search on the Desk. */
-  let findAgent = $state(0);
-
   function onkey(e: KeyboardEvent) {
-    // Cmd+K finds an Odd from anywhere, the box included.
+    // ⌘K (Ctrl K off a Mac) opens the Odd finder from anywhere, a box included, and closes it again.
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !firstRun) {
       e.preventDefault();
-      void openDesk().then(() => findAgent++);
+      finding = !finding;
       return;
     }
     const el = e.target instanceof Element ? e.target : null;
-    if (el?.closest('input, textarea, select, [contenteditable]')) return;
-    if (e.key === 'd' || e.key === 'D') toggle('desk');
-    // Esc goes up one level of the pane: the item to its Odd, the Odd to the Office.
-    if (e.key === 'Escape' && oddInFront) {
-      if (paneItem) paneItem = undefined;
-      else toOffice();
+    if (e.key === 'Escape') return paneUp(e, el);
+    if (el?.closest('input, textarea, select, [contenteditable], dialog')) return;
+    if ((e.key === 'd' || e.key === 'D') && !e.metaKey && !e.ctrlKey && !firstRun) openWaiting();
+  }
+
+  /**
+   * Esc goes up one level of the pane: the item to its Odd, the Odd to the
+   * Odds tab, and a tab to the whole office, the pane folded away. The chat
+   * box keeps its words for when the owner comes back, so Esc leaves from it
+   * at once. Any other box with words in it only lets go of the cursor, so
+   * Esc never throws them away.
+   */
+  function paneUp(e: KeyboardEvent, el: Element | null) {
+    if (e.defaultPrevented || firstRun || el?.closest('dialog, [data-own-esc]')) return;
+    const field = el?.closest('input, textarea, select, [contenteditable]');
+    if (field instanceof HTMLElement && !field.hasAttribute('data-keeps-words')) {
+      const words =
+        field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
+          ? field.value.trim()
+          : field.isContentEditable
+            ? field.textContent?.trim()
+            : 'a choice';
+      if (words) return field.blur();
     }
+    if (oddInFront && paneItem) paneItem = undefined;
+    else if (oddInFront) toOdds();
+    else if (leftOpen) hide();
+    else return;
+    e.preventDefault();
   }
 
   $effect(() => {
@@ -1238,7 +1270,12 @@
   </div>
 
   {#snippet plate(open: boolean)}
-    <div class="flex items-start gap-3 {open ? 'border-b border-hairline p-3' : ''}">
+    <!-- The first run has no tabs, so the plate draws its own line under the name. -->
+    <div
+      class="flex items-start gap-3 {open ? 'px-3 pt-3' : ''} {firstRun
+        ? 'border-b border-hairline pb-3'
+        : ''}"
+    >
       <div class="min-w-0 flex-1">
         <div class="text-[10px] tracking-[0.22em] text-sea uppercase">Oddboro</div>
         <!-- A long name clips with an ellipsis. The clock keeps its place. -->
@@ -1251,12 +1288,6 @@
             class="shrink-0 text-base font-semibold whitespace-nowrap text-ink tabular-nums"
             title={`${office.name} keeps ${zoneName()}`}
             >{clock} <span class="text-xs font-medium text-muted">{zoneShort()}</span></span
-          >
-        </div>
-        <div class="text-xs text-muted max-sm:hidden" class:hidden={firstRun}>
-          {data.computer} ·
-          <button class="underline underline-offset-2 hover:text-ink" onclick={openSetup}
-            >Setup</button
           >
         </div>
         {#if data.restored && !firstRun}
@@ -1292,27 +1323,22 @@
         >
       {/if}
     </div>
-    <!-- The command center's buttons arrive with the office, once the first run is over. -->
-    <div class="flex flex-wrap gap-1.5 {open ? 'px-3 pt-2' : 'mt-2'}" class:hidden={firstRun}>
-      {#each sections as sec (sec.id)}
-        {@const pressed = leftOpen && front?.kind === sec.id}
-        <button
-          class="rounded-full px-3 py-1 text-xs whitespace-nowrap {pressed
-            ? 'bg-sea/25 text-ink'
-            : 'bg-raise text-muted hover:text-ink'}"
-          aria-pressed={pressed}
-          onclick={() => toggle(sec.id)}
-          >{sec.label}{#if sec.id === 'desk' && deskCount}<span class="ms-1 text-ember"
-              >{deskCount}</span
-            >{/if}{#if wins.list.some((w) => w.kind === sec.id && wins.busy[w.id])}<span
-              class="busy ms-1.5"
-              aria-label="drawing"
-            ></span>{/if}</button
-        >
-      {/each}
+    <!-- The tabs arrive with the office, once the first run is over. One strip
+         edge to edge, as the Odd card's groups, a little below the name: its own
+         line above, and whatever is under it brings the line below. -->
+    <div
+      class="mt-3 flex items-center gap-1 overflow-hidden border-t border-hairline whitespace-nowrap"
+      class:hidden={firstRun}
+    >
+      <div class="flex flex-1 text-sm" role="tablist" aria-label="The pane">
+        {@render tabButton('odds', 'Odds')}
+        {@render tabButton('office', 'Office')}
+        {#if advanced.on}{@render tabButton('projects', 'Projects')}{/if}
+        {@render tabButton('setup', 'Setup')}
+      </div>
       {#if !leftOpen && wins.list.length}
         <button
-          class="rounded-full bg-raise px-3 py-1 text-xs whitespace-nowrap text-ink hover:bg-sea/20"
+          class="ms-auto rounded-full bg-raise px-3 py-1 text-xs whitespace-nowrap text-ink hover:bg-sea/20"
           onclick={() => (wins.shown = true)}
           >{wins.list.length} open{#if Object.values(wins.busy).some(Boolean)}<span
               class="busy ms-1.5"
@@ -1321,6 +1347,30 @@
         >
       {/if}
     </div>
+  {/snippet}
+
+  {#snippet tabButton(tab: Tab, label: string)}
+    <!-- Odds stays chosen while one Odd or its item is in front, since that is where it lives. -->
+    {@const chosen = tabInFront === tab || (tab === 'odds' && oddInFront)}
+    <button
+      role="tab"
+      aria-selected={chosen}
+      class="flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 font-medium whitespace-nowrap transition-colors {tab !==
+      'odds'
+        ? 'border-s border-hairline'
+        : ''} {chosen ? 'bg-sea/20 text-ink' : 'text-muted hover:bg-raise/60 hover:text-ink'}"
+      onclick={() => (tab === 'odds' ? toOdds() : showTab(tab))}
+      >{label}{#if tab === 'odds'}{#if deskCount}<CountBadge
+            n={deskCount}
+            tone="waiting"
+          />{/if}{#if unread}<CountBadge
+            n={unread}
+            tone="unread"
+          />{/if}{:else if tab === 'office' && wins.busy.layout}<span
+          class="busy"
+          aria-label="drawing"
+        ></span>{/if}</button
+    >
   {/snippet}
 
   <audio
@@ -1370,46 +1420,23 @@
       reach={projectsReach}
     >
       <div class="flex h-full min-h-0 flex-col">
-        <div class="pb-2">{@render plate(true)}</div>
-        <!-- Where the owner is in the one pane: Office, then an Odd, then one of its items.
-             Shown only below the Office level, where it leads back up. -->
-        {#if oddInFront}
+        {@render plate(true)}
+        <!-- An item open under an Odd: its Odd leads back up. The Odds tab and the
+             Odd's own card already say where the owner is above that. -->
+        {#if oddInFront && profile && paneItem}
           <nav
             class="flex min-w-0 items-center gap-1 border-t border-hairline px-3 py-1.5 text-xs"
             aria-label="Where you are"
           >
             <button
-              class="shrink-0 rounded px-1.5 py-0.5 text-muted hover:text-ink"
-              onclick={toOffice}>Office</button
+              class="min-w-0 shrink-0 truncate rounded px-1.5 py-0.5 text-muted hover:text-ink"
+              onclick={toOdd}>{profile.name}</button
             >
-            {#if profile}
-              <span class="text-faint" aria-hidden="true">›</span>
-              <button
-                class="min-w-0 truncate rounded px-1.5 py-0.5 {paneItem
-                  ? 'text-muted hover:text-ink'
-                  : 'text-ink'}"
-                aria-current={paneItem ? undefined : 'page'}
-                onclick={toOdd}>{profile.name}</button
-              >
-            {/if}
-            {#if paneItem}
-              <span class="text-faint" aria-hidden="true">›</span>
-              <span class="min-w-0 truncate px-1.5 py-0.5 text-ink" aria-current="page"
-                >{paneItem.title}</span
-              >
-            {/if}
+            <span class="text-faint" aria-hidden="true">›</span>
+            <span class="min-w-0 truncate px-1.5 py-0.5 text-ink" aria-current="page"
+              >{paneItem.title}</span
+            >
           </nav>
-        {/if}
-        {#if !oddInFront && staff.length}
-          <!-- The Office level opens on every Odd, a click from each. -->
-          <OddsList
-            {staff}
-            {desk}
-            {messages}
-            find={findAgent}
-            fill={!wins.list.length}
-            onselect={select}
-          />
         {/if}
         {#if oddInFront && profile}
           <div class="min-h-0 flex-1 border-t border-hairline">
@@ -1455,7 +1482,6 @@
                       onschedule={() => backToSchedule(profile.id)}
                       onchatstart={() => chatStart(profile.id)}
                       onchatend={() => chatEnd(profile.id)}
-                      oncollapse={hide}
                       onclose={() => select(undefined)}
                       onitem={(d) => openDelivered(profile.id, d)}
                     />
@@ -1488,8 +1514,7 @@
                 }}
                 >{#if wins.busy[w.id]}<span class="busy" aria-label="drawing"></span>{/if}{winTitle(
                   w
-                )}{#if w.kind === 'desk' && deskCount}<span class="text-ember">{deskCount}</span
-                  >{/if}{#if wins.dirty[w.id]}<span class="text-ember" aria-label="unsaved">•</span
+                )}{#if wins.dirty[w.id]}<span class="text-ember" aria-label="unsaved">•</span
                   >{/if}</button
               >
               <button
@@ -1500,73 +1525,11 @@
             </div>
           {/each}
         </div>
-        <div
-          class="min-h-0 flex-1 border-t border-hairline"
-          class:hidden={oddInFront || !wins.list.length}
-        >
+        <div class="min-h-0 flex-1 border-t border-hairline" class:hidden={oddInFront}>
           {#each wins.list as w (w.id)}
             <div class="h-full min-h-0" class:hidden={wins.active !== w.id} role="tabpanel">
               <!-- Each window's code loads when it first opens. -->
-              {#if w.kind === 'desk'}
-                {#await loadDeskDrawer() then { default: DeskDrawer }}
-                  <DeskDrawer
-                    {desk}
-                    {staff}
-                    focus={deskFocus}
-                    {version}
-                    onhire={hireProposal}
-                    onplan={planHires}
-                    onstaff={select}
-                  />
-                {/await}
-              {:else if w.kind === 'goals'}
-                {#await import('#lib/ui/GoalsPanel.svelte') then { default: GoalsPanel }}
-                  <GoalsPanel {staff} {version} onthread={openThread} />
-                {/await}
-              {:else if w.kind === 'lessons'}
-                {#await import('#lib/ui/LessonsLibrary.svelte') then { default: LessonsLibrary }}
-                  <LessonsLibrary {staff} {version} bind:filter={w.filter} />
-                {/await}
-              {:else if w.kind === 'ledger'}
-                {#await import('#lib/ui/LedgerPanel.svelte') then { default: LedgerPanel }}
-                  <LedgerPanel {staff} version={ledgerVersion} />
-                {/await}
-              {:else if w.kind === 'projects'}
-                {#await import('#lib/ui/ProjectSessions.svelte') then { default: ProjectSessions }}
-                  <ProjectSessions {staff} {version} ask={w.ask} />
-                {/await}
-              {:else if w.kind === 'services'}
-                {#await import('#lib/ui/ServicesPanel.svelte') then { default: ServicesPanel }}
-                  <ServicesPanel {staff} {version} onstaff={select} />
-                {/await}
-              {:else if w.kind === 'setup'}
-                {#await import('#lib/ui/Welcome.svelte') then { default: Welcome }}
-                  <Welcome
-                    office={office.name}
-                    {welcomed}
-                    ondesign={() => open({ id: 'office', kind: 'office' })}
-                    onhire={() => openHire()}
-                    onmeet={(id) => select(id)}
-                    ondone={() => {
-                      welcomed = true;
-                      close(w.id, true);
-                    }}
-                    {notify}
-                    onnotify={setNotify}
-                  />
-                {/await}
-              {:else if w.kind === 'office'}
-                <!-- Loaded when opened: it draws with PixiJS, which the first page leaves out. -->
-                {#await import('#lib/ui/OfficeDesigner.svelte') then { default: OfficeDesigner }}
-                  <OfficeDesigner
-                    id={w.id}
-                    catalog={office.catalog}
-                    staffCount={staff.length}
-                    current={office.name}
-                    layouts={layoutsVersion}
-                  />
-                {/await}
-              {:else if w.kind === 'hire'}
+              {#if w.kind === 'hire'}
                 {#await import('#lib/ui/HireRoster.svelte') then { default: HireRoster }}
                   <HireRoster
                     {staff}
@@ -1600,6 +1563,108 @@
               {/if}
             </div>
           {/each}
+          <!-- The Odds tab: what to do next, the rest of the desk, then every Odd. -->
+          {#if tabSeen.odds}
+            <div class="h-full min-h-0" class:hidden={tabInFront !== 'odds'} role="tabpanel">
+              {#await loadDeskDrawer() then { default: DeskDrawer }}
+                <DeskDrawer
+                  {desk}
+                  {staff}
+                  focus={deskFocus}
+                  {version}
+                  home={deskHome}
+                  onhire={hireProposal}
+                  onplan={planHires}
+                  onstaff={select}
+                >
+                  {#snippet after()}
+                    <OddsList
+                      {staff}
+                      {desk}
+                      {messages}
+                      onselect={select}
+                      onhire={startHire}
+                      onfind={() => (finding = true)}
+                    />
+                  {/snippet}
+                </DeskDrawer>
+              {/await}
+            </div>
+          {/if}
+          <!-- The Office tab: what is set up once and looked up now and then, each section folding open in place. -->
+          {#if tabSeen.office}
+            <div
+              class="h-full min-h-0 overflow-y-auto pb-2"
+              class:hidden={tabInFront !== 'office'}
+              role="tabpanel"
+            >
+              <Fold id="goals" title="Goals">
+                {#await import('#lib/ui/GoalsPanel.svelte') then { default: GoalsPanel }}
+                  <GoalsPanel {staff} {version} onthread={openThread} />
+                {/await}
+              </Fold>
+              <Fold id="layout" title="Layout" busy={wins.busy.layout}>
+                <!-- Loaded when opened: it draws with PixiJS, which the first page leaves out. -->
+                {#await import('#lib/ui/OfficeDesigner.svelte') then { default: OfficeDesigner }}
+                  <OfficeDesigner
+                    id="layout"
+                    catalog={office.catalog}
+                    staffCount={staff.length}
+                    current={office.name}
+                    layouts={layoutsVersion}
+                  />
+                {/await}
+              </Fold>
+              <Fold id="usage" title="Usage" body="px-3 pb-3">
+                {#await import('#lib/ui/OfficeUsage.svelte') then { default: OfficeUsage }}
+                  <OfficeUsage />
+                {/await}
+              </Fold>
+              <Fold id="lessons" title="Lessons">
+                {#await import('#lib/ui/LessonsLibrary.svelte') then { default: LessonsLibrary }}
+                  <LessonsLibrary {staff} {version} bind:filter={folds.lessons} />
+                {/await}
+              </Fold>
+              <Fold id="ledger" title="Ledger">
+                {#await import('#lib/ui/LedgerPanel.svelte') then { default: LedgerPanel }}
+                  <LedgerPanel {staff} version={ledgerVersion} />
+                {/await}
+              </Fold>
+              <Fold id="services" title="Services">
+                {#await import('#lib/ui/ServicesPanel.svelte') then { default: ServicesPanel }}
+                  <ServicesPanel {staff} {version} onstaff={select} />
+                {/await}
+              </Fold>
+            </div>
+          {/if}
+          <!-- The Projects tab, in Advanced mode: the sessions and their terminal, the pane widened to the screen's edge. -->
+          {#if tabSeen.projects && advanced.on}
+            <div class="h-full min-h-0" class:hidden={tabInFront !== 'projects'} role="tabpanel">
+              {#await import('#lib/ui/ProjectSessions.svelte') then { default: ProjectSessions }}
+                <ProjectSessions {staff} {version} ask={folds.project} />
+              {/await}
+            </div>
+          {/if}
+          <!-- The Setup tab: your name, your office, and what this computer has. -->
+          {#if tabSeen.setup}
+            <div class="h-full min-h-0" class:hidden={tabInFront !== 'setup'} role="tabpanel">
+              {#await import('#lib/ui/Welcome.svelte') then { default: Welcome }}
+                <Welcome
+                  office={office.name}
+                  {welcomed}
+                  ondesign={() => openSection('layout')}
+                  onhire={() => openHire()}
+                  onmeet={(id) => select(id)}
+                  ondone={() => {
+                    welcomed = true;
+                    toOdds();
+                  }}
+                  {notify}
+                  onnotify={setNotify}
+                />
+              {/await}
+            </div>
+          {/if}
         </div>
         <!-- The music keeps its place and size while Projects widens the panel. -->
         <div class="border-t border-hairline px-3 py-2">
@@ -1617,7 +1682,8 @@
         : 'end-4 max-sm:end-3'}"
     >
       {@render plate(false)}
-      <div class="mt-2 border-t border-hairline pt-2">
+      <!-- The line under the tabs sits right on them, as it does in the open pane. -->
+      <div class="{firstRun ? 'mt-2' : ''} border-t border-hairline pt-2">
         <FloorControls bind:light onfit={fitFloor} onzoom={(d) => floor?.zoomBy(d)} />
       </div>
     </header>
@@ -1625,7 +1691,7 @@
 
   <!-- The desk pill, centred on the floor between the two panels, and the
        weather at its end once the owner turns weather on. Projects covers the
-       floor, and the plate's Desk button carries the count. -->
+       floor, and the Odds tab carries the count. -->
   <div
     class="pointer-events-none absolute top-4 flex justify-center max-sm:top-24"
     class:hidden={firstRun || projectsReach !== undefined}
@@ -1636,7 +1702,7 @@
       <button
         class="glass pointer-events-auto flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm"
         class:desk-due={deskCount > 0}
-        onclick={() => toggle('desk')}
+        onclick={openWaiting}
         aria-keyshortcuts="D"
       >
         {#if deskCount}
@@ -1672,6 +1738,21 @@
         {firstRun ? 'Welcome' : `Opening ${office.name}`}
       </div>
     </div>
+  {/if}
+  {#if finding}
+    {#await import('#lib/ui/OddFinder.svelte') then { default: OddFinder }}
+      <OddFinder
+        {staff}
+        {desk}
+        {messages}
+        onpick={(id) => {
+          finding = false;
+          chatRequest.typing = id;
+          select(id);
+        }}
+        onclose={() => (finding = false)}
+      />
+    {/await}
   {/if}
   {#if actCheck.asking}
     {#await import('#lib/ui/ActCheck.svelte') then { default: ActCheck }}<ActCheck />{/await}

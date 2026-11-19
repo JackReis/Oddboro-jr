@@ -361,7 +361,7 @@
         plan = sample ?? null;
         officeName = 'Main Street';
         caption =
-          'The design did not come out. You are on Main Street for now. Open the Office window to try again.';
+          'The design did not come out. You are on Main Street for now. Open Layout, on the Office tab, to try again.';
         await wait(3000);
       }
       if (plan) {
