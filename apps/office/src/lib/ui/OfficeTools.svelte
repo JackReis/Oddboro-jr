@@ -7,7 +7,7 @@
   import { INSTALL_NOTES, MAKERS, offersSignOut, offersUpdate, toolAction } from './tool-action.ts';
 
   // What the office runs on, on setup's Your AI card (onboarding/AiCard.svelte)
-  // and in the Setup window (Welcome.svelte): a square tile for every coding
+  // and in the Setup tab (Welcome.svelte): a square tile for every coding
   // tool, with its maker's mark, on every system (ToolTiles.svelte, as on an
   // Odd's Model tab). A tile this system offers picks the office's tool; one it
   // does not offer yet is greyed, with why.

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import OfficeUsage from './OfficeUsage.svelte';
   import type { ArtKind, ArtRequest, DrawnArt } from '@oddboro/sprites/art';
   import { LIMITS, type OfficeSpec, type SpriteCatalog, type World } from '@oddboro/world';
   import { untrack } from 'svelte';
@@ -108,7 +107,6 @@
   $effect(() => {
     wins.busy[id] = drawing || moving;
     wins.dirty[id] = !!drawn;
-    wins.titles[id] = drawn ? `Office: ${drawn.spec.name}` : 'Office';
   });
 
   /** The preview: the real floor, built from the drawing, at midday. */
@@ -290,8 +288,7 @@
 
 <section class="flex h-full min-h-0 flex-col" aria-label="Design the office">
   <header class="border-b border-hairline p-3">
-    <div class="font-pixel text-lg leading-none">Office</div>
-    <div class="mt-1 text-xs text-muted">
+    <div class="text-xs text-muted">
       Say what you want and the office draws it. Nothing changes until you move in.
     </div>
   </header>
@@ -590,8 +587,6 @@
         {/if}
       </div>
     {/if}
-
-    <OfficeUsage />
   </div>
 </section>
 

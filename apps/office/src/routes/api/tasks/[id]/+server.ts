@@ -39,6 +39,7 @@ import {
 } from '#lib/server/aws.ts';
 import { setSecret } from '#lib/server/keychain.ts';
 import type { TaskOp } from '#lib/server/owner-actions.ts';
+import { narrateNext } from '#lib/server/narrate.ts';
 import type { RequestHandler } from './$types';
 
 type Body = {
@@ -112,6 +113,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
         responseVersion: b.version
       });
       if (!finished) error(409, 'This task was already answered');
+      void narrateNext({ kind: 'task', id }).catch(() => {});
       return json({ ok: true });
     }
   } catch (e) {

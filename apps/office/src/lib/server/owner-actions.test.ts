@@ -329,6 +329,19 @@ const TRY: Record<Recording, (send: Send) => Promise<void>> = {
     await L.serveGoal('cleo', id, 'The leaves.');
     await send({ params: { id: String(id) }, query: { staff: 'cleo' } });
   },
+  // Clear an ask (a decision) and a task (a work row), then delete and restore one.
+  'POST /api/items': async (send) => {
+    const { ask: a } = await L.raiseAsk('lead', {
+      title: 'Paint the fence',
+      why: 'w',
+      ifApproved: 'i'
+    });
+    const t = await L.giveTask('lead', { title: 'Find the brushes', why: 'w', steps: ['Look'] });
+    await send({ body: { op: 'clear', refs: [{ kind: 'ask', id: a.id }] } });
+    await send({ body: { op: 'clear', refs: [{ kind: 'task', id: t.id }] } });
+    await send({ body: { op: 'delete', refs: [{ kind: 'ask', id: a.id }] } });
+    await send({ body: { op: 'restore', refs: [{ kind: 'ask', id: a.id }] } });
+  },
   'PATCH /api/lessons/[id]': async (send) => {
     const [row] = await L.pg<{ id: number }[]>`
       insert into lessons (staff_id, heard_by, text, quote, how, status)
@@ -355,7 +368,7 @@ const TRY: Record<Recording, (send: Send) => Promise<void>> = {
   // After moving back to the sample, so a layout the owner left is there to remove.
   'DELETE /api/office/layouts/[id]': async (send) => {
     const [row] = await L.pg<{ id: number }[]>`select id from offices where not active limit 1`;
-    // Every open Office window hears it, to drop the layout from its list.
+    // Every open Layout section hears it, to drop the layout from its list.
     const { bus } = await import('./events.ts');
     let heard = 0;
     const hear = (e: { type: string }) => void (e.type === 'layouts' && heard++);

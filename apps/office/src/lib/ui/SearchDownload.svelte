@@ -3,7 +3,7 @@
   import { call } from './api.ts';
 
   // Ledger search's Download button, on Setup's line for it in the welcome
-  // and in the Setup window. Nothing downloads until the owner clicks it. The
+  // and in the Setup tab. Nothing downloads until the owner clicks it. The
   // office checks the model and answers with the line as it now stands.
   type Props = { check: Check; ondone: (check: Check) => void };
   let { check, ondone }: Props = $props();

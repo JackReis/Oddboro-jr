@@ -38,7 +38,7 @@ export type OfficeEvent =
   | { type: 'account'; status: AccountStatus }
   /** The owner changed the weather setting: each window asks for it again. */
   | { type: 'weather' }
-  /** The owner removed a layout: an open Office window reads its list again. */
+  /** The owner removed a layout: an open Layout section reads its list again. */
   | { type: 'layouts' };
 
 type Bus = EventEmitter & { listening?: Promise<unknown> };
