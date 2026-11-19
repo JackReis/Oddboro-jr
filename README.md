@@ -2,7 +2,7 @@
 
 ![The Oddboro office by day: Odds typing at their desks, reading in the library, running on the treadmill and eating in the kitchen, while others walk between rooms](docs/office.gif)
 
-A virtual office for one person, the owner. AI workers called Odds work on a
+Jack's fork of Oddboro, a virtual office for one person, the owner. AI workers called Odds work on a
 pixel-art floor, and where each one stands tells you what it is doing. The office runs on your
 computer, a Mac, Linux or Windows, and its first Odd is the Office Manager you pick.
 
